@@ -135,6 +135,23 @@ Pas de contenu pré-rempli complexe pour le MVP — juste des catégories suggé
 - Gérer proprement l'échec de la fonction (article déjà réservé entre-temps par quelqu'un d'autre, cas de double-clic simultané) avec un message clair à l'invité plutôt qu'une erreur brute.
 - Synchronisation temps réel : la page publique s'abonne aux changements de `gift_items` via Supabase Realtime (`postgres_changes` sur UPDATE, filtré par `event_id`) pour refléter en direct une réservation faite par un autre invité pendant la consultation, sans nécessiter un rechargement manuel — c'est le mécanisme anti-doublon prévu dès le cadrage initial.
 
+## Cagnotte et frais (tâche #18)
+
+- Kdovie prend une commission de **1%** sur chaque contribution, prélevée via `application_fee_amount` de Stripe Connect (versée directement sur le compte Stripe de Kdovie, sans jamais transiter par un compte intermédiaire côté app — cohérent avec la contrainte ACPR déjà posée).
+- Les frais de traitement Stripe (1,5% + 0,25€ pour une carte UE, 2,5% + 0,25€ hors UE) ne sont pas absorbés par Kdovie.
+- L'organisateur choisit, au niveau de l'événement, entre deux modes (nouvelle colonne sur `events`, ex. `fee_mode` avec valeurs `frais_en_sus` / `frais_deduits`) :
+  - **`frais_en_sus` (valeur par défaut)** : le montant que l'organisateur reçoit net correspond exactement au montant que l'invité choisit de cotiser (ex. l'invité choisit 20€ → l'organisateur reçoit 20€ net). Le montant réellement prélevé sur la carte de l'invité est majoré pour couvrir les frais Stripe et la commission Kdovie.
+  - **`frais_deduits`** : l'invité paie exactement le montant choisi, l'organisateur reçoit ce montant diminué des frais Stripe et de la commission Kdovie de 1%.
+- Formule pour le mode `frais_en_sus` (à calculer côté serveur avant de créer le PaymentIntent) :
+
+  ```
+  montant_prélevé = (montant_net_souhaité + frais_fixe_stripe) / (1 − taux_stripe − taux_kdovie)
+  ```
+
+  avec `taux_stripe = 0.015` et `frais_fixe_stripe = 0.25€` (hypothèse carte UE par défaut), `taux_kdovie = 0.01`. Ne jamais se contenter d'additionner naïvement les frais au montant net souhaité — Stripe prélève son pourcentage sur le montant total réellement facturé (qui inclut déjà la majoration), une simple addition sous-facture légèrement l'organisateur.
+- Le réglage `fee_mode` est modifiable par l'organisateur à tout moment : il n'affecte que les contributions futures, pas de verrouillage nécessaire (contrairement au `mode` des articles qui se verrouille après action d'un invité).
+- Afficher clairement à l'invité, avant paiement, le détail en mode `frais_en_sus` (ex. "20,00€ pour le cadeau + 0,75€ de frais = 20,75€ prélevés") pour éviter toute impression de frais cachés — sujet sensible sur de l'argent destiné à un cadeau.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
