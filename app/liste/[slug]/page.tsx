@@ -1,11 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
-import {
-  formatPriceCents,
-  giftItemStatusClassName,
-  giftItemStatusLabel,
-} from "@/lib/gift-item";
+import ListePubliqueClient from "@/components/gift-items/ListePubliqueClient";
 
 export default async function ListePubliquePage({
   params,
@@ -15,7 +11,7 @@ export default async function ListePubliquePage({
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, type, name, event_date")
+    .select("id, type, name, event_date, slug")
     .eq("slug", slug)
     .single();
 
@@ -25,7 +21,7 @@ export default async function ListePubliquePage({
 
   const { data: giftItems } = await supabase
     .from("gift_items")
-    .select("id, title, price_cents, image_url, status")
+    .select("id, title, price_cents, image_url, status, mode")
     .eq("event_id", event.id)
     .order("created_at", { ascending: false });
 
@@ -48,44 +44,11 @@ export default async function ListePubliquePage({
         </p>
       </div>
 
-      {giftItems && giftItems.length > 0 ? (
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          {giftItems.map((item) => (
-            <li
-              key={item.id}
-              className="flex flex-col gap-3 rounded-xl border border-gris/20 bg-white p-4"
-            >
-              {item.image_url ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.image_url}
-                  alt=""
-                  className="h-40 w-full rounded-lg object-cover"
-                />
-              ) : (
-                <div className="flex h-40 w-full items-center justify-center rounded-lg bg-creme text-3xl">
-                  🎁
-                </div>
-              )}
-              <span className="font-medium text-foreground">{item.title}</span>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gris">
-                  {formatPriceCents(item.price_cents)}
-                </span>
-                <span
-                  className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${giftItemStatusClassName(item.status)}`}
-                >
-                  {giftItemStatusLabel(item.status)}
-                </span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-center text-sm text-gris">
-          Cette liste ne contient pas encore d&apos;article.
-        </p>
-      )}
+      <ListePubliqueClient
+        eventId={event.id}
+        slug={event.slug}
+        initialItems={giftItems ?? []}
+      />
     </main>
   );
 }
