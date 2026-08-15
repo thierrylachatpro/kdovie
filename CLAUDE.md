@@ -49,14 +49,82 @@ Chaque article a un mode : `automatique` (défaut), `cotisation_obligatoire`, ou
 - Crème `#FFF8F0` — fond
 - Vert sauge `#8BA888` — secondaire (statut "disponible")
 - Typographie : Quicksand (titres, arrondi/chaleureux) + Work Sans (corps de texte)
-- Logo : wordmark "kdovie" en minuscules, pictogramme simple façon paquet cadeau (boîte + ruban + nœud), déjà implémenté dans `app/page.tsx` du starter
+- Logo : wordmark "kdovie" en minuscules, pictogramme façon paquet cadeau (boîte corail, couvercle jaune, ruban crème, nœud en deux boucles vert sauge). SVG canonique, à réutiliser tel quel partout où le logo apparaît — ne pas réinventer un autre dessin :
+
+```tsx
+<svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+  <rect x="10" y="24" width="36" height="22" rx="2" fill="#E8734A" />
+  <rect x="7" y="16" width="42" height="10" rx="2" fill="#F5B942" />
+  <rect x="25" y="16" width="6" height="30" fill="#FFF8F0" />
+  <path d="M28 16C28 16 20 16 17 12C15 9.5 17 6 20 6C24 6 28 12 28 16Z" fill="#8BA888" />
+  <path d="M28 16C28 16 36 16 39 12C41 9.5 39 6 36 6C32 6 28 12 28 16Z" fill="#8BA888" />
+</svg>
+```
+
+Déjà implémenté avec ce SVG exact dans `app/page.tsx`. Une version précédente (boîte + ruban + deux cercles, corail/crème uniquement) a été essayée puis écartée — ne pas y revenir.
 
 Ces tokens sont déjà câblés dans `app/globals.css` (`@theme inline`) du projet starter — les réutiliser plutôt que d'en introduire de nouveaux.
+
+## Authentification
+
+- Concerne uniquement les organisateurs — les invités n'ont jamais besoin de compte (réservation/cotisation anonymes, déjà acté dans le périmètre MVP)
+- Méthode retenue : lien magique par email (passwordless) via Supabase Auth, pas de mot de passe à gérer
+- Prévoir une table `profiles` (ou équivalent) liée à `auth.users` pour stocker les informations propres à l'organisateur au-delà de l'email (nom affiché, etc.)
+
+## Modèle de données
+
+Schéma complet dans `supabase/migrations/0002_events_gift_items.sql` — s'y référer telle quelle, ne pas improviser un autre schéma par-dessus.
+
+- `profiles` : un par organisateur (migration 0001)
+- `events` : événements d'un organisateur, `type` limité à naissance/anniversaire/mariage/noel/pot_depart/cremaillere/bapteme, `slug` unique pour l'URL publique
+- `gift_items` : articles d'un événement. `mode` = réglage organisateur (auto / cotisation_obligatoire / cotisation_impossible), `status` = état réel (disponible / reserve / cagnotte), `funded_amount_cents` = total public cotisé. Un trigger empêche de changer `mode` une fois `status` sorti de `disponible`
+- `reservations` : une par article max (contrainte unique), écriture réservée au service_role
+- `contributions` : détail des cotisations, statut pending/succeeded/failed, écriture réservée au service_role
+- `organizer_stripe_accounts` : lien vers le compte Stripe Connect Express de l'organisateur, `payouts_enabled` reflète le statut KYC
+
+Deux fonctions Postgres `security definer` à utiliser depuis les Route Handlers via le client `service_role` (jamais depuis le navigateur, jamais de logique de verrouillage dupliquée côté app) :
+- `reserve_gift_item(gift_item_id, guest_name, guest_email)` — verrouille l'article en réservation directe, row lock atomique
+- `confirm_contribution(contribution_id)` — à appeler depuis le webhook Stripe une fois le paiement confirmé, verrouille l'article en cagnotte et incrémente `funded_amount_cents`
+
+Après avoir appliqué la migration, régénérer les types TypeScript (`supabase gen types typescript`) plutôt que de retyper le schéma à la main.
+
+## Gabarits par type d'événement
+
+Pas de contenu pré-rempli complexe pour le MVP — juste des catégories suggérées par type, utilisées comme filtres/tags à l'ajout d'un article (pas obligatoires) :
+
+- `naissance` : Poussette & mobilité, Chambre & sommeil, Repas & allaitement, Vêtements, Éveil & jouets
+- `anniversaire` : Idées cadeaux, Expériences, Livres & jeux
+- `mariage` : Maison & déco, Voyage de noces, Expériences, Cagnotte libre
+- `noel` : Idées cadeaux, Jouets, Gastronomie
+- `pot_depart` : Cadeau collectif, Carte/mot, Cagnotte
+- `cremaillere` : Déco, Cuisine, Jardin
+- `bapteme` : Bijoux & souvenirs, Chambre, Livres
+
+À garder en simples constantes côté app, facilement modifiables — ce n'est pas un système de contenu à sur-ingénierer.
+
+## Routes (décisions prises au fil du développement, à ne pas redécider)
+
+- `/compte` : dashboard organisateur, liste ses événements
+- `/compte/evenements/nouveau` : création d'un événement
+- `/compte/evenements/[slug]` : gestion d'un événement — filtre explicitement `organizer_id = user.id` en plus de la policy RLS (la lecture de `events` est publique par design, ce filtre applicatif évite qu'un organisateur atterrisse sur la page de gestion d'un événement qui n'est pas le sien en devinant un slug)
+- `/liste/[slug]` : page publique de la liste, consultée par les invités sans compte — **pas encore implémentée**, arrive avec la tâche #16
 
 ## Parcours utilisateurs prioritaires
 
 1. Organisateur : créer un compte → créer un événement → ajouter des articles → partager la liste
 2. Invité : ouvrir le lien → consulter la liste → réserver un article ou cotiser → confirmer
+
+## Scraping des métadonnées d'article (tâche #16)
+
+- Le scraping se fait côté serveur uniquement (Route Handler ou Server Action) — jamais côté navigateur, à cause des restrictions CORS sur des domaines arbitraires.
+- Librairie : `cheerio` pour parser le HTML récupéré.
+- Ordre de priorité pour l'extraction :
+  1. Données structurées JSON-LD de type `Product`/`Offer` (le plus fiable pour le prix)
+  2. Balises Open Graph (`og:title`, `og:image`, `og:price:amount` / `product:price:amount`)
+  3. `<title>` en dernier recours pour le titre uniquement
+  4. Si aucun prix trouvé : champ laissé vide, jamais de valeur inventée — l'organisateur le saisit à la main
+- User-Agent réaliste sur la requête de fetch (certains sites bloquent les requêtes sans UA de navigateur), timeout raisonnable (~8s), et dans tous les cas le formulaire doit rester utilisable manuellement si le scraping échoue ou timeout — ne jamais bloquer l'ajout d'un article sur l'échec du scraping.
+- Hors périmètre de cette tâche, à ne pas anticiper : génération de lien d'affilié (tâche #19, le prix stocké est celui scrapé/saisi, le lien stocké est l'URL source telle quelle) ; boutons "réserver"/"cotiser" sur la page publique `/liste/[slug]` (tâches #17/#18, cette tâche affiche la liste en lecture seule avec le statut de chaque article).
 
 ## Points d'attention techniques
 
@@ -66,11 +134,23 @@ Ces tokens sont déjà câblés dans `app/globals.css` (`@theme inline`) du proj
 
 ## Backlog et statut (au moment de la bascule vers Claude Code)
 
-Terminé : cadrage fonctionnel MVP, naming (Kdovie), identité visuelle, choix des prestataires techniques, wireframes des parcours clés, maquettes UI, scaffold Next.js initial (voir starter fourni).
+Terminé : cadrage fonctionnel MVP, naming (Kdovie), identité visuelle, choix des prestataires techniques, wireframes des parcours clés, maquettes UI, scaffold Next.js initial (voir starter fourni). Logo corrigé dans `app/page.tsx` pour correspondre exactement au SVG canonique ci-dessus (deux tentatives précédentes s'en étaient écartées).
 
-En cours : statut juridique et conformité paiement (modification des statuts de la société, RC Pro, CGU/CGV dédiées — actions côté utilisateur, pas de dépendance technique bloquante pour coder).
+## Historique de l'identité visuelle (à ne pas rejouer)
 
-À venir, dans l'ordre : authentification compte permanent (Supabase Auth), modèle de données (users, events, gift_items, reservations, contributions), création de liste par gabarit, ajout d'article multi-boutique, réservation d'article, cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement.
+Trois versions du pictogramme ont été essayées avant de se stabiliser sur la version boîte corail / couvercle jaune / ruban crème / nœud vert sauge (celle du SVG canonique ci-dessus) : un rond abstrait, puis une version boîte + ruban + deux cercles en corail/crème uniquement. Les deux ont été explicitement écartées par l'utilisateur. Ne pas y revenir même si elles semblent "plus proches" du cadrage initial — la version actuelle est un choix assumé, pas un oubli.
+
+En cours : statut juridique et conformité paiement (modification des statuts de la société, RC Pro, CGU/CGV dédiées — actions côté utilisateur, pas de dépendance technique bloquante pour coder). Authentification organisateur (lien magique) en place. Modèle de données défini (migration 0002, voir section dédiée ci-dessus) — reste à appliquer et à construire l'app dessus.
+
+Création de liste par gabarit terminée (dashboard, formulaire de création, page de gestion par événement — voir section Routes ci-dessus).
+
+Ajout d'article multi-boutique terminé (scraping, formulaire d'ajout, sélecteur de mode, page publique `/liste/[slug]` en lecture seule).
+
+À venir, dans l'ordre : réservation d'article, cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement.
+
+## Workflow git
+
+Fais un commit à chaque fois qu'une tâche du backlog (ou une fonctionnalité significative) est terminée et validée — pas un seul gros commit en fin de session. Message clair, en français, qui référence la tâche si pertinent (ex : "feat: ajout d'article multi-boutique avec scraping (#16)"). Ne commite jamais un état qui ne build pas ou dont les tests/lint échouent.
 
 ## Mode de collaboration
 

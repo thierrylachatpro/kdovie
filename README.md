@@ -6,7 +6,7 @@ une cagnotte fractionnée pour chaque cadeau.
 ## Stack
 
 - Next.js 16 (App Router) + TypeScript + Tailwind v4
-- Supabase (Postgres + Auth + Realtime) — voir `lib/supabase.ts`
+- Supabase (Postgres + Auth + Realtime) — voir `lib/supabase/`
 - Stripe Connect (Express) pour la cagnotte fractionnée — voir `lib/stripe.ts`
 - Resend pour les emails transactionnels — voir `lib/resend.ts`
 - Déploiement prévu sur Vercel
@@ -26,7 +26,12 @@ Le site est disponible sur http://localhost:3000.
 **Supabase** : créer un projet sur supabase.com, récupérer l'URL et les clés
 dans Project settings > API, les mettre dans `.env.local`. La clé
 `service_role` ne doit jamais être exposée côté client (utilisée uniquement
-dans les Route Handlers Next.js).
+dans les Route Handlers Next.js). Appliquer les migrations SQL du dossier
+`supabase/migrations/` (SQL editor du dashboard, ou `supabase db push` une
+fois le projet lié via `supabase link`) pour créer la table `profiles`.
+Dans Authentication > URL Configuration, ajouter `http://localhost:3000/auth/callback`
+(et l'équivalent en production) aux Redirect URLs pour que le lien magique
+fonctionne.
 
 **Stripe** : créer un compte Stripe, activer Connect (mode Express), récupérer
 les clés de test dans Developers > API keys. Le webhook (`STRIPE_WEBHOOK_SECRET`)
@@ -52,6 +57,6 @@ lib/            Clients externes (Supabase, Stripe, Resend)
 
 ## Suite du chantier
 
-Ce scaffold couvre la tâche "socle technique" du backlog Kdovie. Prochaines
-étapes : authentification (compte permanent multi-événements), modèle de
-données (users, events, gift_items, reservations, contributions).
+Authentification organisateur en place (lien magique Supabase Auth, table
+`profiles`, middleware de protection des routes `/compte`). Prochaine étape :
+modèle de données (events, gift_items, reservations, contributions).
