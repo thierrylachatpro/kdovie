@@ -107,7 +107,7 @@ Pas de contenu pré-rempli complexe pour le MVP — juste des catégories suggé
 - `/compte` : dashboard organisateur, liste ses événements
 - `/compte/evenements/nouveau` : création d'un événement
 - `/compte/evenements/[slug]` : gestion d'un événement — filtre explicitement `organizer_id = user.id` en plus de la policy RLS (la lecture de `events` est publique par design, ce filtre applicatif évite qu'un organisateur atterrisse sur la page de gestion d'un événement qui n'est pas le sien en devinant un slug)
-- `/liste/[slug]` : page publique de la liste, consultée par les invités sans compte — **pas encore implémentée**, arrive avec la tâche #16
+- `/liste/[slug]` : page publique de la liste, consultée par les invités sans compte, avec réservation en direct et synchronisation temps réel (tâches #16/#17)
 
 ## Parcours utilisateurs prioritaires
 
@@ -125,6 +125,15 @@ Pas de contenu pré-rempli complexe pour le MVP — juste des catégories suggé
   4. Si aucun prix trouvé : champ laissé vide, jamais de valeur inventée — l'organisateur le saisit à la main
 - User-Agent réaliste sur la requête de fetch (certains sites bloquent les requêtes sans UA de navigateur), timeout raisonnable (~8s), et dans tous les cas le formulaire doit rester utilisable manuellement si le scraping échoue ou timeout — ne jamais bloquer l'ajout d'un article sur l'échec du scraping.
 - Hors périmètre de cette tâche, à ne pas anticiper : génération de lien d'affilié (tâche #19, le prix stocké est celui scrapé/saisi, le lien stocké est l'URL source telle quelle) ; boutons "réserver"/"cotiser" sur la page publique `/liste/[slug]` (tâches #17/#18, cette tâche affiche la liste en lecture seule avec le statut de chaque article).
+
+## Réservation d'article par un invité (tâche #17)
+
+- Bouton "Réserver" visible sur `/liste/[slug]` uniquement si `status = 'disponible'` et `mode != 'cotisation_obligatoire'`.
+- Pour les articles en `cotisation_obligatoire`, ou déjà en `status = 'cagnotte'` : pas de bouton d'action pour l'instant, juste le badge de statut — la cotisation arrive avec la tâche #18, ne pas construire une UI de cotisation par anticipation.
+- Formulaire invité minimal déclenché par le clic : prénom/nom (obligatoire), email (optionnel, sert à prévenir en cas d'annulation future).
+- L'écriture ne passe jamais par un appel RPC direct depuis le navigateur : un Route Handler / Server Action utilise le client `service_role` (`lib/supabase/admin.ts`) pour appeler `reserve_gift_item`. Ça permet de garder une validation et une éventuelle limitation de fréquence côté serveur.
+- Gérer proprement l'échec de la fonction (article déjà réservé entre-temps par quelqu'un d'autre, cas de double-clic simultané) avec un message clair à l'invité plutôt qu'une erreur brute.
+- Synchronisation temps réel : la page publique s'abonne aux changements de `gift_items` via Supabase Realtime (`postgres_changes` sur UPDATE, filtré par `event_id`) pour refléter en direct une réservation faite par un autre invité pendant la consultation, sans nécessiter un rechargement manuel — c'est le mécanisme anti-doublon prévu dès le cadrage initial.
 
 ## Points d'attention techniques
 
@@ -146,11 +155,15 @@ Création de liste par gabarit terminée (dashboard, formulaire de création, pa
 
 Ajout d'article multi-boutique terminé (scraping, formulaire d'ajout, sélecteur de mode, page publique `/liste/[slug]` en lecture seule).
 
-À venir, dans l'ordre : réservation d'article, cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement.
+Réservation d'article par un invité terminée (bouton conditionnel, formulaire invité, synchronisation temps réel). Migration `0003_gift_items_realtime.sql` (ajout de `gift_items` à la publication `supabase_realtime`) écrite mais pas encore appliquée à la base distante — à faire manuellement via le SQL Editor Supabase, comme pour les migrations précédentes.
+
+À venir, dans l'ordre : cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement.
 
 ## Workflow git
 
 Fais un commit à chaque fois qu'une tâche du backlog (ou une fonctionnalité significative) est terminée et validée — pas un seul gros commit en fin de session. Message clair, en français, qui référence la tâche si pertinent (ex : "feat: ajout d'article multi-boutique avec scraping (#16)"). Ne commite jamais un état qui ne build pas ou dont les tests/lint échouent.
+
+Le remote `origin` est configuré (https://github.com/thierrylachatpro/kdovie). Chaque `git push` doit être explicitement confirmé par l'utilisateur avant d'être exécuté — ne jamais pousser automatiquement sans demander, le commit local suffit à la fin d'une tâche.
 
 ## Mode de collaboration
 
