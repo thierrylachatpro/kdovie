@@ -3,10 +3,9 @@ import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
-import { eventStatusClassName, eventStatusLabel, type EventStatus } from "@/lib/event-status";
+import type { EventStatus } from "@/lib/event-status";
 import { initiales } from "@/lib/initials";
-import CopierLienButton from "@/components/evenements/CopierLienButton";
-import ToggleStatutButton from "@/components/evenements/ToggleStatutButton";
+import VisibiliteListe from "@/components/evenements/VisibiliteListe";
 import AjouterArticleForm from "@/components/gift-items/AjouterArticleForm";
 import GiftItemCard from "@/components/gift-items/GiftItemCard";
 
@@ -169,31 +168,17 @@ export default async function EvenementPage({
               <h1 className="font-heading text-4xl leading-[1.1] font-bold text-[#C0512A]">
                 {event.name}
               </h1>
-              <div className="flex flex-wrap items-center gap-2.5 text-base text-[#7A6354]">
-                <span>{metaParts.join(" · ")}</span>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-[13px] font-semibold ${eventStatusClassName(event.status)}`}
-                >
-                  {eventStatusLabel(event.status)}
-                </span>
-              </div>
-            </div>
-            <div className="flex flex-wrap gap-2.5">
-              <CopierLienButton lien={lienPublic} />
-              <ToggleStatutButton
-                eventId={event.id}
-                slug={event.slug}
-                status={event.status as EventStatus}
-              />
+              <div className="text-base text-[#7A6354]">{metaParts.join(" · ")}</div>
             </div>
           </div>
-          {event.status === "brouillon" && (
-            <p className="mt-4 text-sm text-[#7A6354]">
-              Tant que la liste est en brouillon, les invités qui ouvrent le lien ne voient pas
-              son contenu.
-            </p>
-          )}
         </section>
+
+        <VisibiliteListe
+          eventId={event.id}
+          slug={event.slug}
+          status={event.status as EventStatus}
+          lienPublic={lienPublic}
+        />
 
         {erreur && <p className="mb-4 text-sm text-corail-dark">{erreur}</p>}
         <div className="mb-9">
