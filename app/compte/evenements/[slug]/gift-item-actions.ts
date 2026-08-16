@@ -69,3 +69,71 @@ export async function updateGiftItemMode(
 
   return { error: error?.message ?? null };
 }
+
+export async function updateGiftItem(
+  itemId: string,
+  slug: string,
+  data: { title: string; price: string; imageUrl: string },
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/connexion");
+  }
+
+  const title = data.title.trim();
+  if (!title) {
+    return { error: "Le titre ne peut pas être vide." };
+  }
+
+  let priceCents: number | null = null;
+  const priceRaw = data.price.trim();
+  if (priceRaw) {
+    const value = parseFloat(priceRaw.replace(",", "."));
+    priceCents = Number.isFinite(value) && value >= 0 ? Math.round(value * 100) : null;
+  }
+
+  const { error } = await supabase
+    .from("gift_items")
+    .update({ title, price_cents: priceCents, image_url: data.imageUrl.trim() || null })
+    .eq("id", itemId);
+
+  if (!error) {
+    revalidatePath(`/compte/evenements/${slug}`);
+  }
+
+  return {
+    error: error
+      ? "Cet article est verrouillé, un invité a déjà agi dessus."
+      : null,
+  };
+}
+
+export async function deleteGiftItem(
+  itemId: string,
+  slug: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/connexion");
+  }
+
+  const { error } = await supabase.from("gift_items").delete().eq("id", itemId);
+
+  if (!error) {
+    revalidatePath(`/compte/evenements/${slug}`);
+  }
+
+  return {
+    error: error
+      ? "Cet article est verrouillé, un invité a déjà agi dessus."
+      : null,
+  };
+}
