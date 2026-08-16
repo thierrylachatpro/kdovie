@@ -167,7 +167,10 @@ export default async function ComptePage() {
           <span className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436]">
             {user.email}
           </span>
-          <span className="flex items-center gap-2.5 rounded-[18px] bg-[#F7E7D6] py-2 pr-4 pl-2">
+          <Link
+            href="/compte/profil"
+            className="flex items-center gap-2.5 rounded-[18px] bg-[#F7E7D6] py-2 pr-4 pl-2 hover:bg-[#F2DFC9]"
+          >
             <span className="font-heading flex h-9 w-9 items-center justify-center rounded-xl bg-corail text-[16px] font-bold text-creme">
               {initiales(nomAffiche)}
             </span>
@@ -177,7 +180,7 @@ export default async function ComptePage() {
               </span>
               <span className="text-[13px] text-[#8A7263]">Mon compte</span>
             </span>
-          </span>
+          </Link>
         </div>
       </header>
 

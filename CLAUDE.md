@@ -126,9 +126,21 @@ Notion absente du modèle initial, à implémenter en plus (et indépendamment) 
 - Le statut n'a aucun impact sur l'accès à la page de gestion organisateur (toujours accessible, brouillon ou ouverte), uniquement sur ce que voit un invité sur la page publique.
 - Badge de statut à afficher sur le dashboard (`/compte`) et sur la page de gestion ("Brouillon" / "Liste ouverte").
 
+## Page "Mon compte" (profil organisateur, 16 août 2026)
+
+Le bloc "Mon compte" en haut à droite du dashboard (`app/compte/page.tsx`, ~ligne 172-180) est aujourd'hui un `<span>` non cliquable affichant le début de l'email en fallback (`nomAffiche`, ligne 67). À transformer en lien vers une nouvelle route `/compte/profil`.
+
+Contenu de cette page, volontairement minimal pour le MVP :
+- Email de l'organisateur, en lecture seule (pas de changement d'email prévu, l'auth est un lien magique)
+- Pseudo (`profiles.display_name`) éditable — la colonne existe déjà en base (migration 0001), il ne manque que le formulaire pour l'écrire. Une fois enregistré, il doit remplacer le fallback "début de l'email" partout où `nomAffiche`/`display_name` est utilisé (dashboard, bloc "Mon compte")
+- Bouton de déconnexion (réutiliser `components/auth/DeconnexionButton.tsx`)
+
+Volontairement laissé de côté à ce stade (à ne pas ajouter maintenant) : statut du compte Stripe Connect (aura sa propre section quand la tâche #18 sera développée), export/suppression de compte RGPD (bon à avoir, backlog v2, pas bloquant pour le MVP), préférences de notification (rien de tel n'existe encore dans le produit).
+
 ## Routes (décisions prises au fil du développement, à ne pas redécider)
 
 - `/compte` : dashboard organisateur, liste ses événements
+- `/compte/profil` : page de profil organisateur — pseudo éditable, email en lecture seule, déconnexion (voir section "Page 'Mon compte'" ci-dessus)
 - `/compte/evenements/nouveau` : création d'un événement
 - `/compte/evenements/[slug]` : gestion d'un événement — filtre explicitement `organizer_id = user.id` en plus de la policy RLS (la lecture de `events` est publique par design, ce filtre applicatif évite qu'un organisateur atterrisse sur la page de gestion d'un événement qui n'est pas le sien en devinant un slug)
 - `/liste/[slug]` : page publique de la liste, consultée par les invités sans compte, avec réservation en direct et synchronisation temps réel (tâches #16/#17) — n'affiche le contenu que si `status = 'ouverte'` (voir section "Statut de liste" ci-dessus)
@@ -203,6 +215,8 @@ Recadrage produit du 16 août 2026 : le type d'événement est devenu optionnel 
 Nouvelle notion du 16 août 2026 : statut brouillon/ouverte par liste (voir section "Statut de liste" ci-dessus) — migration `0005_events_status.sql` écrite (à appliquer manuellement via le SQL Editor Supabase, comme `0003` et `0004`), bouton réversible "Ouvrir ma liste aux invités" sur la page de gestion, gating du contenu sur `/liste/[slug]` et badges de statut sur le dashboard et la page de gestion développés.
 
 Tableau de bord `/compte` refait depuis la maquette Claude Design `Compte.dc.html` : statistiques du compte, cartes de mise en avant (ajout rapide de cadeau, liste simple), cartes d'événement avec barre de progression et encart cagnotte, fil d'activité (réservations et cotisations récentes). La création d'événement reste sur sa page dédiée `/compte/evenements/nouveau` (pas de formulaire inline dupliqué sur le dashboard, conformément aux routes déjà actées).
+
+Page "Mon compte" du 16 août 2026 : route `/compte/profil` développée (voir section "Page 'Mon compte'" ci-dessus) — pseudo éditable (`profiles.display_name`), email en lecture seule, déconnexion. Le bloc "Mon compte" du dashboard est maintenant un lien vers cette page.
 
 À venir, dans l'ordre : cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement.
 
