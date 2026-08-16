@@ -28,13 +28,10 @@ export default function NouvelEvenementForm() {
         Type d&apos;événement
         <select
           name="type"
-          required
           defaultValue=""
           className="rounded-lg border border-gris/30 bg-white px-4 py-2.5 text-sm text-foreground outline-none focus:border-corail"
         >
-          <option value="" disabled>
-            Choisir un type
-          </option>
+          <option value="">🎁 Aucun type précis / liste simple</option>
           {EVENT_TYPES.map((t) => (
             <option key={t.id} value={t.id}>
               {t.icon} {t.label}

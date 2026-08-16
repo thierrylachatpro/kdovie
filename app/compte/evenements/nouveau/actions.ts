@@ -15,12 +15,13 @@ export async function createEvent(formData: FormData) {
     redirect("/connexion");
   }
 
-  const type = formData.get("type")?.toString() ?? "";
+  const typeSubmitted = formData.get("type")?.toString() ?? "";
+  const type = typeSubmitted || null;
   const name = formData.get("name")?.toString().trim() ?? "";
   const eventDate = formData.get("event_date")?.toString() || null;
   const submittedSlug = formData.get("slug")?.toString().trim() ?? "";
 
-  if (!EVENT_TYPES.some((t) => t.id === type) || !name) {
+  if ((type !== null && !EVENT_TYPES.some((t) => t.id === type)) || !name) {
     redirect("/compte/evenements/nouveau?erreur=champs_invalides");
   }
 

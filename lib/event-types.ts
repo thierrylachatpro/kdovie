@@ -17,10 +17,12 @@ export const EVENT_TYPES: { id: EventType; label: string; icon: string }[] = [
   { id: "bapteme", label: "Baptême", icon: "⛪" },
 ];
 
-export function eventTypeLabel(type: string): string {
+export function eventTypeLabel(type: string | null): string {
+  if (!type) return "Liste";
   return EVENT_TYPES.find((t) => t.id === type)?.label ?? type;
 }
 
-export function eventTypeIcon(type: string): string {
+export function eventTypeIcon(type: string | null): string {
+  if (!type) return "🎁";
   return EVENT_TYPES.find((t) => t.id === type)?.icon ?? "🎁";
 }

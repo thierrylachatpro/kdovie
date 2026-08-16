@@ -76,7 +76,7 @@ Ces tokens sont déjà câblés dans `app/globals.css` (`@theme inline`) du proj
 Schéma complet dans `supabase/migrations/0002_events_gift_items.sql` — s'y référer telle quelle, ne pas improviser un autre schéma par-dessus.
 
 - `profiles` : un par organisateur (migration 0001)
-- `events` : événements d'un organisateur, `type` limité à naissance/anniversaire/mariage/noel/pot_depart/cremaillere/bapteme, `slug` unique pour l'URL publique
+- `events` : événements d'un organisateur, `type` limité à naissance/anniversaire/mariage/noel/pot_depart/cremaillere/bapteme **ou NULL** (type facultatif, voir section "Recadrage" plus bas — migration à part de 0002, ne pas modifier 0002 déjà appliquée), `slug` unique pour l'URL publique
 - `gift_items` : articles d'un événement. `mode` = réglage organisateur (auto / cotisation_obligatoire / cotisation_impossible), `status` = état réel (disponible / reserve / cagnotte), `funded_amount_cents` = total public cotisé. Un trigger empêche de changer `mode` une fois `status` sorti de `disponible`
 - `reservations` : une par article max (contrainte unique), écriture réservée au service_role
 - `contributions` : détail des cotisations, statut pending/succeeded/failed, écriture réservée au service_role
@@ -90,7 +90,7 @@ Après avoir appliqué la migration, régénérer les types TypeScript (`supabas
 
 ## Gabarits par type d'événement
 
-Pas de contenu pré-rempli complexe pour le MVP — juste des catégories suggérées par type, utilisées comme filtres/tags à l'ajout d'un article (pas obligatoires) :
+Pas de contenu pré-rempli complexe pour le MVP — juste des catégories suggérées par type, utilisées comme filtres/tags à l'ajout d'un article (pas obligatoires). Le choix d'un type est lui-même facultatif au niveau de la liste (voir "Recadrage" ci-dessous) — quand aucun type n'est choisi, aucune catégorie suggérée n'est proposée par défaut à l'ajout d'article :
 
 - `naissance` : Poussette & mobilité, Chambre & sommeil, Repas & allaitement, Vêtements, Éveil & jouets
 - `anniversaire` : Idées cadeaux, Expériences, Livres & jeux
@@ -101,6 +101,19 @@ Pas de contenu pré-rempli complexe pour le MVP — juste des catégories suggé
 - `bapteme` : Bijoux & souvenirs, Chambre, Livres
 
 À garder en simples constantes côté app, facilement modifiables — ce n'est pas un système de contenu à sur-ingénierer.
+
+## Recadrage : une liste n'est pas obligatoirement un événement daté et typé (16 août 2026)
+
+Décision qui affine le modèle initial sans le remettre en cause sur le fond — à ne pas re-débattre, juste à implémenter :
+
+- **Pas de renommage.** Le mot "événement" reste tel quel partout : table `events`, routes `/compte/evenements/...`, tous les libellés UI ("Vos événements", "Type d'événement"...). Seule la notion de date/type imposés change, pas la terminologie.
+- **Date : déjà optionnelle, ne pas y toucher davantage.** Le champ `event_date` est déjà nullable en base et déjà marqué "optionnelle" dans `NouvelEvenementForm`. Il reste dans le formulaire de création, discret comme aujourd'hui — pas de retrait du formulaire, pas de mise en avant non plus.
+- **Type : doit devenir optionnel.** Une liste peut exister sans catégorie d'événement précise ("juste une liste"). Implique :
+  - Nouvelle migration (`0004_...`, ne pas modifier `0002_events_gift_items.sql` déjà appliquée) qui rend `events.type` nullable et ajuste le check constraint pour autoriser NULL en plus des 7 valeurs existantes.
+  - Dans `NouvelEvenementForm` (`components/evenements/NouvelEvenementForm.tsx`), le `<select name="type">` ne doit plus être `required` ; prévoir une option explicite du type "Aucun type précis / liste simple".
+  - Partout où `eventTypeIcon`/`eventTypeLabel` (`lib/event-types.ts`) sont appelés avec un `type` potentiellement `null` (dashboard `app/compte/page.tsx`, page de gestion `app/compte/evenements/[slug]/page.tsx`, et la page publique `/liste/[slug]` si elle affiche le type), prévoir un fallback générique (icône 🎁, libellé "Liste").
+  - Les 7 gabarits existants restent valables quand un type est choisi — ils ne sont pas remis en cause, seulement rendus facultatifs.
+- **Pas de notion de liste passée / en cours / à venir.** Ce regroupement temporel, évoqué dans le document de cadrage initial, n'a jamais été implémenté dans le code (le dashboard actuel est une liste plate triée par date de création) — ne pas l'introduire.
 
 ## Routes (décisions prises au fil du développement, à ne pas redécider)
 
@@ -173,6 +186,8 @@ Création de liste par gabarit terminée (dashboard, formulaire de création, pa
 Ajout d'article multi-boutique terminé (scraping, formulaire d'ajout, sélecteur de mode, page publique `/liste/[slug]` en lecture seule).
 
 Réservation d'article par un invité terminée (bouton conditionnel, formulaire invité, synchronisation temps réel). Migration `0003_gift_items_realtime.sql` (ajout de `gift_items` à la publication `supabase_realtime`) écrite mais pas encore appliquée à la base distante — à faire manuellement via le SQL Editor Supabase, comme pour les migrations précédentes.
+
+Recadrage produit du 16 août 2026 : le type d'événement est devenu optionnel sur une liste (voir section "Recadrage" ci-dessus) — migration `0004_events_type_optional.sql` écrite (à appliquer manuellement via le SQL Editor Supabase, comme `0003`), `NouvelEvenementForm` et les fallbacks `eventTypeIcon`/`eventTypeLabel` mis à jour.
 
 À venir, dans l'ordre : cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement.
 
