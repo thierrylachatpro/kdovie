@@ -11,7 +11,7 @@ export default async function ListePubliquePage({
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, type, name, event_date, slug")
+    .select("id, type, name, event_date, slug, status")
     .eq("slug", slug)
     .single();
 
@@ -19,11 +19,15 @@ export default async function ListePubliquePage({
     notFound();
   }
 
-  const { data: giftItems } = await supabase
-    .from("gift_items")
-    .select("id, title, price_cents, image_url, status, mode")
-    .eq("event_id", event.id)
-    .order("created_at", { ascending: false });
+  const estOuverte = event.status === "ouverte";
+
+  const { data: giftItems } = estOuverte
+    ? await supabase
+        .from("gift_items")
+        .select("id, title, price_cents, image_url, status, mode")
+        .eq("event_id", event.id)
+        .order("created_at", { ascending: false })
+    : { data: null };
 
   const dateFormatee = event.event_date
     ? new Date(event.event_date).toLocaleDateString("fr-FR", {
@@ -44,11 +48,18 @@ export default async function ListePubliquePage({
         </p>
       </div>
 
-      <ListePubliqueClient
-        eventId={event.id}
-        slug={event.slug}
-        initialItems={giftItems ?? []}
-      />
+      {estOuverte ? (
+        <ListePubliqueClient
+          eventId={event.id}
+          slug={event.slug}
+          initialItems={giftItems ?? []}
+        />
+      ) : (
+        <p className="mx-auto max-w-md text-center text-sm text-gris">
+          Cette liste n&apos;est pas encore ouverte. Revenez un peu plus tard, l&apos;organisateur
+          est en train de la préparer.
+        </p>
+      )}
     </main>
   );
 }

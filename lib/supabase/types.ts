@@ -63,6 +63,7 @@ export type Database = {
           name: string
           organizer_id: string
           slug: string
+          status: string
           type: string | null
           updated_at: string
         }
@@ -73,6 +74,7 @@ export type Database = {
           name: string
           organizer_id: string
           slug: string
+          status?: string
           type?: string | null
           updated_at?: string
         }
@@ -83,6 +85,7 @@ export type Database = {
           name?: string
           organizer_id?: string
           slug?: string
+          status?: string
           type?: string | null
           updated_at?: string
         }

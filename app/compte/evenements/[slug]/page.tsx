@@ -3,12 +3,14 @@ import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
+import { eventStatusClassName, eventStatusLabel, type EventStatus } from "@/lib/event-status";
 import {
   formatPriceCents,
   giftItemStatusClassName,
   giftItemStatusLabel,
 } from "@/lib/gift-item";
 import CopierLienButton from "@/components/evenements/CopierLienButton";
+import ToggleStatutButton from "@/components/evenements/ToggleStatutButton";
 import AjouterArticleForm from "@/components/gift-items/AjouterArticleForm";
 import ModeSelect from "@/components/gift-items/ModeSelect";
 
@@ -37,7 +39,7 @@ export default async function EvenementPage({
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, type, name, slug, event_date")
+    .select("id, type, name, slug, event_date, status")
     .eq("slug", slug)
     .eq("organizer_id", user.id)
     .single();
@@ -77,12 +79,30 @@ export default async function EvenementPage({
           {eventTypeLabel(event.type)}
           {dateFormatee ? ` · ${dateFormatee}` : ""}
         </p>
+        <span
+          className={`w-fit rounded-full px-2.5 py-0.5 text-xs font-medium ${eventStatusClassName(event.status)}`}
+        >
+          {eventStatusLabel(event.status)}
+        </span>
       </div>
 
-      <div className="mx-auto flex w-full max-w-md flex-col gap-3 rounded-xl border border-gris/20 bg-white p-6 text-center">
+      <div className="mx-auto flex w-full max-w-md flex-col items-center gap-3 rounded-xl border border-gris/20 bg-white p-6 text-center">
         <p className="text-sm text-gris">Lien public de la liste</p>
         <p className="break-all text-sm font-medium text-foreground">{lienPublic}</p>
-        <CopierLienButton lien={lienPublic} />
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <CopierLienButton lien={lienPublic} />
+          <ToggleStatutButton
+            eventId={event.id}
+            slug={event.slug}
+            status={event.status as EventStatus}
+          />
+        </div>
+        {event.status === "brouillon" && (
+          <p className="text-xs text-gris">
+            Tant que la liste est en brouillon, les invités qui ouvrent ce lien ne voient pas
+            son contenu.
+          </p>
+        )}
       </div>
 
       <section className="flex flex-col gap-4">

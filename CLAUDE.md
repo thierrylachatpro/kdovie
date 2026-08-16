@@ -76,7 +76,7 @@ Ces tokens sont déjà câblés dans `app/globals.css` (`@theme inline`) du proj
 Schéma complet dans `supabase/migrations/0002_events_gift_items.sql` — s'y référer telle quelle, ne pas improviser un autre schéma par-dessus.
 
 - `profiles` : un par organisateur (migration 0001)
-- `events` : événements d'un organisateur, `type` limité à naissance/anniversaire/mariage/noel/pot_depart/cremaillere/bapteme **ou NULL** (type facultatif, voir section "Recadrage" plus bas — migration à part de 0002, ne pas modifier 0002 déjà appliquée), `slug` unique pour l'URL publique
+- `events` : événements d'un organisateur, `type` limité à naissance/anniversaire/mariage/noel/pot_depart/cremaillere/bapteme **ou NULL** (type facultatif, voir section "Recadrage" plus bas — migration à part de 0002, ne pas modifier 0002 déjà appliquée), `slug` unique pour l'URL publique, `status` = `brouillon` (défaut) ou `ouverte` (voir section "Statut de liste" plus bas)
 - `gift_items` : articles d'un événement. `mode` = réglage organisateur (auto / cotisation_obligatoire / cotisation_impossible), `status` = état réel (disponible / reserve / cagnotte), `funded_amount_cents` = total public cotisé. Un trigger empêche de changer `mode` une fois `status` sorti de `disponible`
 - `reservations` : une par article max (contrainte unique), écriture réservée au service_role
 - `contributions` : détail des cotisations, statut pending/succeeded/failed, écriture réservée au service_role
@@ -115,12 +115,23 @@ Décision qui affine le modèle initial sans le remettre en cause sur le fond �
   - Les 7 gabarits existants restent valables quand un type est choisi — ils ne sont pas remis en cause, seulement rendus facultatifs.
 - **Pas de notion de liste passée / en cours / à venir.** Ce regroupement temporel, évoqué dans le document de cadrage initial, n'a jamais été implémenté dans le code (le dashboard actuel est une liste plate triée par date de création) — ne pas l'introduire.
 
+## Statut de liste : brouillon / ouverte (16 août 2026)
+
+Notion absente du modèle initial, à implémenter en plus (et indépendamment) du recadrage type/date ci-dessus — répond au besoin de préparer une liste avant de la partager :
+
+- Nouvelle colonne `events.status` : `text not null default 'brouillon' check (status in ('brouillon', 'ouverte'))`. Migration à part (`0005_...`, après la `0004` du recadrage type — ne pas fusionner les deux migrations, garder l'historique lisible).
+- Une liste est créée en `brouillon` par défaut. L'organisateur ajoute/modifie des articles normalement en brouillon, aucune restriction côté gestion `/compte/evenements/[slug]`.
+- Tant que `status = 'brouillon'`, la page publique `/liste/[slug]` n'affiche pas le contenu aux invités même s'ils ont le lien : message du type "Cette liste n'est pas encore ouverte" à la place du contenu — pas de fuite d'info sur les articles/prix. La policy RLS `events_select_public` reste `using (true)` (comportement déjà en place, ne pas y toucher) ; le filtrage se fait côté app dans la page `/liste/[slug]`, pas en RLS.
+- L'organisateur passe explicitement une liste en `ouverte` depuis la page de gestion (nouveau bouton "Ouvrir ma liste aux invités"). Action réversible : il peut repasser une liste `ouverte` en `brouillon` à tout moment pour suspendre temporairement le partage — pas de verrouillage définitif comme pour le `mode` des `gift_items`.
+- Le statut n'a aucun impact sur l'accès à la page de gestion organisateur (toujours accessible, brouillon ou ouverte), uniquement sur ce que voit un invité sur la page publique.
+- Badge de statut à afficher sur le dashboard (`/compte`) et sur la page de gestion ("Brouillon" / "Liste ouverte").
+
 ## Routes (décisions prises au fil du développement, à ne pas redécider)
 
 - `/compte` : dashboard organisateur, liste ses événements
 - `/compte/evenements/nouveau` : création d'un événement
 - `/compte/evenements/[slug]` : gestion d'un événement — filtre explicitement `organizer_id = user.id` en plus de la policy RLS (la lecture de `events` est publique par design, ce filtre applicatif évite qu'un organisateur atterrisse sur la page de gestion d'un événement qui n'est pas le sien en devinant un slug)
-- `/liste/[slug]` : page publique de la liste, consultée par les invités sans compte, avec réservation en direct et synchronisation temps réel (tâches #16/#17)
+- `/liste/[slug]` : page publique de la liste, consultée par les invités sans compte, avec réservation en direct et synchronisation temps réel (tâches #16/#17) — n'affiche le contenu que si `status = 'ouverte'` (voir section "Statut de liste" ci-dessus)
 
 ## Parcours utilisateurs prioritaires
 
@@ -188,6 +199,10 @@ Ajout d'article multi-boutique terminé (scraping, formulaire d'ajout, sélecteu
 Réservation d'article par un invité terminée (bouton conditionnel, formulaire invité, synchronisation temps réel). Migration `0003_gift_items_realtime.sql` (ajout de `gift_items` à la publication `supabase_realtime`) écrite mais pas encore appliquée à la base distante — à faire manuellement via le SQL Editor Supabase, comme pour les migrations précédentes.
 
 Recadrage produit du 16 août 2026 : le type d'événement est devenu optionnel sur une liste (voir section "Recadrage" ci-dessus) — migration `0004_events_type_optional.sql` écrite (à appliquer manuellement via le SQL Editor Supabase, comme `0003`), `NouvelEvenementForm` et les fallbacks `eventTypeIcon`/`eventTypeLabel` mis à jour.
+
+Nouvelle notion du 16 août 2026 : statut brouillon/ouverte par liste (voir section "Statut de liste" ci-dessus) — migration `0005_events_status.sql` écrite (à appliquer manuellement via le SQL Editor Supabase, comme `0003` et `0004`), bouton réversible "Ouvrir ma liste aux invités" sur la page de gestion, gating du contenu sur `/liste/[slug]` et badges de statut sur le dashboard et la page de gestion développés.
+
+Tableau de bord `/compte` refait depuis la maquette Claude Design `Compte.dc.html` : statistiques du compte, cartes de mise en avant (ajout rapide de cadeau, liste simple), cartes d'événement avec barre de progression et encart cagnotte, fil d'activité (réservations et cotisations récentes). La création d'événement reste sur sa page dédiée `/compte/evenements/nouveau` (pas de formulaire inline dupliqué sur le dashboard, conformément aux routes déjà actées).
 
 À venir, dans l'ordre : cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement.
 
