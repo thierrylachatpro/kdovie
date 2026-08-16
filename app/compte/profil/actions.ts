@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export async function updateDisplayName(formData: FormData) {
+export async function updateDisplayName(
+  displayName: string,
+): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -14,18 +16,17 @@ export async function updateDisplayName(formData: FormData) {
     redirect("/connexion");
   }
 
-  const displayName = formData.get("display_name")?.toString().trim() || null;
+  const trimmed = displayName.trim();
 
   const { error } = await supabase
     .from("profiles")
-    .update({ display_name: displayName })
+    .update({ display_name: trimmed || null })
     .eq("id", user.id);
 
-  if (error) {
-    redirect("/compte/profil?erreur=1");
+  if (!error) {
+    revalidatePath("/compte/profil");
+    revalidatePath("/compte");
   }
 
-  revalidatePath("/compte/profil");
-  revalidatePath("/compte");
-  redirect("/compte/profil?succes=1");
+  return { error: error?.message ?? null };
 }

@@ -6,17 +6,9 @@ import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import { eventStatusClassName, eventStatusLabel } from "@/lib/event-status";
 import { formatPriceCents } from "@/lib/gift-item";
 import { formatRelativeTimeFr } from "@/lib/relative-time";
+import { initiales } from "@/lib/initials";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
 import CopierLienButton from "@/components/evenements/CopierLienButton";
-
-function initiales(nom: string) {
-  const mots = nom.trim().split(/\s+/).filter(Boolean);
-  if (mots.length === 0) return "?";
-  return mots
-    .slice(0, 2)
-    .map((mot) => mot[0]?.toUpperCase())
-    .join("");
-}
 
 export default async function ComptePage() {
   const supabase = await createClient();

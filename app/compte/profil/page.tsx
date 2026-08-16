@@ -2,15 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
-import { updateDisplayName } from "./actions";
+import PseudoCard from "@/components/compte/PseudoCard";
 
-export default async function ProfilPage({
-  searchParams,
-}: PageProps<"/compte/profil">) {
-  const sp = await searchParams;
-  const succes = sp.succes === "1";
-  const erreur = sp.erreur === "1";
-
+export default async function ProfilPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -22,57 +16,119 @@ export default async function ProfilPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("display_name, created_at")
     .eq("id", user.id)
     .single();
 
-  return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-8 px-6 py-16">
-      <Link href="/compte" className="self-start text-sm text-gris">
-        ← Retour au tableau de bord
-      </Link>
+  const dateCreation = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString("fr-FR", {
+        month: "long",
+        year: "numeric",
+      })
+    : null;
 
-      <div>
-        <h1 className="font-heading text-2xl font-bold text-corail">Mon compte</h1>
-        <p className="mt-1 text-sm text-gris">Gérez votre profil organisateur.</p>
+  const fallbackDisplayName = user.email?.split("@")[0] ?? "";
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <div className="flex h-2">
+        <span className="flex-[3] bg-corail" />
+        <span className="flex-[2] bg-jaune" />
+        <span className="flex-[1] bg-sauge" />
       </div>
 
-      <form
-        action={updateDisplayName}
-        className="flex flex-col gap-5 rounded-xl border border-gris/20 bg-white p-6"
-      >
-        <label className="flex flex-col gap-1.5 text-sm">
-          Email
-          <span className="rounded-lg border border-gris/20 bg-creme px-4 py-2.5 text-sm text-gris">
-            {user.email}
+      <header className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-5 px-6 py-5 sm:px-10">
+        <Link href="/" className="inline-flex items-center gap-2.5">
+          <svg
+            viewBox="0 0 56 56"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+            className="block h-[38px] w-[38px]"
+          >
+            <rect x="10" y="24" width="36" height="22" rx="2" fill="#E8734A" />
+            <rect x="7" y="16" width="42" height="10" rx="2" fill="#F5B942" />
+            <rect x="25" y="16" width="6" height="30" fill="#FFF8F0" />
+            <path
+              d="M28 16C28 16 20 16 17 12C15 9.5 17 6 20 6C24 6 28 12 28 16Z"
+              fill="#8BA888"
+            />
+            <path
+              d="M28 16C28 16 36 16 39 12C41 9.5 39 6 36 6C32 6 28 12 28 16Z"
+              fill="#8BA888"
+            />
+          </svg>
+          <span className="flex flex-col leading-tight">
+            <span className="font-heading text-2xl font-bold tracking-tight text-corail">
+              kdovie
+            </span>
+            <span className="text-[13px] text-[#8A7263]">Vos listes de cadeaux, toute la vie</span>
           </span>
-        </label>
+        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <a href="#" className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]">
+            Aide
+          </a>
+          <Link
+            href="/compte"
+            className="rounded-2xl bg-[#F7E7D6] px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F2DFC9]"
+          >
+            Mes événements
+          </Link>
+        </div>
+      </header>
 
-        <label className="flex flex-col gap-1.5 text-sm">
-          Pseudo
-          <input
-            type="text"
-            name="display_name"
-            defaultValue={profile?.display_name ?? ""}
-            placeholder="Comment on vous appelle"
-            className="rounded-lg border border-gris/30 bg-white px-4 py-2.5 text-sm text-foreground outline-none focus:border-corail"
-          />
-        </label>
-
-        {succes && <p className="text-sm text-sauge-dark">Pseudo enregistré.</p>}
-        {erreur && (
-          <p className="text-sm text-corail-dark">Une erreur est survenue, réessayez.</p>
-        )}
-
-        <button
-          type="submit"
-          className="rounded-lg bg-jaune px-5 py-2.5 text-sm font-medium text-corail-dark"
+      <main className="mx-auto flex w-full max-w-[720px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">
+        <Link
+          href="/compte"
+          className="mb-4.5 inline-block text-[15px] font-semibold text-corail hover:text-[#8F3A1C]"
         >
-          Enregistrer
-        </button>
-      </form>
+          ← Retour à vos listes
+        </Link>
 
-      <DeconnexionButton />
-    </main>
+        <h1 className="font-heading text-[40px] leading-[1.1] font-bold text-corail">
+          Mon compte
+        </h1>
+        <p className="mt-2.5 mb-8 text-lg text-[#7A6354]">
+          Votre pseudo est le nom que vos proches voient sur vos listes.
+        </p>
+
+        <PseudoCard
+          email={user.email ?? ""}
+          initialPseudo={profile?.display_name ?? ""}
+          fallbackDisplayName={fallbackDisplayName}
+          dateCreation={dateCreation}
+        />
+
+        <section className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[28px] bg-[#F7E7D6] p-6.5">
+          <div>
+            <div className="font-heading mb-1 text-lg font-bold text-[#4A3529]">
+              Se déconnecter
+            </div>
+            <p className="text-[15px] text-[#7A6354]">
+              Vos listes restent en ligne. Un nouveau lien par e-mail suffit pour revenir.
+            </p>
+          </div>
+          <DeconnexionButton className="font-heading rounded-2xl bg-corail px-6 py-3.5 text-[16px] font-bold text-creme hover:bg-[#D45F37]" />
+        </section>
+      </main>
+
+      <footer className="bg-[#F7E7D6] px-6 py-6.5 sm:px-10">
+        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
+          <span>© 2026 kdovie</span>
+          <nav className="flex flex-wrap items-center gap-6">
+            <a href="#" className="hover:text-corail">
+              Aide
+            </a>
+            <a href="#" className="hover:text-corail">
+              Contact
+            </a>
+            <Link href="/compte" className="hover:text-corail">
+              Mes événements
+            </Link>
+          </nav>
+        </div>
+      </footer>
+    </div>
   );
 }
