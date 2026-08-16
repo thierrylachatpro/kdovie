@@ -3,7 +3,11 @@
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
-export default function DeconnexionButton() {
+export default function DeconnexionButton({
+  className = "rounded-lg border border-corail px-5 py-2.5 text-sm font-medium text-corail",
+}: {
+  className?: string;
+}) {
   const router = useRouter();
 
   async function handleClick() {
@@ -14,10 +18,7 @@ export default function DeconnexionButton() {
   }
 
   return (
-    <button
-      onClick={handleClick}
-      className="rounded-lg border border-corail px-5 py-2.5 text-sm font-medium text-corail"
-    >
+    <button onClick={handleClick} className={className}>
       Se déconnecter
     </button>
   );
