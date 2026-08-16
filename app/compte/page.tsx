@@ -158,7 +158,7 @@ export default async function ComptePage() {
           </svg>
           <span className="flex flex-col leading-tight">
             <span className="font-heading text-2xl font-bold tracking-tight text-corail">
-              Kdovie
+              kdovie
             </span>
             <span className="text-[13px] text-[#8A7263]">Vos listes de cadeaux, toute la vie</span>
           </span>
@@ -381,7 +381,7 @@ export default async function ComptePage() {
 
       <footer className="bg-[#F7E7D6] px-6 py-6.5 sm:px-10">
         <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
-          <span>© 2026 Kdovie</span>
+          <span>© 2026 kdovie</span>
           <nav className="flex flex-wrap items-center gap-6">
             <a href="#" className="hover:text-corail">
               Aide
