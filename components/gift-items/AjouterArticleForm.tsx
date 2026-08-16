@@ -16,6 +16,7 @@ export default function AjouterArticleForm({
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [description, setDescription] = useState("");
   const [note, setNote] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -142,6 +143,23 @@ export default function AjouterArticleForm({
             />
           </label>
         </div>
+
+        {tab === "manuel" && (
+          <label className="flex flex-col gap-1.5">
+            <span className="font-heading text-base font-bold text-[#4A3529]">
+              Quelques précisions{" "}
+              <span className="text-sm font-medium text-[#8A7263]">— facultatif</span>
+            </span>
+            <textarea
+              name="description"
+              rows={2}
+              placeholder="Taille, couleur, modèle…"
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              className="resize-y rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
+            />
+          </label>
+        )}
 
         <button
           type="submit"

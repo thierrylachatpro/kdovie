@@ -1,7 +1,7 @@
 -- Verrouillage étendu d'un article une fois qu'un invité a agi dessus
--- (status différent de 'disponible') : ni modification (titre, prix, image),
--- ni suppression — cohérent avec le verrouillage déjà en place sur `mode`
--- (voir CLAUDE.md > "Gestion des articles par l'organisateur").
+-- (status différent de 'disponible') : ni modification (titre, prix, image,
+-- précisions), ni suppression — cohérent avec le verrouillage déjà en place
+-- sur `mode` (voir CLAUDE.md > "Gestion des articles par l'organisateur").
 create or replace function public.protect_gift_item_mode()
 returns trigger
 language plpgsql
@@ -12,6 +12,7 @@ begin
     or new.title is distinct from old.title
     or new.price_cents is distinct from old.price_cents
     or new.image_url is distinct from old.image_url
+    or new.description is distinct from old.description
   ) then
     raise exception 'Cet article est verrouillé, un invité a déjà agi dessus';
   end if;

@@ -2,9 +2,9 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import type { EventStatus } from "@/lib/event-status";
 import { initiales } from "@/lib/initials";
+import EnTeteListe from "@/components/evenements/EnTeteListe";
 import VisibiliteListe from "@/components/evenements/VisibiliteListe";
 import AjouterArticleForm from "@/components/gift-items/AjouterArticleForm";
 import GiftItemCard from "@/components/gift-items/GiftItemCard";
@@ -48,7 +48,7 @@ export default async function EvenementPage({
 
   const { data: giftItems } = await supabase
     .from("gift_items")
-    .select("id, title, price_cents, image_url, mode, status, funded_amount_cents")
+    .select("id, title, price_cents, image_url, description, mode, status, funded_amount_cents")
     .eq("event_id", event.id)
     .order("created_at", { ascending: false });
 
@@ -70,18 +70,6 @@ export default async function EvenementPage({
   const host = (await headers()).get("host");
   const protocol = host?.startsWith("localhost") ? "http" : "https";
   const lienPublic = `${protocol}://${host}/liste/${event.slug}`;
-
-  const dateFormatee = event.event_date
-    ? new Date(event.event_date).toLocaleDateString("fr-FR", {
-        day: "numeric",
-        month: "long",
-        year: "numeric",
-      })
-    : null;
-
-  const metaParts = [eventTypeLabel(event.type), dateFormatee, `${items.length} cadeaux`].filter(
-    (part): part is string => Boolean(part),
-  );
 
   const lockedCount = items.filter((i) => i.status !== "disponible").length;
   const lockedLabel =
@@ -132,7 +120,7 @@ export default async function EvenementPage({
             href="/compte"
             className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
           >
-            Mes événements
+            Voir toutes mes listes
           </Link>
           <Link
             href="/compte/profil"
@@ -159,24 +147,20 @@ export default async function EvenementPage({
           ← Retour au tableau de bord
         </Link>
 
-        <section className="mb-7 rounded-[32px] bg-[#F7E7D6] p-8">
-          <div className="flex flex-wrap items-center gap-5.5">
-            <span className="flex h-18 w-18 flex-none items-center justify-center rounded-[24px] bg-corail text-[32px]">
-              {eventTypeIcon(event.type)}
-            </span>
-            <div className="min-w-60 flex-1">
-              <h1 className="font-heading text-4xl leading-[1.1] font-bold text-[#C0512A]">
-                {event.name}
-              </h1>
-              <div className="text-base text-[#7A6354]">{metaParts.join(" · ")}</div>
-            </div>
-          </div>
-        </section>
+        <EnTeteListe
+          eventId={event.id}
+          slug={event.slug}
+          name={event.name}
+          type={event.type}
+          eventDate={event.event_date}
+          itemCount={items.length}
+        />
 
         <VisibiliteListe
           eventId={event.id}
           slug={event.slug}
           status={event.status as EventStatus}
+          eventName={event.name}
           lienPublic={lienPublic}
         />
 

@@ -238,7 +238,15 @@ Page de gestion `/compte/evenements/[slug]` refaite depuis la maquette Claude De
 
 Maquette `Gestion liste.dc.html` mise à jour le 16 août 2026 : la maquette a évolué pour intégrer le statut brouillon/ouverte dans une carte "visibilité" dédiée avec QR code (via `api.qrserver.com`, service tiers, cohérent avec l'esprit MVP plutôt que d'ajouter une dépendance de génération de QR code) — nouveau composant `VisibiliteListe` qui remplace `CopierLienButton`/`ToggleStatutButton` sur cette page (`ToggleStatutButton` supprimé, `CopierLienButton` reste utilisé sur le dashboard `/compte`). Le badge de statut brut a été retiré de la bannière : la carte de visibilité, plus explicite (pastille de couleur, texte, QR grisé en brouillon), en tient lieu. Bouton de fermeture renommé "Refermer la liste" (au lieu de "Repasser en brouillon"), reste la même action réversible actée dans "Statut de liste".
 
-À venir, dans l'ordre : cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement.
+Maquette `Gestion liste.dc.html` mise à jour une seconde fois le 16 août 2026, avec plusieurs nouveautés développées dans la foulée :
+- **Édition de l'événement** (nom, type, date) directement depuis la page de gestion — nouveau composant `EnTeteListe` (lecture/édition) et action serveur `updateEvent`. Ne redéfinit rien de l'existant : mêmes règles que la création (type facultatif, date facultative), RLS `events_update_own` déjà en place.
+- **Champ "précisions" sur un cadeau** (taille, couleur, modèle…), affiché aux côtés du prix et éditable avec le reste. Utilise la colonne `gift_items.description`, déjà présente depuis la migration 0002 mais jamais exploitée jusqu'ici — aucune nouvelle migration nécessaire pour ce champ. La migration `0006` (pas encore appliquée) a été complétée pour verrouiller aussi `description` une fois l'article verrouillé, cohérent avec title/price/image.
+- **Nom du réservataire flouté par défaut**, révélable d'un clic (garde un peu de surprise pour l'organisateur lui-même). Pour les cagnottes, pas de noms de contributeurs affichés : cette donnée n'existe pas encore (tâche #18 pas construite).
+- **Montant de cagnotte affiché en euros réels** ("816,00 € sur 1 200,00 €") plutôt qu'en pourcentage seul.
+- **Panneau "Inviter mes proches"** (chips d'e-mails, message personnalisable, bouton Envoyer) : implémenté visuellement à l'identique de la maquette, mais **sans envoi réel** — décision explicite de l'utilisateur (aucune intégration Resend n'existe encore dans le projet, et faire croire à un envoi qui n'a pas lieu aurait été trompeur). L'état "Invitation envoyée" est purement local/optimiste. À câbler pour de vrai quand l'envoi transactionnel sera cadré.
+- Libellé de la nav "Mes événements" → "Voir toutes mes listes" ; badge verrouillé "Lecture seule" → "Non modifiable".
+
+À venir, dans l'ordre : cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement. L'envoi réel des invitations par e-mail (Resend) est à cadrer séparément, pas dans cet ordre actuel.
 
 ## Workflow git
 

@@ -13,6 +13,7 @@ type GiftItem = {
   title: string;
   price_cents: number | null;
   image_url: string | null;
+  description: string | null;
   status: string;
   mode: string;
   funded_amount_cents: number;
@@ -43,8 +44,10 @@ export default function GiftItemCard({
     item.price_cents !== null ? (item.price_cents / 100).toFixed(2) : "",
   );
   const [draftImage, setDraftImage] = useState(item.image_url ?? "");
+  const [draftDescription, setDraftDescription] = useState(item.description ?? "");
   const [erreur, setErreur] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const [nomRevele, setNomRevele] = useState(false);
 
   const locked = item.status !== "disponible";
   const badge = BADGES[item.status] ?? BADGES.disponible;
@@ -58,6 +61,7 @@ export default function GiftItemCard({
     setDraftTitle(item.title);
     setDraftPrice(item.price_cents !== null ? (item.price_cents / 100).toFixed(2) : "");
     setDraftImage(item.image_url ?? "");
+    setDraftDescription(item.description ?? "");
     setErreur(null);
     setMode("editing");
   }
@@ -74,6 +78,7 @@ export default function GiftItemCard({
       title: draftTitle,
       price: draftPrice,
       imageUrl: draftImage,
+      description: draftDescription,
     });
     setIsPending(false);
     if (result.error) {
@@ -94,11 +99,6 @@ export default function GiftItemCard({
     }
     setMode("reading");
   }
-
-  const lockReason =
-    item.status === "reserve"
-      ? `${reservedByName ?? "Un invité"} a déjà réservé ce cadeau : il n'est plus modifiable ni supprimable.`
-      : "Des invités ont commencé à cotiser sur ce cadeau : il n'est plus modifiable ni supprimable.";
 
   return (
     <article
@@ -142,6 +142,11 @@ export default function GiftItemCard({
               <div className="mb-1.5 text-base font-semibold text-[#5C4436]">
                 {formatPriceCents(item.price_cents)}
               </div>
+              {item.description && (
+                <p className="mb-1.5 max-w-130 text-[15px] leading-relaxed text-[#7A6354]">
+                  {item.description}
+                </p>
+              )}
               <ModeSelect itemId={item.id} slug={slug} mode={item.mode} disabled={locked} />
               {!locked && (
                 <span className="ml-2 align-middle text-sm text-[#8A7263]">{modeLabel}</span>
@@ -155,7 +160,10 @@ export default function GiftItemCard({
                       style={{ width: `${Math.min(100, percent)}%` }}
                     />
                   </div>
-                  <div className="text-sm text-[#7A6354]">{percent} % réunis</div>
+                  <div className="text-sm text-[#7A6354]">
+                    {formatPriceCents(item.funded_amount_cents)} sur{" "}
+                    {formatPriceCents(item.price_cents)}
+                  </div>
                 </div>
               )}
 
@@ -171,11 +179,26 @@ export default function GiftItemCard({
                 </div>
               )}
 
-              {locked && (
-                <div className="mt-3.5 flex max-w-130 items-start gap-2.5 rounded-2xl bg-creme p-3.5">
-                  <span className="text-base leading-tight">🔒</span>
-                  <span className="text-[15px] leading-relaxed text-[#7A6354]">{lockReason}</span>
-                </div>
+              {item.status === "reserve" && (
+                <p className="mt-3.5 max-w-130 border-l-[3px] border-jaune pl-3 text-[15px] leading-relaxed text-[#7A6354]">
+                  <button
+                    type="button"
+                    onClick={() => setNomRevele((v) => !v)}
+                    title={nomRevele ? "Masquer" : "Afficher"}
+                    className={`font-heading font-semibold text-[#5C4436] ${
+                      nomRevele ? "" : "cursor-pointer blur-[5px] select-none"
+                    }`}
+                  >
+                    {reservedByName ?? "Un invité"}
+                  </button>{" "}
+                  a déjà réservé ce cadeau : il n&apos;est plus modifiable ni supprimable.
+                </p>
+              )}
+              {item.status === "cagnotte" && (
+                <p className="mt-3.5 max-w-130 border-l-[3px] border-jaune pl-3 text-[15px] leading-relaxed text-[#7A6354]">
+                  Des invités ont commencé à cotiser sur ce cadeau : il n&apos;est plus
+                  modifiable ni supprimable.
+                </p>
               )}
             </div>
           ) : (
@@ -197,6 +220,13 @@ export default function GiftItemCard({
                 }
                 placeholder="Prix"
                 className="rounded-2xl border-2 border-[#F2DFC9] bg-creme px-4 py-3.5 text-base text-[#4A3529] outline-none focus:border-corail"
+              />
+              <textarea
+                value={draftDescription}
+                onChange={(event) => setDraftDescription(event.target.value)}
+                placeholder="Quelques précisions (taille, couleur, modèle…)"
+                rows={2}
+                className="resize-y rounded-2xl border-2 border-[#F2DFC9] bg-creme px-4 py-3.5 text-base text-[#4A3529] outline-none focus:border-corail sm:col-span-2"
               />
               <input
                 type="url"
@@ -233,7 +263,7 @@ export default function GiftItemCard({
           )}
           {mode === "reading" && locked && (
             <span className="rounded-2xl bg-[#F7E7D6] px-4.5 py-3 text-[15px] font-semibold text-[#8A7263]">
-              Lecture seule
+              Non modifiable
             </span>
           )}
           {mode === "editing" && (

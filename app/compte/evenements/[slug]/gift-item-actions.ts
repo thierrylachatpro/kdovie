@@ -19,6 +19,7 @@ export async function createGiftItem(formData: FormData) {
   const title = formData.get("title")?.toString().trim() ?? "";
   const sourceUrl = formData.get("source_url")?.toString().trim() ?? "";
   const imageUrl = formData.get("image_url")?.toString().trim() || null;
+  const description = formData.get("description")?.toString().trim() || null;
   const priceRaw = formData.get("price")?.toString().trim();
 
   if (!title || !sourceUrl || !eventId) {
@@ -36,6 +37,7 @@ export async function createGiftItem(formData: FormData) {
     title,
     source_url: sourceUrl,
     image_url: imageUrl,
+    description,
     price_cents: priceCents,
   });
 
@@ -73,7 +75,7 @@ export async function updateGiftItemMode(
 export async function updateGiftItem(
   itemId: string,
   slug: string,
-  data: { title: string; price: string; imageUrl: string },
+  data: { title: string; price: string; imageUrl: string; description: string },
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const {
@@ -98,7 +100,12 @@ export async function updateGiftItem(
 
   const { error } = await supabase
     .from("gift_items")
-    .update({ title, price_cents: priceCents, image_url: data.imageUrl.trim() || null })
+    .update({
+      title,
+      price_cents: priceCents,
+      image_url: data.imageUrl.trim() || null,
+      description: data.description.trim() || null,
+    })
     .eq("id", itemId);
 
   if (!error) {
