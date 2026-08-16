@@ -42,6 +42,15 @@ Chaque article a un mode : `automatique` (défaut), `cotisation_obligatoire`, ou
 - Sur-financement d'une cagnotte (contributions cumulées supérieures au prix affiché) : pas de plafond, pas de remboursement, le surplus est un bonus pour l'organisateur.
 - Le reversement à l'organisateur peut se faire même si la cagnotte n'est pas financée à 100 %.
 
+## Gestion des articles par l'organisateur : modification et suppression (16 août 2026)
+
+Aujourd'hui, la page de gestion (`/compte/evenements/[slug]`) permet seulement d'ajouter un article et de changer son `mode` (`ModeSelect`) — pas de modification ni de suppression. À ajouter :
+
+- **Modifier** : titre, prix, image (pas l'URL source, pas le mode qui garde son propre sélecteur).
+- **Supprimer** : retrait définitif de la liste.
+- **Verrouillage** : dès que `status != 'disponible'` (un invité a réservé ou cotisé, même partiellement), l'article devient en lecture seule — ni modification ni suppression, cohérent avec le verrouillage déjà en place sur `mode` (voir "Règle de gestion : réservation vs cotisation par article" plus haut, trigger `gift_items_protect_mode`). Seule reste possible la consultation.
+- Comme pour `mode`, ne pas se contenter d'un simple disabled côté UI : prévoir un trigger Postgres équivalent (ou étendre `protect_gift_item_mode`) qui bloque l'update des colonnes title/price_cents/image_url et le delete une fois `status` sorti de `disponible`, pour ne pas dépendre uniquement de la désactivation front.
+
 ## Identité visuelle (palette "chaleureuse", déjà validée)
 
 - Corail `#E8734A` — couleur principale
@@ -217,6 +226,8 @@ Nouvelle notion du 16 août 2026 : statut brouillon/ouverte par liste (voir sect
 Tableau de bord `/compte` refait depuis la maquette Claude Design `Compte.dc.html` : statistiques du compte, cartes de mise en avant (ajout rapide de cadeau, liste simple), cartes d'événement avec barre de progression et encart cagnotte, fil d'activité (réservations et cotisations récentes). La création d'événement reste sur sa page dédiée `/compte/evenements/nouveau` (pas de formulaire inline dupliqué sur le dashboard, conformément aux routes déjà actées).
 
 Page "Mon compte" du 16 août 2026 : route `/compte/profil` développée (voir section "Page 'Mon compte'" ci-dessus) — pseudo éditable (`profiles.display_name`), email en lecture seule, déconnexion. Le bloc "Mon compte" du dashboard est maintenant un lien vers cette page.
+
+Page publique `/liste/[slug]` refaite depuis la maquette Claude Design `Liste publique.dc.html` : bannière d'en-tête avec compteur de cadeaux encore libres (mis à jour en temps réel), grille de cartes (image ou pastille de couleur, badge disponible/réservé/en cagnotte, barre de progression pour les cagnottes), réservation via une modale (au lieu du formulaire inline précédent — `ReservationBlock` supprimé, sa logique fusionnée dans `ListePubliqueClient`), page "liste introuvable" dédiée (`not-found.tsx` du segment, remplace la 404 générique de Next.js) pour un slug inexistant, états dédiés "pas encore ouverte" et "encore vide". Point laissé de côté délibérément : la maquette affiche le pseudo de l'organisateur dans la ligne meta ("liste de tlachat") — non repris, car cela demanderait une nouvelle policy RLS publique sur `profiles` (aujourd'hui restreint à `auth.uid() = id`), une décision de confidentialité qui n'est pas encore actée ici.
 
 À venir, dans l'ordre : cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement.
 
