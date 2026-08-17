@@ -146,6 +146,14 @@ Contenu de cette page, volontairement minimal pour le MVP :
 
 Volontairement laissé de côté à ce stade (à ne pas ajouter maintenant) : statut du compte Stripe Connect (aura sa propre section quand la tâche #18 sera développée), export/suppression de compte RGPD (bon à avoir, backlog v2, pas bloquant pour le MVP), préférences de notification (rien de tel n'existe encore dans le produit).
 
+## Pseudo public sur la page liste (17 août 2026)
+
+Décision tranchée : le pseudo de l'organisateur (`profiles.display_name`) doit être affiché sur la page publique `/liste/[slug]` (ex. "liste de thierry"), cohérent avec le texte déjà présent sur `/compte/profil` ("Choisissez un pseudo, il apparaît sur vos listes").
+
+- Nouvelle policy RLS publique sur `profiles`, limitée à la colonne `display_name` uniquement (pas l'email, pas les autres champs) — migration à part, ne pas élargir l'accès au-delà de ce champ.
+- Si `display_name` est vide (pseudo jamais renseigné), ne rien afficher plutôt qu'un fallback du type début d'email — cette info n'a pas à fuiter côté invité (contrairement au dashboard organisateur où ce fallback reste légitime).
+- À câbler dans `/liste/[slug]` : jointure ou requête complémentaire vers `profiles` pour l'organisateur de l'événement.
+
 ## Routes (décisions prises au fil du développement, à ne pas redécider)
 
 - `/compte` : dashboard organisateur, liste ses événements
@@ -229,7 +237,7 @@ Tableau de bord `/compte` refait depuis la maquette Claude Design `Compte.dc.htm
 
 Page "Mon compte" du 16 août 2026 : route `/compte/profil` développée (voir section "Page 'Mon compte'" ci-dessus) — pseudo éditable (`profiles.display_name`), email en lecture seule, déconnexion. Le bloc "Mon compte" du dashboard est maintenant un lien vers cette page.
 
-Page publique `/liste/[slug]` refaite depuis la maquette Claude Design `Liste publique.dc.html` : bannière d'en-tête avec compteur de cadeaux encore libres (mis à jour en temps réel), grille de cartes (image ou pastille de couleur, badge disponible/réservé/en cagnotte, barre de progression pour les cagnottes), réservation via une modale (au lieu du formulaire inline précédent — `ReservationBlock` supprimé, sa logique fusionnée dans `ListePubliqueClient`), page "liste introuvable" dédiée (`not-found.tsx` du segment, remplace la 404 générique de Next.js) pour un slug inexistant, états dédiés "pas encore ouverte" et "encore vide". Point laissé de côté délibérément : la maquette affiche le pseudo de l'organisateur dans la ligne meta ("liste de tlachat") — non repris, car cela demanderait une nouvelle policy RLS publique sur `profiles` (aujourd'hui restreint à `auth.uid() = id`), une décision de confidentialité qui n'est pas encore actée ici.
+Page publique `/liste/[slug]` refaite depuis la maquette Claude Design `Liste publique.dc.html` : bannière d'en-tête avec compteur de cadeaux encore libres (mis à jour en temps réel), grille de cartes (image ou pastille de couleur, badge disponible/réservé/en cagnotte, barre de progression pour les cagnottes), réservation via une modale (au lieu du formulaire inline précédent — `ReservationBlock` supprimé, sa logique fusionnée dans `ListePubliqueClient`), page "liste introuvable" dédiée (`not-found.tsx` du segment, remplace la 404 générique de Next.js) pour un slug inexistant, états dédiés "pas encore ouverte" et "encore vide". Point laissé de côté à l'époque : la maquette affiche le pseudo de l'organisateur dans la ligne meta ("liste de tlachat") — non repris alors, faute de policy RLS publique sur `profiles`. Tranché le 17 août 2026 (voir section "Pseudo public sur la page liste" ci-dessus) : à implémenter.
 
 Page de gestion `/compte/evenements/[slug]` refaite depuis la maquette Claude Design `Gestion liste.dc.html`, et modification/suppression des articles (voir section "Gestion des articles par l'organisateur" ci-dessus) développées en même temps :
 - Migration `0006_gift_items_lock_edit_delete.sql` écrite (à appliquer manuellement via le SQL Editor Supabase, comme les précédentes) : étend le trigger `protect_gift_item_mode` pour bloquer aussi title/price_cents/image_url une fois `status != 'disponible'`, et ajoute un trigger `gift_items_protect_delete` équivalent pour le delete.
@@ -247,6 +255,8 @@ Maquette `Gestion liste.dc.html` mise à jour une seconde fois le 16 août 2026,
 - **Montant de cagnotte affiché en euros réels** ("816,00 € sur 1 200,00 €") plutôt qu'en pourcentage seul.
 - **Panneau "Inviter mes proches"** (chips d'e-mails, message personnalisable, bouton Envoyer) : implémenté visuellement à l'identique de la maquette, mais **sans envoi réel** — décision explicite de l'utilisateur (aucune intégration Resend n'existe encore dans le projet, et faire croire à un envoi qui n'a pas lieu aurait été trompeur). L'état "Invitation envoyée" est purement local/optimiste. À câbler pour de vrai quand l'envoi transactionnel sera cadré.
 - Libellé de la nav "Mes événements" → "Voir toutes mes listes" ; badge verrouillé "Lecture seule" → "Non modifiable".
+
+Pseudo public sur la page liste du 17 août 2026 (voir section dédiée ci-dessus) : migration `0008_profiles_public_display_name.sql` écrite (pas encore appliquée) — accès `anon` à `profiles` restreint aux colonnes `id`/`display_name` uniquement (revoke + grant colonne, pas juste une policy RLS), policy `profiles_select_public_display_name`. `/liste/[slug]` affiche désormais "liste de {pseudo}" dans la ligne meta quand le pseudo est renseigné, rien sinon.
 
 À venir, dans l'ordre : cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement. L'envoi réel des invitations par e-mail (Resend) est à cadrer séparément, pas dans cet ordre actuel.
 

@@ -12,13 +12,20 @@ export default async function ListePubliquePage({
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, type, name, event_date, slug, status")
+    .select("id, type, name, event_date, slug, status, organizer_id")
     .eq("slug", slug)
     .single();
 
   if (!event) {
     notFound();
   }
+
+  const { data: organizerProfile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", event.organizer_id)
+    .single();
+  const organizerPseudo = organizerProfile?.display_name?.trim() || null;
 
   const estOuverte = event.status === "ouverte";
 
@@ -43,9 +50,11 @@ export default async function ListePubliquePage({
       })
     : null;
 
-  const metaParts = [eventTypeLabel(event.type), dateFormatee].filter(
-    (part): part is string => Boolean(part),
-  );
+  const metaParts = [
+    eventTypeLabel(event.type),
+    dateFormatee,
+    organizerPseudo ? `liste de ${organizerPseudo}` : null,
+  ].filter((part): part is string => Boolean(part));
 
   return (
     <div className="flex flex-1 flex-col">
