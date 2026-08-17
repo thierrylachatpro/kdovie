@@ -111,7 +111,7 @@ export type Database = {
           locked_at: string | null
           mode: string
           price_cents: number | null
-          source_url: string
+          source_url: string | null
           status: string
           title: string
           updated_at: string
@@ -127,7 +127,7 @@ export type Database = {
           locked_at?: string | null
           mode?: string
           price_cents?: number | null
-          source_url: string
+          source_url?: string | null
           status?: string
           title: string
           updated_at?: string
@@ -143,7 +143,7 @@ export type Database = {
           locked_at?: string | null
           mode?: string
           price_cents?: number | null
-          source_url?: string
+          source_url?: string | null
           status?: string
           title?: string
           updated_at?: string
@@ -267,7 +267,7 @@ export type Database = {
           locked_at: string | null
           mode: string
           price_cents: number | null
-          source_url: string
+          source_url: string | null
           status: string
           title: string
           updated_at: string

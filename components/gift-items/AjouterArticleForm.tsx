@@ -12,6 +12,7 @@ export default function AjouterArticleForm({
   slug: string;
 }) {
   const [tab, setTab] = useState<"lien" | "manuel">("lien");
+  const [linkRevealed, setLinkRevealed] = useState(false);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
@@ -19,6 +20,8 @@ export default function AjouterArticleForm({
   const [description, setDescription] = useState("");
   const [note, setNote] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const showFields = tab === "manuel" || linkRevealed;
 
   function handleAnalyser() {
     const trimmed = url.trim();
@@ -34,6 +37,7 @@ export default function AjouterArticleForm({
           "Aucune information trouvée automatiquement — complétez les champs ci-dessous.",
         );
       }
+      setLinkRevealed(true);
     });
   }
 
@@ -69,21 +73,21 @@ export default function AjouterArticleForm({
         <input type="hidden" name="event_id" value={eventId} />
         <input type="hidden" name="slug" value={slug} />
 
-        <label className="flex flex-col gap-1.5">
-          <span className="font-heading text-base font-bold text-[#4A3529]">
-            Lien du produit
-          </span>
-          <div className="flex flex-wrap gap-3">
-            <input
-              type="url"
-              name="source_url"
-              required
-              placeholder="https://boutique.fr/produit…"
-              value={url}
-              onChange={(event) => setUrl(event.target.value)}
-              className="min-w-65 flex-1 rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
-            />
-            {tab === "lien" && (
+        {tab === "lien" && (
+          <label className="flex flex-col gap-1.5">
+            <span className="font-heading text-base font-bold text-[#4A3529]">
+              Lien du produit
+            </span>
+            <div className="flex flex-wrap gap-3">
+              <input
+                type="url"
+                name="source_url"
+                required
+                placeholder="https://boutique.fr/produit…"
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                className="min-w-65 flex-1 rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
+              />
               <button
                 type="button"
                 onClick={handleAnalyser}
@@ -92,81 +96,83 @@ export default function AjouterArticleForm({
               >
                 {isPending ? "Recherche…" : "Récupérer le cadeau"}
               </button>
+            </div>
+            {!linkRevealed && (
+              <span className="text-[15px] text-[#8A7263]">
+                Le titre, le prix et l&apos;image sont remplis automatiquement. Vous pourrez les
+                corriger ensuite.
+              </span>
             )}
-          </div>
-          {tab === "lien" && (
-            <span className="text-[15px] text-[#8A7263]">
-              Le titre, le prix et l&apos;image sont remplis automatiquement. Vous pourrez les
-              corriger ensuite.
-            </span>
-          )}
-        </label>
-
-        {note && <p className="text-sm text-[#8A7263]">{note}</p>}
-
-        <label className="flex flex-col gap-1.5">
-          <span className="font-heading text-base font-bold text-[#4A3529]">Titre</span>
-          <input
-            type="text"
-            name="title"
-            required
-            placeholder="Titre du cadeau"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            className="rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
-          />
-        </label>
-
-        <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
-          <label className="flex flex-col gap-1.5">
-            <span className="font-heading text-base font-bold text-[#4A3529]">Prix</span>
-            <input
-              type="text"
-              name="price"
-              placeholder="ex. 45 €"
-              value={price}
-              onChange={(event) => setPrice(event.target.value)}
-              className="rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
-            />
-          </label>
-          <label className="flex flex-col gap-1.5">
-            <span className="font-heading text-base font-bold text-[#4A3529]">
-              Adresse de l&apos;image{" "}
-              <span className="text-sm font-medium text-[#8A7263]">— facultatif</span>
-            </span>
-            <input
-              type="url"
-              name="image_url"
-              value={imageUrl}
-              onChange={(event) => setImageUrl(event.target.value)}
-              className="rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
-            />
-          </label>
-        </div>
-
-        {tab === "manuel" && (
-          <label className="flex flex-col gap-1.5">
-            <span className="font-heading text-base font-bold text-[#4A3529]">
-              Quelques précisions{" "}
-              <span className="text-sm font-medium text-[#8A7263]">— facultatif</span>
-            </span>
-            <textarea
-              name="description"
-              rows={2}
-              placeholder="Taille, couleur, modèle…"
-              value={description}
-              onChange={(event) => setDescription(event.target.value)}
-              className="resize-y rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
-            />
           </label>
         )}
 
-        <button
-          type="submit"
-          className="font-heading mt-1.5 self-start rounded-[18px] bg-corail px-6 py-4 text-base font-bold text-creme hover:bg-[#D45F37]"
-        >
-          Ajouter à la liste
-        </button>
+        {note && <p className="text-sm text-[#8A7263]">{note}</p>}
+
+        {showFields && (
+          <>
+            <label className="flex flex-col gap-1.5">
+              <span className="font-heading text-base font-bold text-[#4A3529]">Titre</span>
+              <input
+                type="text"
+                name="title"
+                required
+                placeholder="Titre du cadeau"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                className="rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
+              />
+            </label>
+
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5">
+                <span className="font-heading text-base font-bold text-[#4A3529]">Prix</span>
+                <input
+                  type="text"
+                  name="price"
+                  placeholder="ex. 45 €"
+                  value={price}
+                  onChange={(event) => setPrice(event.target.value)}
+                  className="rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
+                />
+              </label>
+              <label className="flex flex-col gap-1.5">
+                <span className="font-heading text-base font-bold text-[#4A3529]">
+                  Adresse de l&apos;image{" "}
+                  <span className="text-sm font-medium text-[#8A7263]">— facultatif</span>
+                </span>
+                <input
+                  type="url"
+                  name="image_url"
+                  value={imageUrl}
+                  onChange={(event) => setImageUrl(event.target.value)}
+                  className="rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
+                />
+              </label>
+            </div>
+
+            <label className="flex flex-col gap-1.5">
+              <span className="font-heading text-base font-bold text-[#4A3529]">
+                Quelques précisions{" "}
+                <span className="text-sm font-medium text-[#8A7263]">— facultatif</span>
+              </span>
+              <textarea
+                name="description"
+                rows={2}
+                placeholder="Taille, couleur, modèle…"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                className="resize-y rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
+              />
+            </label>
+
+            <button
+              type="submit"
+              className="font-heading mt-1.5 self-start rounded-[18px] bg-corail px-6 py-4 text-base font-bold text-creme hover:bg-[#D45F37]"
+            >
+              Ajouter à la liste
+            </button>
+          </>
+        )}
       </form>
     </section>
   );

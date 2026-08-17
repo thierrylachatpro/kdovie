@@ -11,7 +11,7 @@ type GiftItem = {
   title: string;
   price_cents: number | null;
   image_url: string | null;
-  source_url: string;
+  source_url: string | null;
   status: string;
   mode: string;
   funded_amount_cents: number;
@@ -124,7 +124,7 @@ export default function ListePubliqueClient({
 
       <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {sorted.map((item, index) => {
-          const shop = hostnameFromUrl(item.source_url);
+          const shop = item.source_url ? hostnameFromUrl(item.source_url) : null;
           const isTaken = item.status === "reserve";
           const isPot = item.status === "cagnotte";
           const canReserve = item.status === "disponible" && item.mode !== "cotisation_obligatoire";

@@ -17,12 +17,12 @@ export async function createGiftItem(formData: FormData) {
   const slug = formData.get("slug")?.toString() ?? "";
   const eventId = formData.get("event_id")?.toString() ?? "";
   const title = formData.get("title")?.toString().trim() ?? "";
-  const sourceUrl = formData.get("source_url")?.toString().trim() ?? "";
+  const sourceUrl = formData.get("source_url")?.toString().trim() || null;
   const imageUrl = formData.get("image_url")?.toString().trim() || null;
   const description = formData.get("description")?.toString().trim() || null;
   const priceRaw = formData.get("price")?.toString().trim();
 
-  if (!title || !sourceUrl || !eventId) {
+  if (!title || !eventId) {
     redirect(`/compte/evenements/${slug}?erreur=champs_invalides`);
   }
 
