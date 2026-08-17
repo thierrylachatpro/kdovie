@@ -262,14 +262,11 @@ export default function GiftItemCard({
             </>
           )}
           {mode === "reading" && locked && (
-            <span className="inline-flex items-center gap-2 rounded-2xl bg-[#F7E7D6] px-4.5 py-3 text-[15px] font-semibold text-[#8A7263]">
+            <span
+              title="Ce cadeau ne peut plus être modifié : un proche l'a déjà réservé ou a commencé à cotiser dessus."
+              className="cursor-help rounded-2xl bg-[#F7E7D6] px-4.5 py-3 text-[15px] font-semibold text-[#8A7263]"
+            >
               Non modifiable
-              <span
-                title="Ce cadeau ne peut plus être modifié : un proche l'a déjà réservé ou a commencé à cotiser dessus."
-                className="flex h-4.5 w-4.5 flex-none cursor-help items-center justify-center rounded-full bg-[#8A7263]/25 text-[11px] font-bold text-[#8A7263]"
-              >
-                i
-              </span>
             </span>
           )}
           {mode === "editing" && (
