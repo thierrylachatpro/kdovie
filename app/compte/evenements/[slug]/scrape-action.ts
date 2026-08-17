@@ -33,11 +33,39 @@ export async function scrapeArticleUrl(url: string): Promise<ScrapedArticle> {
       },
       signal: controller.signal,
     });
-    if (!response.ok) return EMPTY_RESULT;
+
+    if (!response.ok) {
+      console.log(
+        `[scrape] ${parsedUrl.hostname} : réponse ${response.status}, abandon`,
+      );
+      return EMPTY_RESULT;
+    }
 
     const html = await response.text();
-    return parseArticleMetadata(html, parsedUrl.toString());
-  } catch {
+    const result = parseArticleMetadata(html, parsedUrl.toString());
+
+    if (!result.title && result.priceCents === null && !result.imageUrl) {
+      // Diagnostic temporaire (17 août 2026) : identifier si un site renvoie
+      // une page de vérification anti-bot (Cloudflare/PerimeterX/DataDome...)
+      // plutôt qu'un vrai échec de parsing — voir CLAUDE.md > Scraping.
+      const looksLikeBotChallenge =
+        /just a moment|checking your browser|cf-browser-verification|attention required|enable javascript and cookies|captcha|access denied|request blocked/i.test(
+          html,
+        );
+      console.log(
+        `[scrape] ${parsedUrl.hostname} : statut ${response.status}, ${html.length} caractères reçus, aucune donnée extraite` +
+          (looksLikeBotChallenge
+            ? " — la page ressemble à une vérification anti-bot"
+            : ""),
+      );
+    }
+
+    return result;
+  } catch (error) {
+    console.log(
+      `[scrape] ${parsedUrl.hostname} : erreur réseau ou timeout —`,
+      error instanceof Error ? error.message : error,
+    );
     return EMPTY_RESULT;
   } finally {
     clearTimeout(timeout);
