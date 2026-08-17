@@ -166,9 +166,11 @@ Volontairement laissé de côté à ce stade (à ne pas ajouter maintenant) : st
 - Ordre de priorité pour l'extraction :
   1. Données structurées JSON-LD de type `Product`/`Offer` (le plus fiable pour le prix)
   2. Balises Open Graph (`og:title`, `og:image`, `og:price:amount` / `product:price:amount`)
-  3. `<title>` en dernier recours pour le titre uniquement
-  4. Si aucun prix trouvé : champ laissé vide, jamais de valeur inventée — l'organisateur le saisit à la main
-- User-Agent réaliste sur la requête de fetch (certains sites bloquent les requêtes sans UA de navigateur), timeout raisonnable (~8s), et dans tous les cas le formulaire doit rester utilisable manuellement si le scraping échoue ou timeout — ne jamais bloquer l'ajout d'un article sur l'échec du scraping.
+  3. Microdonnées schema.org (`itemprop="name"/"image"/"price"`)
+  4. Repli Amazon (17 août 2026, aucune page produit Amazon n'expose JSON-LD ni Open Graph) : `#productTitle` pour le titre, `#landingImage`/`#imgTagWrapperId img` (attribut `data-a-dynamic-image` ou `src`) pour l'image. **Pas de repli prix pour Amazon** : le prix y est affiché à de nombreux endroits de la page (produits sponsorisés, options d'achat) sans conteneur stable pour identifier le bon — un sélecteur générique renvoie parfois le prix d'un tout autre article, testé et confirmé en conditions réelles. Laisser le champ vide est plus sûr qu'un prix scrapé mais faux.
+  5. `<title>` en tout dernier recours, pour le titre uniquement
+  6. Si aucun prix trouvé : champ laissé vide, jamais de valeur inventée — l'organisateur le saisit à la main
+- User-Agent réaliste sur la requête de fetch (certains sites bloquent les requêtes sans UA de navigateur), en-têtes `Accept`/`Accept-Language` complets (certains sites varient leur réponse selon ces en-têtes), timeout raisonnable (~8s), et dans tous les cas le formulaire doit rester utilisable manuellement si le scraping échoue ou timeout — ne jamais bloquer l'ajout d'un article sur l'échec du scraping.
 - Hors périmètre de cette tâche, à ne pas anticiper : génération de lien d'affilié (tâche #19, le prix stocké est celui scrapé/saisi, le lien stocké est l'URL source telle quelle) ; boutons "réserver"/"cotiser" sur la page publique `/liste/[slug]` (tâches #17/#18, cette tâche affiche la liste en lecture seule avec le statut de chaque article).
 
 ## Réservation d'article par un invité (tâche #17)

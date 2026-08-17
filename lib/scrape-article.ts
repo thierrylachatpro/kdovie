@@ -140,6 +140,47 @@ export function parseArticleMetadata(html: string, baseUrl: string): ScrapedArti
     if (ogPrice) priceCents = parsePriceToCents(ogPrice);
   }
 
+  // Repli microdonnées (schema.org itemprop) : certains sites n'exposent le
+  // Product qu'ainsi, sans JSON-LD ni Open Graph complet.
+  if (!title) {
+    title = $('[itemprop="name"]').first().text().trim() || null;
+  }
+  if (!imageUrl) {
+    const itemImage = $('[itemprop="image"]').first();
+    const src = itemImage.attr("content") || itemImage.attr("src");
+    if (src) imageUrl = toAbsoluteUrl(src, baseUrl);
+  }
+  if (priceCents === null) {
+    const itemPrice = $('[itemprop="price"]').first();
+    const raw = itemPrice.attr("content") || itemPrice.text();
+    if (raw) priceCents = parsePriceToCents(raw);
+  }
+
+  // Repli Amazon : ni JSON-LD ni Open Graph sur ses pages produit. Le titre
+  // et l'image y sont à un emplacement stable — pas le prix (affiché à de
+  // multiples endroits sans conteneur fiable pour distinguer le bon : mieux
+  // vaut laisser l'organisateur le saisir que d'en afficher un faux).
+  if (!title) {
+    title = $("#productTitle").first().text().trim() || null;
+  }
+  if (!imageUrl) {
+    const landing = $("#landingImage, #imgTagWrapperId img").first();
+    const dynamicImage = landing.attr("data-a-dynamic-image");
+    if (dynamicImage) {
+      try {
+        const sizes = JSON.parse(dynamicImage) as Record<string, unknown>;
+        const firstUrl = Object.keys(sizes)[0];
+        if (firstUrl) imageUrl = toAbsoluteUrl(firstUrl, baseUrl);
+      } catch {
+        // ignore, on retombe sur src/data-old-hires ci-dessous
+      }
+    }
+    if (!imageUrl) {
+      const src = landing.attr("src") || landing.attr("data-old-hires");
+      if (src) imageUrl = toAbsoluteUrl(src, baseUrl);
+    }
+  }
+
   if (!title) {
     const pageTitle = $("title").first().text().trim();
     title = pageTitle || null;

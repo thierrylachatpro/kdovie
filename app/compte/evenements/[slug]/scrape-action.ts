@@ -26,7 +26,11 @@ export async function scrapeArticleUrl(url: string): Promise<ScrapedArticle> {
 
   try {
     const response = await fetch(parsedUrl.toString(), {
-      headers: { "User-Agent": USER_AGENT, Accept: "text/html" },
+      headers: {
+        "User-Agent": USER_AGENT,
+        Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
+      },
       signal: controller.signal,
     });
     if (!response.ok) return EMPTY_RESULT;
