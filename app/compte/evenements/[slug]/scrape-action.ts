@@ -16,6 +16,39 @@ const EMPTY_RESULT: ScrapedArticle = { title: null, priceCents: null, imageUrl: 
 // ici, source unique (ne jamais dupliquer parseArticleMetadata côté tiers).
 const SCRAPINGANT_API_KEY = process.env.SCRAPINGANT_API_KEY;
 
+// Un seul appel à ScrapingAnt. Ne lève jamais d'exception.
+async function scrapingAntAttempt(
+  targetUrl: string,
+): Promise<{ html: string | null; status: number | null }> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
+  try {
+    const requestUrl = new URL("https://api.scrapingant.com/v2/general");
+    requestUrl.searchParams.set("url", targetUrl);
+    requestUrl.searchParams.set("x-api-key", SCRAPINGANT_API_KEY!);
+    // browser=false : pas de rendu JavaScript (inutile ici, JSON-LD/Open
+    // Graph sont déjà dans le HTML servi), 1 crédit par requête au lieu de
+    // 10 — voir CLAUDE.md.
+    requestUrl.searchParams.set("browser", "false");
+
+    const response = await fetch(requestUrl.toString(), { signal: controller.signal });
+    if (!response.ok) {
+      return { html: null, status: response.status };
+    }
+
+    return { html: await response.text(), status: response.status };
+  } catch (error) {
+    console.log(
+      `[scrape] ScrapingAnt injoignable —`,
+      error instanceof Error ? error.message : error,
+    );
+    return { html: null, status: null };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 // Tente ScrapingAnt. Retourne le HTML si ça marche, null sinon — jamais
 // d'exception, l'appelant retombe alors sur le fetch direct.
 async function fetchViaScrapingAnt(targetUrl: string): Promise<string | null> {
@@ -24,39 +57,25 @@ async function fetchViaScrapingAnt(targetUrl: string): Promise<string | null> {
     return null;
   }
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  let attempt = await scrapingAntAttempt(targetUrl);
 
-  try {
-    const requestUrl = new URL("https://api.scrapingant.com/v2/general");
-    requestUrl.searchParams.set("url", targetUrl);
-    requestUrl.searchParams.set("x-api-key", SCRAPINGANT_API_KEY);
-    // browser=false : pas de rendu JavaScript (inutile ici, JSON-LD/Open
-    // Graph sont déjà dans le HTML servi), 1 crédit par requête au lieu de
-    // 10 — voir CLAUDE.md.
-    requestUrl.searchParams.set("browser", "false");
+  // 423 : ScrapingAnt indique lui-même que le site cible a détecté la
+  // requête et recommande de réessayer (proxy différent à la reprise) —
+  // une seule nouvelle tentative suffit la plupart du temps, vérifié en
+  // conditions réelles.
+  if (attempt.status === 423) {
+    console.log("[scrape] ScrapingAnt : réponse 423, nouvelle tentative");
+    attempt = await scrapingAntAttempt(targetUrl);
+  }
 
-    const response = await fetch(requestUrl.toString(), {
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      console.log(
-        `[scrape] ScrapingAnt : réponse ${response.status}, repli sur le fetch direct`,
-      );
-      return null;
-    }
-
-    return await response.text();
-  } catch (error) {
+  if (!attempt.html) {
     console.log(
-      `[scrape] ScrapingAnt injoignable, repli sur le fetch direct —`,
-      error instanceof Error ? error.message : error,
+      `[scrape] ScrapingAnt : ${attempt.status ? `réponse ${attempt.status}` : "échec réseau"}, repli sur le fetch direct`,
     );
     return null;
-  } finally {
-    clearTimeout(timeout);
   }
+
+  return attempt.html;
 }
 
 // Comportement historique (avant ScrapingAnt) : fetch direct depuis Vercel.
