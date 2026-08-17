@@ -1,9 +1,29 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useFormStatus } from "react-dom";
 import { scrapeArticleUrl } from "@/app/compte/evenements/[slug]/scrape-action";
 import { createGiftItem } from "@/app/compte/evenements/[slug]/gift-item-actions";
 import KdovieSpinner from "@/components/ui/KdovieSpinner";
+
+// useFormStatus doit être appelé depuis un descendant du <form>, pas depuis
+// le composant qui le rend — d'où ce bouton séparé. Sans lui, le clic sur
+// "Ajouter à la liste" ne donnait aucun retour visuel pendant l'aller-retour
+// serveur (insertion + rafraîchissement de la page), ce qui donnait
+// l'impression que c'était lent.
+function SubmitButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="font-heading mt-1.5 inline-flex items-center gap-2.5 self-start rounded-[18px] bg-corail px-6 py-4 text-base font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
+    >
+      {pending && <KdovieSpinner className="h-4.5 w-4.5" />}
+      {pending ? "Ajout en cours…" : "Ajouter à la liste"}
+    </button>
+  );
+}
 
 export default function AjouterArticleForm({
   eventId,
@@ -167,12 +187,7 @@ export default function AjouterArticleForm({
               />
             </label>
 
-            <button
-              type="submit"
-              className="font-heading mt-1.5 self-start rounded-[18px] bg-corail px-6 py-4 text-base font-bold text-creme hover:bg-[#D45F37]"
-            >
-              Ajouter à la liste
-            </button>
+            <SubmitButton />
           </>
         )}
       </form>
