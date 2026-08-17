@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
+import KdovieSpinner from "@/components/ui/KdovieSpinner";
 
 function estEmailValide(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -114,8 +115,9 @@ export default function ConnexionForm({
       <button
         type="submit"
         disabled={status === "envoi"}
-        className="font-heading w-full rounded-[20px] bg-corail py-[19px] text-lg font-bold text-creme disabled:opacity-60"
+        className="font-heading inline-flex w-full items-center justify-center gap-2.5 rounded-[20px] bg-corail py-[19px] text-lg font-bold text-creme disabled:opacity-60"
       >
+        {status === "envoi" && <KdovieSpinner className="h-5 w-5" />}
         {status === "envoi" ? "Envoi en cours…" : "Recevoir mon lien"}
       </button>
 

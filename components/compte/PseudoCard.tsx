@@ -3,6 +3,7 @@
 import { useState, useTransition, type ChangeEvent } from "react";
 import { updateDisplayName } from "@/app/compte/profil/actions";
 import { initiales } from "@/lib/initials";
+import KdovieSpinner from "@/components/ui/KdovieSpinner";
 
 export default function PseudoCard({
   email,
@@ -113,12 +114,13 @@ export default function PseudoCard({
           type="button"
           onClick={handleSave}
           disabled={!canSave}
-          className={`font-heading rounded-2xl px-6.5 py-4 text-[17px] font-bold ${
+          className={`font-heading inline-flex items-center gap-2.5 rounded-2xl px-6.5 py-4 text-[17px] font-bold ${
             canSave
               ? "cursor-pointer bg-corail text-creme hover:bg-[#D45F37]"
               : "cursor-default bg-[#F2DFC9] text-[#A08D7E]"
           }`}
         >
+          {isPending && <KdovieSpinner className="h-4.5 w-4.5" />}
           {isPending ? "Enregistrement…" : "Enregistrer"}
         </button>
         {dirty && (

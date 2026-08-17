@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { scrapeArticleUrl } from "@/app/compte/evenements/[slug]/scrape-action";
 import { createGiftItem } from "@/app/compte/evenements/[slug]/gift-item-actions";
+import KdovieSpinner from "@/components/ui/KdovieSpinner";
 
 export default function AjouterArticleForm({
   eventId,
@@ -92,8 +93,9 @@ export default function AjouterArticleForm({
                 type="button"
                 onClick={handleAnalyser}
                 disabled={isPending || !url.trim()}
-                className="font-heading rounded-[18px] bg-corail px-6 py-4 text-base font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
+                className="font-heading inline-flex items-center gap-2.5 rounded-[18px] bg-corail px-6 py-4 text-base font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
               >
+                {isPending && <KdovieSpinner className="h-4.5 w-4.5" />}
                 {isPending ? "Recherche…" : "Récupérer le cadeau"}
               </button>
             </div>

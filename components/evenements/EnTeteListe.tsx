@@ -3,6 +3,7 @@
 import { useState, type ChangeEvent } from "react";
 import { updateEvent } from "@/app/compte/evenements/[slug]/event-actions";
 import { EVENT_TYPES, eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
+import KdovieSpinner from "@/components/ui/KdovieSpinner";
 
 export default function EnTeteListe({
   eventId,
@@ -164,8 +165,9 @@ export default function EnTeteListe({
           type="button"
           onClick={handleSave}
           disabled={isPending}
-          className="font-heading rounded-[18px] bg-corail px-6 py-4 text-base font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
+          className="font-heading inline-flex items-center gap-2.5 rounded-[18px] bg-corail px-6 py-4 text-base font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
         >
+          {isPending && <KdovieSpinner className="h-4.5 w-4.5" />}
           {isPending ? "Enregistrement…" : "Enregistrer"}
         </button>
         <button

@@ -3,6 +3,7 @@
 import { useState, useTransition, type ChangeEvent, type FormEvent } from "react";
 import { updateEventStatus } from "@/app/compte/evenements/[slug]/event-status-actions";
 import type { EventStatus } from "@/lib/event-status";
+import KdovieSpinner from "@/components/ui/KdovieSpinner";
 
 function estEmailValide(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -140,13 +141,14 @@ export default function VisibiliteListe({
           type="button"
           onClick={handleToggle}
           disabled={isPending}
-          className={`font-heading w-full rounded-2xl px-5 py-3.5 text-[15px] font-bold disabled:opacity-60 ${
+          className={`font-heading inline-flex w-full items-center justify-center gap-2.5 rounded-2xl px-5 py-3.5 text-[15px] font-bold disabled:opacity-60 ${
             shared
               ? "bg-creme text-[#5C4436] hover:bg-white"
               : "rounded-[20px] bg-corail px-6 py-4.5 text-[17px] text-creme hover:bg-[#D45F37]"
           }`}
         >
-          {isPending ? "…" : shared ? "Refermer la liste" : "Ouvrir ma liste aux invités"}
+          {isPending && <KdovieSpinner className="h-4 w-4" />}
+          {!isPending && (shared ? "Refermer la liste" : "Ouvrir ma liste aux invités")}
         </button>
       </div>
 

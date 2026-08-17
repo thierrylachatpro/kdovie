@@ -7,6 +7,7 @@ import {
 } from "@/app/compte/evenements/[slug]/gift-item-actions";
 import { formatPriceCents } from "@/lib/gift-item";
 import ModeSelect from "@/components/gift-items/ModeSelect";
+import KdovieSpinner from "@/components/ui/KdovieSpinner";
 
 type GiftItem = {
   id: string;
@@ -271,8 +272,9 @@ export default function GiftItemCard({
                 type="button"
                 onClick={handleSave}
                 disabled={isPending}
-                className="font-heading rounded-2xl bg-corail px-5 py-3 text-[15px] font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
+                className="font-heading inline-flex items-center gap-2 rounded-2xl bg-corail px-5 py-3 text-[15px] font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
               >
+                {isPending && <KdovieSpinner className="h-4 w-4" />}
                 {isPending ? "Enregistrement…" : "Enregistrer"}
               </button>
               <button
@@ -291,8 +293,9 @@ export default function GiftItemCard({
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={isPending}
-                className="font-heading rounded-2xl bg-corail px-5 py-3 text-[15px] font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
+                className="font-heading inline-flex items-center gap-2 rounded-2xl bg-corail px-5 py-3 text-[15px] font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
               >
+                {isPending && <KdovieSpinner className="h-4 w-4" />}
                 {isPending ? "Suppression…" : "Oui, supprimer"}
               </button>
               <button
