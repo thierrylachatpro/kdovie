@@ -19,7 +19,10 @@ const SCRAPINGANT_API_KEY = process.env.SCRAPINGANT_API_KEY;
 // Tente ScrapingAnt. Retourne le HTML si ça marche, null sinon — jamais
 // d'exception, l'appelant retombe alors sur le fetch direct.
 async function fetchViaScrapingAnt(targetUrl: string): Promise<string | null> {
-  if (!SCRAPINGANT_API_KEY) return null;
+  if (!SCRAPINGANT_API_KEY) {
+    console.log("[scrape] SCRAPINGANT_API_KEY absente, repli direct sans passer par ScrapingAnt");
+    return null;
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
