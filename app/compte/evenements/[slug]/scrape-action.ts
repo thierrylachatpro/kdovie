@@ -125,6 +125,15 @@ export async function scrapeArticleUrl(url: string): Promise<ScrapedArticle> {
     return EMPTY_RESULT;
   }
 
+  // Retire les paramètres de la page produit (tracking, session,
+  // affiliation...) avant de scraper : une URL "propre" (juste le chemin)
+  // scrape sensiblement mieux en pratique — vérifié par l'utilisateur.
+  // L'URL d'origine (avec ses paramètres) reste ce qui est enregistré comme
+  // source_url par l'action appelante, seule celle utilisée pour le
+  // scraping est nettoyée ici.
+  parsedUrl.search = "";
+  parsedUrl.hash = "";
+
   const html =
     (await fetchViaScrapingAnt(parsedUrl.toString())) ?? (await fetchDirect(parsedUrl));
 
