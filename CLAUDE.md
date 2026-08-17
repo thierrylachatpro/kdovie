@@ -194,16 +194,6 @@ Décision retenue à la place : passer par ScrapingAnt (scrapingant.com), qui pr
 - La réponse est le HTML de la page cible : **ne pas dupliquer la logique de parsing**, continuer à passer ce HTML dans `parseArticleMetadata` (`lib/scrape-article.ts`), source unique déjà en place.
 - Fallback inchangé : si l'appel à ScrapingAnt échoue (crédits épuisés, timeout, erreur), retomber sur le comportement actuel (fetch direct depuis Vercel, puis champ vide si ça échoue aussi) — le formulaire doit toujours rester utilisable manuellement, ne jamais bloquer l'ajout d'un article.
 
-### Escalade pour les sites fortement protégés (Amazon en particulier) — 17 août 2026
-
-Constat (17 août 2026) : `browser=false` (1 crédit) suffit pour la plupart des sites marchands, mais échoue souvent sur Amazon spécifiquement, qui a une protection anti-bot parmi les plus agressives du marché — un mur de vérification apparaît à la place de la page produit. Aucune solution de scraping, chez nous ou ailleurs, n'atteint 100 % de fiabilité sur Amazon ; l'objectif ici est d'améliorer sensiblement le taux de réussite, pas de le garantir.
-
-Décision : utiliser la détection déjà en place (`looksLikeBotChallenge` dans `scrape-action.ts`, qui repère un mur de vérification à la place du contenu attendu) pour déclencher une **deuxième tentative plus coûteuse mais plus robuste** avant d'abandonner :
-
-- Si la première tentative ScrapingAnt (`browser=false`) échoue ou que `looksLikeBotChallenge` détecte un mur anti-bot, retenter avec rendu JavaScript + proxy résidentiel (`browser=true` + option proxy résidentiel — ScrapingAnt documente spécifiquement ce cas pour Amazon, voir leur dépôt de référence `ScrapingAnt/amazon_scraper` sur GitHub ; paramètres exacts à vérifier dans leur documentation au moment de l'implémentation, l'API générale et les proxies résidentiels sont documentés séparément).
-- Coût nettement supérieur (de l'ordre de 125 crédits par tentative résidentielle contre 1 crédit en mode simple) — à ne déclencher qu'en repli, jamais en tentative par défaut, pour ne pas cramer le palier gratuit de 10 000 crédits/mois sur des sites qui n'en ont pas besoin. Avec ce palier, ça laisse une marge d'environ 80 tentatives résidentielles/mois avant de dépasser le gratuit — suffisant pour démarrer, à surveiller si le volume grandit.
-- Toujours pas de garantie à 100 % : le mur de vérification peut persister même avec cette escalade. Le repli existant (champ vide, saisie manuelle) reste le filet de sécurité final, inchangé.
-
 ## Réservation d'article par un invité (tâche #17)
 
 - Bouton "Réserver" visible sur `/liste/[slug]` uniquement si `status = 'disponible'` et `mode != 'cotisation_obligatoire'`.
@@ -290,16 +280,7 @@ Service de scraping tiers ScrapingAnt développé et testé de bout en bout (voi
 - Testé avec la vraie clé sur des cas réels : succès sur Conforama (titre/prix/image extraits), échec ponctuel puis succès au réessai suivant sur ce même site (ScrapingAnt indique lui-même "detected by target site, retry the request" — comportement attendu d'un service de scraping, pas 100 % fiable non plus, mais le repli gère déjà ce cas). Sur l'ASIN Amazon testé tout au long de cette session, ScrapingAnt tombe aussi sur la page de vérification "cliquez pour continuer vos achats" — Amazon protège apparemment cet article précis plus agressivement que la moyenne.
 - Clé posée dans `.env.local` pour le développement local (fichier ignoré par git, jamais commité) — reste à poser `SCRAPINGANT_API_KEY` dans les variables d'environnement Vercel pour la prod.
 
-`SCRAPINGANT_API_KEY` posée dans les variables d'environnement Vercel le 17 août 2026 — scraping via ScrapingAnt opérationnel en production.
-
-Escalade pour les sites fortement protégés développée et testée (voir section "Escalade pour les sites fortement protégés" ci-dessus) :
-- Paramètres confirmés dans la doc ScrapingAnt (`docs.scrapingant.com`, exemple officiel du client JS `scrapingant-client-js`) : `browser=true` + `proxy_type=residential`. Coût confirmé à 125 crédits/requête (en-tête de réponse `ant-credits-cost`).
-- `scrapingAntAttempt` prend un mode `"simple"` (`browser=false`, défaut) ou `"residentiel"` (`browser=true` + `proxy_type=residential`). `fetchViaScrapingAnt` escalade vers le mode résidentiel si la tentative simple échoue (après son propre réessai sur 423) ou si `looksLikeBotChallenge` détecte un mur anti-bot dans le HTML reçu — fonction extraite et réutilisée (regex complétée avec le motif "cliquez sur le bouton ci-dessous"/"continuer vos achats", propre à l'interstitiel Amazon FR observé en test).
-- Bug trouvé et corrigé pendant les tests : le timeout de 8s (pensé pour le mode simple) coupait prématurément les tentatives résidentielles, qui prennent naturellement plus longtemps (9-12s observés, rendu navigateur + routage résidentiel) — gaspillant le crédit sans obtenir la donnée. Timeout dédié `RESIDENTIAL_TIMEOUT_MS = 25000` pour ce mode uniquement.
-- Testé de bout en bout sur un vrai produit Amazon (Sony WH-1000XM4) : l'escalade se déclenche correctement, et a réussi à récupérer la vraie page (titre, `productTitle`, `landingImage`) sur un appel isolé à l'API — mais échoue encore par moments sur cet ASIN précis dans le pipeline complet de l'app, probablement en partie à cause du nombre très élevé de requêtes de test envoyées à cette même URL au fil de la session (dizaines de requêtes, toutes sources confondues). Comportement conforme à ce qu'annonce CLAUDE.md : amélioration sensible, pas de garantie à 100 %. Le repli final (champ vide, saisie manuelle) reste inchangé et fonctionne.
-- Point d'attention UX non traité : dans le pire cas (simple + 423 + escalade résidentielle + repli direct), l'attente peut atteindre ~40 secondes avant que le formulaire ne redevienne utilisable. Le bouton affiche déjà "Recherche…" pendant ce temps, mais rien n'indique à l'organisateur que ça peut prendre du temps sur les sites très protégés — à améliorer si ça s'avère gênant en usage réel.
-
-À venir, dans l'ordre : cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement. L'envoi réel des invitations par e-mail (Resend) est à cadrer séparément, pas dans cet ordre actuel.
+À venir, dans l'ordre : poser `SCRAPINGANT_API_KEY` sur Vercel (ci-dessus, code prêt), cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement. L'envoi réel des invitations par e-mail (Resend) est à cadrer séparément, pas dans cet ordre actuel.
 
 ## Workflow git
 
