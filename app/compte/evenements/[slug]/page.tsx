@@ -192,12 +192,6 @@ export default async function EvenementPage({
           ) : (
             <p className="text-sm text-gris">Aucun cadeau ajouté pour l&apos;instant.</p>
           )}
-
-          <p className="mt-6 max-w-[640px] text-[15px] leading-relaxed text-[#8A7263]">
-            Un cadeau se verrouille dès qu&apos;un invité le réserve ou commence à cotiser
-            dessus, pour ne pas modifier sous ses yeux ce qu&apos;il vient de choisir. Contactez-
-            nous si vous devez vraiment le retirer.
-          </p>
         </section>
       </main>
 
