@@ -147,7 +147,9 @@ export default function VisibiliteListe({
               : "rounded-[20px] bg-corail px-6 py-4.5 text-[17px] text-creme hover:bg-[#D45F37]"
           }`}
         >
-          {isPending && <KdovieSpinner className="h-4 w-4" />}
+          {isPending && (
+            <KdovieSpinner className="h-4 w-4" variant={shared ? "light" : "dark"} />
+          )}
           {!isPending && (shared ? "Refermer la liste" : "Ouvrir ma liste aux invités")}
         </button>
       </div>

@@ -117,7 +117,7 @@ export default function ConnexionForm({
         disabled={status === "envoi"}
         className="font-heading inline-flex w-full items-center justify-center gap-2.5 rounded-[20px] bg-corail py-[19px] text-lg font-bold text-creme disabled:opacity-60"
       >
-        {status === "envoi" && <KdovieSpinner className="h-5 w-5" />}
+        {status === "envoi" && <KdovieSpinner className="h-5 w-5" variant="dark" />}
         {status === "envoi" ? "Envoi en cours…" : "Recevoir mon lien"}
       </button>
 

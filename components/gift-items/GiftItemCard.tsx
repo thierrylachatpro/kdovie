@@ -274,7 +274,7 @@ export default function GiftItemCard({
                 disabled={isPending}
                 className="font-heading inline-flex items-center gap-2 rounded-2xl bg-corail px-5 py-3 text-[15px] font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
               >
-                {isPending && <KdovieSpinner className="h-4 w-4" />}
+                {isPending && <KdovieSpinner className="h-4 w-4" variant="dark" />}
                 {isPending ? "Enregistrement…" : "Enregistrer"}
               </button>
               <button
@@ -295,7 +295,7 @@ export default function GiftItemCard({
                 disabled={isPending}
                 className="font-heading inline-flex items-center gap-2 rounded-2xl bg-corail px-5 py-3 text-[15px] font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
               >
-                {isPending && <KdovieSpinner className="h-4 w-4" />}
+                {isPending && <KdovieSpinner className="h-4 w-4" variant="dark" />}
                 {isPending ? "Suppression…" : "Oui, supprimer"}
               </button>
               <button

@@ -167,7 +167,7 @@ export default function EnTeteListe({
           disabled={isPending}
           className="font-heading inline-flex items-center gap-2.5 rounded-[18px] bg-corail px-6 py-4 text-base font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
         >
-          {isPending && <KdovieSpinner className="h-4.5 w-4.5" />}
+          {isPending && <KdovieSpinner className="h-4.5 w-4.5" variant="dark" />}
           {isPending ? "Enregistrement…" : "Enregistrer"}
         </button>
         <button
