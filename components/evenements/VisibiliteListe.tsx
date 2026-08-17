@@ -151,87 +151,100 @@ export default function VisibiliteListe({
       </div>
 
       {inviteOpen && shared && (
-        <div className="w-full max-w-155 rounded-[22px] bg-creme p-5.5">
-          <div className="font-heading mb-3.5 text-lg font-bold text-[#4A3529]">
-            À qui envoyer la liste ?
-          </div>
-
-          {invitees.length > 0 && (
-            <div className="mb-3 flex flex-wrap gap-2">
-              {invitees.map((email) => (
-                <span
-                  key={email}
-                  className="inline-flex items-center gap-2.5 rounded-full bg-[#F7E7D6] py-2 pr-2.5 pl-3.5 text-[15px] text-[#5C4436]"
-                >
-                  {email}
-                  <button
-                    type="button"
-                    onClick={() => removeInvitee(email)}
-                    className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-[#F2DFC9] text-sm leading-none text-[#7A6354]"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
+        <div
+          className="fixed inset-0 z-20 flex items-center justify-center bg-[#4A3529]/45 p-6"
+          onClick={() => {
+            setInviteOpen(false);
+            setInviteSent(false);
+          }}
+        >
+          <div
+            className="w-full max-w-155 rounded-[28px] bg-creme p-6.5"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-3.5 flex items-start justify-between gap-4">
+              <h2 className="font-heading text-xl font-bold text-[#4A3529]">
+                À qui envoyer la liste ?
+              </h2>
+              <button
+                type="button"
+                onClick={() => {
+                  setInviteOpen(false);
+                  setInviteSent(false);
+                }}
+                className="p-1 text-[15px] font-semibold text-[#8A7263]"
+              >
+                Fermer
+              </button>
             </div>
-          )}
 
-          <form onSubmit={handleAddInvitee} className="mb-3.5 flex flex-wrap gap-2.5">
-            <input
-              type="email"
-              value={inviteDraft}
-              onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                setInviteDraft(event.target.value)
-              }
-              placeholder="prenom@email.fr"
-              className="min-w-55 flex-1 rounded-2xl border-2 border-[#F2DFC9] bg-white px-4 py-3.5 text-base text-[#4A3529] outline-none focus:border-corail"
-            />
-            <button
-              type="submit"
-              className="font-heading rounded-2xl bg-jaune px-5 py-3.5 text-[15px] font-bold text-[#6B4A0F] hover:bg-[#EBAB2C]"
-            >
-              Ajouter
-            </button>
-          </form>
-
-          <textarea
-            value={inviteMessage}
-            onChange={(event) => setInviteMessage(event.target.value)}
-            rows={2}
-            placeholder="Un petit mot pour accompagner l'invitation (facultatif)"
-            className="mb-4 w-full resize-y rounded-2xl border-2 border-[#F2DFC9] bg-white px-4 py-3.5 text-base text-[#4A3529] outline-none focus:border-corail"
-          />
-
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={handleSendInvites}
-              disabled={invitees.length === 0}
-              className={`font-heading rounded-[18px] px-6 py-4 text-base font-bold ${
-                invitees.length > 0
-                  ? "cursor-pointer bg-corail text-creme hover:bg-[#D45F37]"
-                  : "cursor-default bg-[#F2DFC9] text-[#A08D7E]"
-              }`}
-            >
-              {invitees.length > 0
-                ? `Envoyer à ${invitees.length} ${invitees.length > 1 ? "personnes" : "personne"}`
-                : "Envoyer l'invitation"}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setInviteOpen(false);
-                setInviteSent(false);
-              }}
-              className="px-2.5 py-4 text-[15px] font-semibold text-[#8A7263]"
-            >
-              Fermer
-            </button>
-            {inviteSent !== false && (
-              <span className="rounded-full bg-[#DCE7DA] px-4 py-2.5 text-[15px] font-semibold text-[#2F4A2C]">
-                Invitation envoyée à {inviteSent} {inviteSent > 1 ? "personnes" : "personne"}
-              </span>
+            {invitees.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-2">
+                {invitees.map((email) => (
+                  <span
+                    key={email}
+                    className="inline-flex items-center gap-2.5 rounded-full bg-[#F7E7D6] py-2 pr-2.5 pl-3.5 text-[15px] text-[#5C4436]"
+                  >
+                    {email}
+                    <button
+                      type="button"
+                      onClick={() => removeInvitee(email)}
+                      className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-[#F2DFC9] text-sm leading-none text-[#7A6354]"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
             )}
+
+            <form onSubmit={handleAddInvitee} className="mb-3.5 flex flex-wrap gap-2.5">
+              <input
+                type="email"
+                value={inviteDraft}
+                onChange={(event: ChangeEvent<HTMLInputElement>) =>
+                  setInviteDraft(event.target.value)
+                }
+                placeholder="prenom@email.fr"
+                className="min-w-55 flex-1 rounded-2xl border-2 border-[#F2DFC9] bg-white px-4 py-3.5 text-base text-[#4A3529] outline-none focus:border-corail"
+              />
+              <button
+                type="submit"
+                className="font-heading rounded-2xl bg-jaune px-5 py-3.5 text-[15px] font-bold text-[#6B4A0F] hover:bg-[#EBAB2C]"
+              >
+                Ajouter
+              </button>
+            </form>
+
+            <textarea
+              value={inviteMessage}
+              onChange={(event) => setInviteMessage(event.target.value)}
+              rows={5}
+              placeholder="Un petit mot pour accompagner l'invitation (facultatif)"
+              className="mb-4 w-full resize-y rounded-2xl border-2 border-[#F2DFC9] bg-white px-4 py-3.5 text-base text-[#4A3529] outline-none focus:border-corail"
+            />
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={handleSendInvites}
+                disabled={invitees.length === 0}
+                className={`font-heading rounded-[18px] px-6 py-4 text-base font-bold ${
+                  invitees.length > 0
+                    ? "cursor-pointer bg-corail text-creme hover:bg-[#D45F37]"
+                    : "cursor-default bg-[#F2DFC9] text-[#A08D7E]"
+                }`}
+              >
+                {invitees.length > 0
+                  ? `Envoyer à ${invitees.length} ${invitees.length > 1 ? "personnes" : "personne"}`
+                  : "Envoyer l'invitation"}
+              </button>
+              {inviteSent !== false && (
+                <span className="rounded-full bg-[#DCE7DA] px-4 py-2.5 text-[15px] font-semibold text-[#2F4A2C]">
+                  Invitation envoyée à {inviteSent} {inviteSent > 1 ? "personnes" : "personne"}
+                </span>
+              )}
+            </div>
           </div>
         </div>
       )}
