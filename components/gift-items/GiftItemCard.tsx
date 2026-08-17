@@ -5,7 +5,7 @@ import {
   deleteGiftItem,
   updateGiftItem,
 } from "@/app/compte/evenements/[slug]/gift-item-actions";
-import { GIFT_ITEM_MODES, formatPriceCents } from "@/lib/gift-item";
+import { formatPriceCents } from "@/lib/gift-item";
 import ModeSelect from "@/components/gift-items/ModeSelect";
 
 type GiftItem = {
@@ -51,7 +51,6 @@ export default function GiftItemCard({
 
   const locked = item.status !== "disponible";
   const badge = BADGES[item.status] ?? BADGES.disponible;
-  const modeLabel = GIFT_ITEM_MODES.find((m) => m.id === item.mode)?.label ?? item.mode;
   const percent =
     item.status === "cagnotte" && item.price_cents
       ? Math.round((item.funded_amount_cents / item.price_cents) * 100)
@@ -148,9 +147,6 @@ export default function GiftItemCard({
                 </p>
               )}
               <ModeSelect itemId={item.id} slug={slug} mode={item.mode} disabled={locked} />
-              {!locked && (
-                <span className="ml-2 align-middle text-sm text-[#8A7263]">{modeLabel}</span>
-              )}
 
               {item.status === "cagnotte" && (
                 <div className="mt-3 max-w-90">
