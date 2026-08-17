@@ -5,32 +5,59 @@ import { parseArticleMetadata, type ScrapedArticle } from "@/lib/scrape-article"
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 const TIMEOUT_MS = 8000;
+// Le rendu navigateur + proxy résidentiel est nettement plus lent qu'une
+// requête simple (~9-12s observés en test contre <2s en mode simple) —
+// un timeout à 8s coupe la tentative avant qu'elle n'aboutisse, alors
+// qu'elle coûte déjà ~125 crédits. Délai propre à ce mode uniquement.
+const RESIDENTIAL_TIMEOUT_MS = 25000;
 
 const EMPTY_RESULT: ScrapedArticle = { title: null, priceCents: null, imageUrl: null };
 
+// Identifie un mur de vérification anti-bot (Cloudflare/PerimeterX/DataDome,
+// ou l'interstitiel "cliquez pour continuer vos achats" d'Amazon) à la
+// place du contenu attendu — voir CLAUDE.md > Scraping.
+function looksLikeBotChallenge(html: string): boolean {
+  return /just a moment|checking your browser|cf-browser-verification|attention required|enable javascript and cookies|captcha|access denied|request blocked|cliquez sur le bouton ci-dessous|continuer vos achats/i.test(
+    html,
+  );
+}
+
 // Service de scraping tiers ScrapingAnt (voir CLAUDE.md > "Service de
-// scraping tiers — ScrapingAnt"). Beaucoup de sites marchands protégés par
-// Cloudflare bloquent les IP des fonctions Vercel par réputation ; le relais
-// Hostinger tenté avant ScrapingAnt s'est révélé tout aussi bloqué et a été
-// abandonné. ScrapingAnt gère cette partie pour nous — tout le parsing reste
-// ici, source unique (ne jamais dupliquer parseArticleMetadata côté tiers).
+// scraping tiers — ScrapingAnt" et "Escalade pour les sites fortement
+// protégés"). Beaucoup de sites marchands protégés par Cloudflare bloquent
+// les IP des fonctions Vercel par réputation ; le relais Hostinger tenté
+// avant ScrapingAnt s'est révélé tout aussi bloqué et a été abandonné.
+// ScrapingAnt gère cette partie pour nous — tout le parsing reste ici,
+// source unique (ne jamais dupliquer parseArticleMetadata côté tiers).
 const SCRAPINGANT_API_KEY = process.env.SCRAPINGANT_API_KEY;
 
 // Un seul appel à ScrapingAnt. Ne lève jamais d'exception.
+// mode "simple" : browser=false, proxy datacenter (défaut) — 1 crédit.
+// mode "residentiel" : browser=true + proxy_type=residential — ~125
+// crédits, réservé à l'escalade sur les sites les plus protégés (Amazon
+// en particulier), voir CLAUDE.md.
 async function scrapingAntAttempt(
   targetUrl: string,
+  mode: "simple" | "residentiel",
 ): Promise<{ html: string | null; status: number | null }> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeout = setTimeout(
+    () => controller.abort(),
+    mode === "residentiel" ? RESIDENTIAL_TIMEOUT_MS : TIMEOUT_MS,
+  );
 
   try {
     const requestUrl = new URL("https://api.scrapingant.com/v2/general");
     requestUrl.searchParams.set("url", targetUrl);
     requestUrl.searchParams.set("x-api-key", SCRAPINGANT_API_KEY!);
-    // browser=false : pas de rendu JavaScript (inutile ici, JSON-LD/Open
-    // Graph sont déjà dans le HTML servi), 1 crédit par requête au lieu de
-    // 10 — voir CLAUDE.md.
-    requestUrl.searchParams.set("browser", "false");
+    if (mode === "residentiel") {
+      requestUrl.searchParams.set("browser", "true");
+      requestUrl.searchParams.set("proxy_type", "residential");
+    } else {
+      // pas de rendu JavaScript (inutile ici, JSON-LD/Open Graph sont déjà
+      // dans le HTML servi), 1 crédit par requête au lieu de 10.
+      requestUrl.searchParams.set("browser", "false");
+    }
 
     const response = await fetch(requestUrl.toString(), { signal: controller.signal });
     if (!response.ok) {
@@ -49,15 +76,17 @@ async function scrapingAntAttempt(
   }
 }
 
-// Tente ScrapingAnt. Retourne le HTML si ça marche, null sinon — jamais
-// d'exception, l'appelant retombe alors sur le fetch direct.
+// Tente ScrapingAnt, avec escalade vers browser=true + proxy résidentiel si
+// la tentative simple échoue ou tombe sur un mur anti-bot. Retourne le HTML
+// si ça marche, null sinon — jamais d'exception, l'appelant retombe alors
+// sur le fetch direct.
 async function fetchViaScrapingAnt(targetUrl: string): Promise<string | null> {
   if (!SCRAPINGANT_API_KEY) {
     console.log("[scrape] SCRAPINGANT_API_KEY absente, repli direct sans passer par ScrapingAnt");
     return null;
   }
 
-  let attempt = await scrapingAntAttempt(targetUrl);
+  let attempt = await scrapingAntAttempt(targetUrl, "simple");
 
   // 423 : ScrapingAnt indique lui-même que le site cible a détecté la
   // requête et recommande de réessayer (proxy différent à la reprise) —
@@ -65,12 +94,30 @@ async function fetchViaScrapingAnt(targetUrl: string): Promise<string | null> {
   // conditions réelles.
   if (attempt.status === 423) {
     console.log("[scrape] ScrapingAnt : réponse 423, nouvelle tentative");
-    attempt = await scrapingAntAttempt(targetUrl);
+    attempt = await scrapingAntAttempt(targetUrl, "simple");
+  }
+
+  const blocked = !attempt.html || looksLikeBotChallenge(attempt.html);
+
+  if (blocked) {
+    console.log(
+      attempt.html
+        ? "[scrape] ScrapingAnt : mur anti-bot détecté en mode simple, escalade vers browser=true + proxy résidentiel"
+        : `[scrape] ScrapingAnt : ${attempt.status ? `réponse ${attempt.status}` : "échec réseau"}, escalade vers browser=true + proxy résidentiel`,
+    );
+    attempt = await scrapingAntAttempt(targetUrl, "residentiel");
   }
 
   if (!attempt.html) {
     console.log(
-      `[scrape] ScrapingAnt : ${attempt.status ? `réponse ${attempt.status}` : "échec réseau"}, repli sur le fetch direct`,
+      `[scrape] ScrapingAnt : ${attempt.status ? `réponse ${attempt.status}` : "échec réseau"} même en résidentiel, repli sur le fetch direct`,
+    );
+    return null;
+  }
+
+  if (looksLikeBotChallenge(attempt.html)) {
+    console.log(
+      "[scrape] ScrapingAnt : mur anti-bot toujours présent malgré l'escalade résidentielle, repli sur le fetch direct",
     );
     return null;
   }
@@ -136,15 +183,9 @@ export async function scrapeArticleUrl(url: string): Promise<ScrapedArticle> {
     // Diagnostic (17 août 2026) : identifier si un site renvoie une page de
     // vérification anti-bot (Cloudflare/PerimeterX/DataDome...) plutôt
     // qu'un vrai échec de parsing — voir CLAUDE.md > Scraping.
-    const looksLikeBotChallenge =
-      /just a moment|checking your browser|cf-browser-verification|attention required|enable javascript and cookies|captcha|access denied|request blocked/i.test(
-        html,
-      );
     console.log(
       `[scrape] ${parsedUrl.hostname} : ${html.length} caractères reçus, aucune donnée extraite` +
-        (looksLikeBotChallenge
-          ? " — la page ressemble à une vérification anti-bot"
-          : ""),
+        (looksLikeBotChallenge(html) ? " — la page ressemble à une vérification anti-bot" : ""),
     );
   }
 
