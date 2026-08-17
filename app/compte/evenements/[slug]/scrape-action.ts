@@ -8,51 +8,46 @@ const TIMEOUT_MS = 8000;
 
 const EMPTY_RESULT: ScrapedArticle = { title: null, priceCents: null, imageUrl: null };
 
-// Relais de scraping Hostinger (voir CLAUDE.md > "Relais de scraping via
-// Hostinger", code du relais dans scrape-relay/). Beaucoup de sites
-// marchands protégés par Cloudflare bloquent les IP des fonctions Vercel
-// par réputation. Le relais fait juste le fetch depuis une IP française
-// non-datacenter ; tout le parsing reste ici, source unique — ne jamais
-// dupliquer parseArticleMetadata côté relais.
-const RELAY_URL = process.env.SCRAPE_RELAY_URL;
-const RELAY_SECRET = process.env.SCRAPE_RELAY_SECRET;
+// Service de scraping tiers ScrapingAnt (voir CLAUDE.md > "Service de
+// scraping tiers — ScrapingAnt"). Beaucoup de sites marchands protégés par
+// Cloudflare bloquent les IP des fonctions Vercel par réputation ; le relais
+// Hostinger tenté avant ScrapingAnt s'est révélé tout aussi bloqué et a été
+// abandonné. ScrapingAnt gère cette partie pour nous — tout le parsing reste
+// ici, source unique (ne jamais dupliquer parseArticleMetadata côté tiers).
+const SCRAPINGANT_API_KEY = process.env.SCRAPINGANT_API_KEY;
 
-// Tente le relais Hostinger. Retourne le HTML si ça marche, null sinon —
-// jamais d'exception, l'appelant retombe alors sur le fetch direct.
-async function fetchViaRelay(targetUrl: string): Promise<string | null> {
-  if (!RELAY_URL || !RELAY_SECRET) return null;
+// Tente ScrapingAnt. Retourne le HTML si ça marche, null sinon — jamais
+// d'exception, l'appelant retombe alors sur le fetch direct.
+async function fetchViaScrapingAnt(targetUrl: string): Promise<string | null> {
+  if (!SCRAPINGANT_API_KEY) return null;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
   try {
-    const relayRequestUrl = new URL(RELAY_URL);
-    relayRequestUrl.searchParams.set("url", targetUrl);
+    const requestUrl = new URL("https://api.scrapingant.com/v2/general");
+    requestUrl.searchParams.set("url", targetUrl);
+    requestUrl.searchParams.set("x-api-key", SCRAPINGANT_API_KEY);
+    // browser=false : pas de rendu JavaScript (inutile ici, JSON-LD/Open
+    // Graph sont déjà dans le HTML servi), 1 crédit par requête au lieu de
+    // 10 — voir CLAUDE.md.
+    requestUrl.searchParams.set("browser", "false");
 
-    const response = await fetch(relayRequestUrl.toString(), {
-      headers: { "x-relay-secret": RELAY_SECRET },
+    const response = await fetch(requestUrl.toString(), {
       signal: controller.signal,
     });
 
     if (!response.ok) {
       console.log(
-        `[scrape] relais Hostinger : réponse ${response.status}, repli sur le fetch direct`,
+        `[scrape] ScrapingAnt : réponse ${response.status}, repli sur le fetch direct`,
       );
       return null;
     }
 
-    const body = (await response.json()) as { ok: boolean; html?: string; error?: string };
-    if (!body.ok || !body.html) {
-      console.log(
-        `[scrape] relais Hostinger : ${body.error ?? "échec inconnu"}, repli sur le fetch direct`,
-      );
-      return null;
-    }
-
-    return body.html;
+    return await response.text();
   } catch (error) {
     console.log(
-      `[scrape] relais Hostinger injoignable, repli sur le fetch direct —`,
+      `[scrape] ScrapingAnt injoignable, repli sur le fetch direct —`,
       error instanceof Error ? error.message : error,
     );
     return null;
@@ -61,8 +56,8 @@ async function fetchViaRelay(targetUrl: string): Promise<string | null> {
   }
 }
 
-// Comportement historique (avant le relais) : fetch direct depuis Vercel.
-// Reste le seul chemin quand le relais n'est pas configuré, et le repli
+// Comportement historique (avant ScrapingAnt) : fetch direct depuis Vercel.
+// Reste le seul chemin quand ScrapingAnt n'est pas configuré, et le repli
 // quand il échoue.
 async function fetchDirect(parsedUrl: URL): Promise<string | null> {
   const controller = new AbortController();
@@ -109,7 +104,7 @@ export async function scrapeArticleUrl(url: string): Promise<ScrapedArticle> {
   }
 
   const html =
-    (await fetchViaRelay(parsedUrl.toString())) ?? (await fetchDirect(parsedUrl));
+    (await fetchViaScrapingAnt(parsedUrl.toString())) ?? (await fetchDirect(parsedUrl));
 
   if (!html) return EMPTY_RESULT;
 
