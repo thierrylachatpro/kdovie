@@ -122,7 +122,7 @@ export default function ListePubliqueClient({
         </p>
       </section>
 
-      <section className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="flex flex-col gap-4">
         {sorted.map((item, index) => {
           const shop = item.source_url ? hostnameFromUrl(item.source_url) : null;
           const isTaken = item.status === "reserve";
@@ -137,25 +137,25 @@ export default function ListePubliqueClient({
           return (
             <article
               key={item.id}
-              className={`flex flex-col overflow-hidden rounded-[26px] border-2 border-[#F2DFC9] bg-white ${isTaken ? "opacity-75" : ""}`}
+              className={`flex flex-wrap items-center gap-5 rounded-[26px] border-2 border-[#F2DFC9] bg-white p-5 ${isTaken ? "opacity-75" : ""}`}
             >
               {item.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={item.image_url}
                   alt=""
-                  className="h-[150px] w-full object-cover"
+                  className="h-24 w-24 flex-none rounded-2xl object-cover"
                 />
               ) : (
                 <div
-                  className="flex h-[150px] items-center justify-center text-4xl"
+                  className="flex h-24 w-24 flex-none items-center justify-center rounded-2xl text-3xl"
                   style={{ background: TONES[index % TONES.length] }}
                 >
                   🎁
                 </div>
               )}
-              <div className="flex flex-1 flex-col gap-3 p-5">
-                <div className="flex items-start justify-between gap-3">
+              <div className="min-w-60 flex-1">
+                <div className="mb-1 flex flex-wrap items-center gap-2.5">
                   <h3 className="font-heading text-lg leading-tight font-bold text-[#4A3529]">
                     {item.title}
                   </h3>
@@ -177,7 +177,7 @@ export default function ListePubliqueClient({
                 {shop && <div className="text-sm text-[#8A7263]">{shop}</div>}
 
                 {isPot && (
-                  <div>
+                  <div className="mt-2 max-w-90">
                     <div className="mb-1.5 h-2.5 overflow-hidden rounded-full bg-[#F7E7D6]">
                       <div
                         className="h-2.5 rounded-full bg-sauge"
@@ -187,28 +187,28 @@ export default function ListePubliqueClient({
                     <div className="text-sm text-[#7A6354]">{percent} % réunis</div>
                   </div>
                 )}
+              </div>
 
-                <div className="mt-auto pt-1.5">
-                  {canReserve && (
-                    <button
-                      type="button"
-                      onClick={() => openModal(item.id)}
-                      className="font-heading w-full rounded-2xl bg-corail px-4 py-3.5 text-base font-bold text-creme hover:bg-[#D45F37]"
-                    >
-                      Je réserve
-                    </button>
-                  )}
-                  {isTaken && (
-                    <div className="rounded-2xl bg-[#DCE7DA] px-4 py-3.5 text-center text-[15px] font-semibold text-[#2F4A2C]">
-                      Déjà réservé
-                    </div>
-                  )}
-                  {(isPot || enAttenteCagnotte) && (
-                    <div className="rounded-2xl bg-creme px-4 py-3.5 text-center text-[15px] text-[#7A6354]">
-                      Cagnotte bientôt disponible
-                    </div>
-                  )}
-                </div>
+              <div className="flex-none">
+                {canReserve && (
+                  <button
+                    type="button"
+                    onClick={() => openModal(item.id)}
+                    className="font-heading rounded-2xl bg-corail px-5 py-3.5 text-base font-bold text-creme hover:bg-[#D45F37]"
+                  >
+                    Je réserve
+                  </button>
+                )}
+                {isTaken && (
+                  <div className="rounded-2xl bg-[#DCE7DA] px-5 py-3.5 text-center text-[15px] font-semibold text-[#2F4A2C]">
+                    Déjà réservé
+                  </div>
+                )}
+                {(isPot || enAttenteCagnotte) && (
+                  <div className="rounded-2xl bg-creme px-5 py-3.5 text-center text-[15px] text-[#7A6354]">
+                    Cagnotte bientôt disponible
+                  </div>
+                )}
               </div>
             </article>
           );
