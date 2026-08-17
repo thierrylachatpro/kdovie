@@ -15,6 +15,10 @@ const EMPTY_RESULT: ScrapedArticle = { title: null, priceCents: null, imageUrl: 
 // abandonné. ScrapingAnt gère cette partie pour nous — tout le parsing reste
 // ici, source unique (ne jamais dupliquer parseArticleMetadata côté tiers).
 const SCRAPINGANT_API_KEY = process.env.SCRAPINGANT_API_KEY;
+// Interrupteur temporaire pour tester le comportement sans ScrapingAnt sans
+// toucher à la vraie clé (risque de faute de frappe en la remettant) —
+// poser SCRAPINGANT_DISABLED=true sur Vercel, puis la retirer ensuite.
+const SCRAPINGANT_DISABLED = process.env.SCRAPINGANT_DISABLED === "true";
 
 // Un seul appel à ScrapingAnt. Ne lève jamais d'exception.
 async function scrapingAntAttempt(
@@ -52,6 +56,10 @@ async function scrapingAntAttempt(
 // Tente ScrapingAnt. Retourne le HTML si ça marche, null sinon — jamais
 // d'exception, l'appelant retombe alors sur le fetch direct.
 async function fetchViaScrapingAnt(targetUrl: string): Promise<string | null> {
+  if (SCRAPINGANT_DISABLED) {
+    console.log("[scrape] ScrapingAnt désactivé temporairement (SCRAPINGANT_DISABLED), repli direct");
+    return null;
+  }
   if (!SCRAPINGANT_API_KEY) {
     console.log("[scrape] SCRAPINGANT_API_KEY absente, repli direct sans passer par ScrapingAnt");
     return null;
