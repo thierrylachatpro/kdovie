@@ -29,7 +29,7 @@ export default function KdovieSpinner({
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
         aria-hidden="true"
-        className="block h-full w-full scale-150"
+        className="block h-full w-full scale-[2]"
       >
         <g
           className="animate-spin"
