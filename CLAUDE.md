@@ -181,6 +181,19 @@ Décision tranchée : le pseudo de l'organisateur (`profiles.display_name`) doit
 - User-Agent réaliste sur la requête de fetch (certains sites bloquent les requêtes sans UA de navigateur), en-têtes `Accept`/`Accept-Language` complets (certains sites varient leur réponse selon ces en-têtes), timeout raisonnable (~8s), et dans tous les cas le formulaire doit rester utilisable manuellement si le scraping échoue ou timeout — ne jamais bloquer l'ajout d'un article sur l'échec du scraping.
 - Hors périmètre de cette tâche, à ne pas anticiper : génération de lien d'affilié (tâche #19, le prix stocké est celui scrapé/saisi, le lien stocké est l'URL source telle quelle) ; boutons "réserver"/"cotiser" sur la page publique `/liste/[slug]` (tâches #17/#18, cette tâche affiche la liste en lecture seule avec le statut de chaque article).
 
+### Relais de scraping via Hostinger (17 août 2026)
+
+Problème identifié en usage réel : les fonctions Vercel font leurs requêtes sortantes depuis des IP AWS Lambda partagées, que beaucoup de sites marchands protégés par Cloudflare (et autres anti-bot) bloquent par réputation d'IP — indépendamment des headers déjà soignés (User-Agent, Accept-Language). Un nombre significatif de sites échouent donc au scraping.
+
+Décision : ne pas migrer l'application hors de Vercel (ce serait disproportionné et ne garantit rien — les IP datacenter d'autres hébergeurs cloud sont aussi souvent flaggées). À la place, utiliser l'hébergement Hostinger déjà payé par l'utilisateur (offre avec support Node.js natif, IP `213.130.145.175`, France — site `mediumblue-clam-841810.hostingersite.com`) comme simple relais pour la requête sortante de scraping uniquement :
+
+- Un petit point d'entrée Node.js déployé sur cet hébergement Hostinger reçoit une URL, fait le `fetch` de la page produit à la place de Vercel (avec les mêmes en-têtes réalistes déjà en place), et renvoie le HTML brut (ou une erreur) à l'app Next.js sur Vercel.
+- **Ne pas dupliquer la logique de parsing** (`lib/scrape-article.ts` / `parseArticleMetadata`) sur le relais Hostinger : il se contente de faire le fetch et de renvoyer le HTML, tout le parsing JSON-LD/Open Graph/microdonnées/Amazon/`<title>` reste côté Vercel, source unique.
+- Le relais doit être protégé par un secret partagé (header ou query param, stocké en variable d'environnement des deux côtés) pour ne pas devenir un proxy ouvert utilisable par n'importe qui.
+- Reste de l'app inchangée : toujours sur Vercel, pas de migration.
+- Fallback inchangé : si le relais est injoignable, timeout, ou que le site cible bloque quand même, le champ reste vide et le formulaire reste utilisable manuellement — ne jamais bloquer l'ajout d'un article.
+- C'est un premier test à coût nul (hébergement déjà payé). Si ça ne suffit pas à débloquer assez de sites, l'étape suivante (non actée) serait un service de scraping tiers payant type ScraperAPI/ScrapingBee/Bright Data — à ne pas mettre en place maintenant, seulement si le relais Hostinger s'avère insuffisant à l'usage.
+
 ## Réservation d'article par un invité (tâche #17)
 
 - Bouton "Réserver" visible sur `/liste/[slug]` uniquement si `status = 'disponible'` et `mode != 'cotisation_obligatoire'`.
@@ -258,7 +271,14 @@ Maquette `Gestion liste.dc.html` mise à jour une seconde fois le 16 août 2026,
 
 Pseudo public sur la page liste du 17 août 2026 (voir section dédiée ci-dessus) : migration `0008_profiles_public_display_name.sql` écrite (pas encore appliquée) — accès `anon` à `profiles` restreint aux colonnes `id`/`display_name` uniquement (revoke + grant colonne, pas juste une policy RLS), policy `profiles_select_public_display_name`. `/liste/[slug]` affiche désormais "liste de {pseudo}" dans la ligne meta quand le pseudo est renseigné, rien sinon.
 
-À venir, dans l'ordre : cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement. L'envoi réel des invitations par e-mail (Resend) est à cadrer séparément, pas dans cet ordre actuel.
+Problème constaté en usage réel le 17 août 2026 : beaucoup de sites marchands bloquent les requêtes de scraping venant des IP Vercel/AWS (protection Cloudflare et consorts). Décision : relais de scraping via l'hébergement Node.js Hostinger déjà payé par l'utilisateur (voir section "Relais de scraping via Hostinger" ci-dessus).
+
+Relais Hostinger développé et testé de bout en bout (relais → action Vercel → parsing, avec repli sur le fetch direct quand le relais est injoignable) :
+- Code du relais dans `scrape-relay/` à la racine du repo — sous-projet Node.js autonome (Express, CommonJS), volontairement séparé de l'app Next.js (pas buildé par Vercel, pas de dépendance partagée avec `lib/scrape-article.ts`). Voir `scrape-relay/README.md` pour le déploiement sur Hostinger (pas de git push possible sur cette offre — upload manuel via hPanel/SFTP à chaque mise à jour, détaillé dans le README) et les variables d'environnement à poser des deux côtés (`RELAY_SECRET` sur Hostinger, `SCRAPE_RELAY_URL`/`SCRAPE_RELAY_SECRET` sur Vercel).
+- `app/compte/evenements/[slug]/scrape-action.ts` : tente le relais en premier si les deux variables Vercel sont définies, retombe sur le fetch direct (comportement historique) si le relais n'est pas configuré, injoignable, ou échoue. Rien ne casse si le relais n'est pas encore déployé.
+- Pas encore déployé sur Hostinger à ce stade — reste à faire côté utilisateur en suivant le README, puis à poser les deux variables d'environnement sur Vercel.
+
+À venir, dans l'ordre : déploiement effectif du relais sur Hostinger (ci-dessus, code prêt), cagnotte Stripe Connect, liens d'affiliation, bêta fermée, lancement. L'envoi réel des invitations par e-mail (Resend) est à cadrer séparément, pas dans cet ordre actuel.
 
 ## Workflow git
 

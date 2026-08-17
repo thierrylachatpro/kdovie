@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Sous-projet Node.js autonome, pas du Next.js/TypeScript — voir
+    // scrape-relay/README.md.
+    "scrape-relay/**",
   ]),
 ]);
 
