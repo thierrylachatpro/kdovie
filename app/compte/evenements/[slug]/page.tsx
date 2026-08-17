@@ -112,7 +112,7 @@ export default async function EvenementPage({
             <span className="font-heading text-2xl font-bold tracking-tight text-corail">
               kdovie
             </span>
-            <span className="text-[13px] text-[#8A7263]">Vos listes de cadeaux, toute la vie</span>
+            <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
           </span>
         </Link>
         <div className="flex flex-wrap items-center gap-3">

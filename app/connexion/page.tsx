@@ -43,7 +43,7 @@ export default async function ConnexionPage({
               kdovie
             </span>
             <span className="text-[13px] text-[#8A7263]">
-              Vos listes de cadeaux, toute la vie
+              Un seul compte, toute une vie de cadeaux
             </span>
           </span>
         </Link>
