@@ -146,7 +146,9 @@ Contenu de cette page, volontairement minimal pour le MVP :
 - Pseudo (`profiles.display_name`) éditable — la colonne existe déjà en base (migration 0001), il ne manque que le formulaire pour l'écrire. Une fois enregistré, il doit remplacer le fallback "début de l'email" partout où `nomAffiche`/`display_name` est utilisé (dashboard, bloc "Mon compte")
 - Bouton de déconnexion (réutiliser `components/auth/DeconnexionButton.tsx`)
 
-Volontairement laissé de côté à ce stade (à ne pas ajouter maintenant) : statut du compte Stripe Connect (aura sa propre section quand la tâche #18 sera développée), export/suppression de compte RGPD (bon à avoir, backlog v2, pas bloquant pour le MVP), préférences de notification (rien de tel n'existe encore dans le produit).
+Volontairement laissé de côté à ce stade (à ne pas ajouter maintenant) : export/suppression de compte RGPD (bon à avoir, backlog v2, pas bloquant pour le MVP), préférences de notification (rien de tel n'existe encore dans le produit).
+
+**Statut du compte Stripe Connect (tâche #18, 17 août 2026)** : la connexion/l'onboarding Stripe Connect Express de l'organisateur vit sur `/compte/profil`, pas ailleurs — c'est un réglage au niveau du compte (1 compte Stripe Connect par organisateur, table `organizer_stripe_accounts` déjà 1:1 avec `profiles`), pas au niveau d'un événement individuel. Nouvelle carte sur cette page : bouton pour démarrer/reprendre l'onboarding Express (Account Link Stripe), statut affiché (non connecté / en attente de vérification / actif), cohérent avec `payouts_enabled`.
 
 ## Pseudo public sur la page liste (17 août 2026)
 
@@ -206,6 +208,8 @@ Décision retenue à la place : passer par ScrapingAnt (scrapingant.com), qui pr
 - Synchronisation temps réel : la page publique s'abonne aux changements de `gift_items` via Supabase Realtime (`postgres_changes` sur UPDATE, filtré par `event_id`) pour refléter en direct une réservation faite par un autre invité pendant la consultation, sans nécessiter un rechargement manuel — c'est le mécanisme anti-doublon prévu dès le cadrage initial.
 
 ## Cagnotte et frais (tâche #18)
+
+Compte Stripe créé par l'utilisateur, Connect activé en mode **marketplace** (le modèle Kdovie correspond à ce cas Stripe : la plateforme collecte puis reverse à plusieurs bénéficiaires organisateurs, avec commission au passage — pas le cas "plateforme SaaS" où chaque compte connecté encaisse pour son propre compte). Clés de test posées en variables d'environnement Vercel : `STRIPE_SECRET_KEY` (`sk_test_...`) et `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_...`, préfixe obligatoire pour l'exposition côté navigateur). Rester en mode test tant que le statut juridique (tâche #8, toujours en cours) n'est pas réglé — ne pas basculer en clés live avant.
 
 - Kdovie prend une commission de **1%** sur chaque contribution, prélevée via `application_fee_amount` de Stripe Connect (versée directement sur le compte Stripe de Kdovie, sans jamais transiter par un compte intermédiaire côté app — cohérent avec la contrainte ACPR déjà posée).
 - Les frais de traitement Stripe (1,5% + 0,25€ pour une carte UE, 2,5% + 0,25€ hors UE) ne sont pas absorbés par Kdovie.
