@@ -2,8 +2,42 @@ import * as cheerio from "cheerio";
 
 export interface ScrapedArticle {
   title: string | null;
+  originalTitle: string | null;
   priceCents: number | null;
   imageUrl: string | null;
+}
+
+// Raccourcissement automatique d'un titre scrapé trop long (Amazon en
+// particulier renvoie des titres bourrés de mots-clés SEO), voir CLAUDE.md >
+// "Raccourcissement automatique du titre scrapé". Ne touche pas aux titres
+// déjà raisonnables : originalTitle reste alors null.
+const SANS_RACCOURCISSEMENT = 90;
+const SEPARATEUR_MIN = 15;
+const SEPARATEUR_MAX = 90;
+const TRONCATURE_CIBLE = 60;
+
+export function shortenTitle(rawTitle: string): { title: string; originalTitle: string | null } {
+  const titre = rawTitle.trim();
+  if (titre.length <= SANS_RACCOURCISSEMENT) {
+    return { title: titre, originalTitle: null };
+  }
+
+  // Séparateur assez tôt (" : " ou " | ", fréquent chez Amazon — le vrai nom
+  // du produit précède souvent) : coupe au premier trouvé dans la fourchette.
+  const positions = [" : ", " | "]
+    .map((separateur) => titre.indexOf(separateur))
+    .filter((index) => index >= SEPARATEUR_MIN && index <= SEPARATEUR_MAX);
+  if (positions.length > 0) {
+    const coupeA = Math.min(...positions);
+    return { title: titre.slice(0, coupeA).trim(), originalTitle: titre };
+  }
+
+  // Repli : tronque à ~60 caractères sur une limite de mot, jamais au
+  // milieu d'un mot.
+  const tranche = titre.slice(0, TRONCATURE_CIBLE);
+  const dernierEspace = tranche.lastIndexOf(" ");
+  const coupe = dernierEspace > 0 ? tranche.slice(0, dernierEspace) : tranche;
+  return { title: `${coupe.trim()}…`, originalTitle: titre };
 }
 
 function toAbsoluteUrl(possibleUrl: string, baseUrl: string): string | null {
@@ -186,5 +220,5 @@ export function parseArticleMetadata(html: string, baseUrl: string): ScrapedArti
     title = pageTitle || null;
   }
 
-  return { title, priceCents, imageUrl };
+  return { title, originalTitle: null, priceCents, imageUrl };
 }

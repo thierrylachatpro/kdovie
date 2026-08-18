@@ -17,6 +17,7 @@ export async function createGiftItem(formData: FormData) {
   const slug = formData.get("slug")?.toString() ?? "";
   const eventId = formData.get("event_id")?.toString() ?? "";
   const title = formData.get("title")?.toString().trim() ?? "";
+  const originalTitle = formData.get("original_title")?.toString().trim() || null;
   const sourceUrl = formData.get("source_url")?.toString().trim() || null;
   const imageUrl = formData.get("image_url")?.toString().trim() || null;
   const description = formData.get("description")?.toString().trim() || null;
@@ -35,6 +36,7 @@ export async function createGiftItem(formData: FormData) {
   const { error } = await supabase.from("gift_items").insert({
     event_id: eventId,
     title,
+    original_title: originalTitle,
     source_url: sourceUrl,
     image_url: imageUrl,
     description,

@@ -36,6 +36,7 @@ export default function AjouterArticleForm({
   const [linkRevealed, setLinkRevealed] = useState(false);
   const [url, setUrl] = useState("");
   const [title, setTitle] = useState("");
+  const [originalTitle, setOriginalTitle] = useState<string | null>(null);
   const [price, setPrice] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [description, setDescription] = useState("");
@@ -51,6 +52,7 @@ export default function AjouterArticleForm({
     startTransition(async () => {
       const result = await scrapeArticleUrl(trimmed);
       if (result.title) setTitle(result.title);
+      setOriginalTitle(result.originalTitle);
       if (result.priceCents !== null) setPrice((result.priceCents / 100).toFixed(2));
       if (result.imageUrl) setImageUrl(result.imageUrl);
       if (!result.title && result.priceCents === null && !result.imageUrl) {
@@ -93,6 +95,12 @@ export default function AjouterArticleForm({
       >
         <input type="hidden" name="event_id" value={eventId} />
         <input type="hidden" name="slug" value={slug} />
+        {/* jamais de titre original en saisie manuelle, voir CLAUDE.md */}
+        <input
+          type="hidden"
+          name="original_title"
+          value={tab === "lien" ? (originalTitle ?? "") : ""}
+        />
 
         {tab === "lien" && (
           <label className="flex flex-col gap-1.5">

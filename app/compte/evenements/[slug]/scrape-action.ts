@@ -1,12 +1,17 @@
 "use server";
 
-import { parseArticleMetadata, type ScrapedArticle } from "@/lib/scrape-article";
+import { parseArticleMetadata, shortenTitle, type ScrapedArticle } from "@/lib/scrape-article";
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
 const TIMEOUT_MS = 8000;
 
-const EMPTY_RESULT: ScrapedArticle = { title: null, priceCents: null, imageUrl: null };
+const EMPTY_RESULT: ScrapedArticle = {
+  title: null,
+  originalTitle: null,
+  priceCents: null,
+  imageUrl: null,
+};
 
 // Service de scraping tiers ScrapingAnt (voir CLAUDE.md > "Service de
 // scraping tiers — ScrapingAnt"). Beaucoup de sites marchands protégés par
@@ -148,6 +153,15 @@ export async function scrapeArticleUrl(url: string): Promise<ScrapedArticle> {
   if (!html) return EMPTY_RESULT;
 
   const result = parseArticleMetadata(html, parsedUrl.toString());
+
+  // Raccourcissement automatique (Amazon en particulier), voir CLAUDE.md >
+  // "Raccourcissement automatique du titre scrapé" — appliqué uniquement ici,
+  // avant que le titre ne préremplisse le formulaire.
+  if (result.title) {
+    const { title, originalTitle } = shortenTitle(result.title);
+    result.title = title;
+    result.originalTitle = originalTitle;
+  }
 
   if (!result.title && result.priceCents === null && !result.imageUrl) {
     // Diagnostic (17 août 2026) : identifier si un site renvoie une page de
