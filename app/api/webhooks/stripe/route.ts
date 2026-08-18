@@ -23,30 +23,47 @@ export async function POST(request: Request) {
     return new Response(`Webhook invalide : ${message}`, { status: 400 });
   }
 
-  if (event.type === "payment_intent.succeeded") {
-    const paymentIntent = event.data.object as Stripe.PaymentIntent;
-    const admin = createAdminClient();
+  // checkout.session.completed (pas payment_intent.succeeded) : le paiement
+  // passe par Stripe Checkout depuis le 18 août 2026, dont le PaymentIntent
+  // n'est créé qu'à l'usage réel de la session — client_reference_id (l'id
+  // de la contribution, posé à la création de la session) est la seule
+  // corrélation fiable disponible, voir contribution-actions.ts.
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const contributionId = session.client_reference_id;
 
-    const { data: contribution } = await admin
-      .from("contributions")
-      .select("id, status")
-      .eq("stripe_payment_intent_id", paymentIntent.id)
-      .maybeSingle();
+    if (contributionId && session.payment_status === "paid") {
+      const admin = createAdminClient();
 
-    if (contribution && contribution.status === "pending") {
-      const { error } = await admin.rpc("confirm_contribution", {
-        p_contribution_id: contribution.id,
-      });
-      if (error) {
-        // Cas rare : l'article a été verrouillé en réservation directe par un
-        // autre invité entre la création du PaymentIntent et la confirmation
-        // du paiement. Le paiement Stripe a déjà eu lieu (fonds transférés à
-        // l'organisateur) — on logue pour un traitement manuel plutôt que de
-        // perdre l'information silencieusement.
-        console.error(
-          `confirm_contribution a échoué pour la contribution ${contribution.id} (PaymentIntent ${paymentIntent.id}) :`,
-          error.message,
-        );
+      const { data: contribution } = await admin
+        .from("contributions")
+        .select("id, status")
+        .eq("id", contributionId)
+        .maybeSingle();
+
+      if (contribution && contribution.status === "pending") {
+        if (typeof session.payment_intent === "string") {
+          await admin
+            .from("contributions")
+            .update({ stripe_payment_intent_id: session.payment_intent })
+            .eq("id", contribution.id);
+        }
+
+        const { error } = await admin.rpc("confirm_contribution", {
+          p_contribution_id: contribution.id,
+        });
+        if (error) {
+          // Cas rare : l'article a été verrouillé en réservation directe par
+          // un autre invité entre la création de la session et la
+          // confirmation du paiement. Le paiement Stripe a déjà eu lieu
+          // (fonds transférés à l'organisateur) — on logue pour un
+          // traitement manuel plutôt que de perdre l'information
+          // silencieusement.
+          console.error(
+            `confirm_contribution a échoué pour la contribution ${contribution.id} (session ${session.id}) :`,
+            error.message,
+          );
+        }
       }
     }
   }

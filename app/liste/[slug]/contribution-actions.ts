@@ -77,11 +77,34 @@ export async function createContribution(
   const protocol = host?.startsWith("localhost") ? "http" : "https";
   const listeUrl = `${protocol}://${host}/liste/${slug}`;
 
+  // La contribution est créée avant la Checkout Session (pas après) : son id
+  // sert de `client_reference_id` pour que le webhook retrouve la bonne
+  // ligne. Stripe ne crée le PaymentIntent de la session que lorsqu'elle est
+  // effectivement utilisée par l'invité — `session.payment_intent` est
+  // toujours `null` juste après `sessions.create`, on ne peut donc pas s'en
+  // servir ici pour la corrélation.
+  const { data: contribution, error: contribError } = await admin
+    .from("contributions")
+    .insert({
+      gift_item_id: giftItem.id,
+      guest_name: nom,
+      guest_email: guestEmail.trim() || null,
+      amount_cents: montantNetCents,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+
+  if (contribError || !contribution) {
+    return { error: "Impossible de préparer la cotisation, réessayez." };
+  }
+
   let session;
   try {
     session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
+      client_reference_id: contribution.id,
       line_items: [
         {
           price_data: {
@@ -109,27 +132,16 @@ export async function createContribution(
     // Ex. compte Stripe de l'organisateur créé mais onboarding pas encore
     // commencé (capacité transfers pas encore active) — message clair plutôt
     // qu'une erreur brute, voir CLAUDE.md > tâche #17 (même principe pour #18).
+    // La ligne contributions reste 'pending', jamais confirmée — sans effet
+    // sur gift_items, pas besoin de la nettoyer.
     return {
       error:
         "L'organisateur n'a pas encore terminé la configuration de sa cagnotte, réessayez plus tard.",
     };
   }
 
-  if (!session.url || !session.payment_intent) {
+  if (!session.url) {
     return { error: "Impossible de préparer le paiement, réessayez." };
-  }
-
-  const { error: contribError } = await admin.from("contributions").insert({
-    gift_item_id: giftItem.id,
-    guest_name: nom,
-    guest_email: guestEmail.trim() || null,
-    amount_cents: montantNetCents,
-    status: "pending",
-    stripe_payment_intent_id: session.payment_intent as string,
-  });
-
-  if (contribError) {
-    return { error: "Impossible de préparer la cotisation, réessayez." };
   }
 
   return { error: null, checkoutUrl: session.url };
