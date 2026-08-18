@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import LiensLegaux from "@/components/layout/LiensLegaux";
 
 type Occasion = {
   label: string;
@@ -713,6 +714,7 @@ export default function AccueilClient() {
             <a href="#" className="hover:text-corail">
               Contact
             </a>
+            <LiensLegaux className="hover:text-corail" />
           </nav>
           <div className="text-sm text-[#8A7263]">© 2026 kdovie</div>
         </div>

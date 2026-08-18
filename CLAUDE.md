@@ -324,6 +324,18 @@ Périmètre de lancement tranché avec l'utilisateur : **Amazon Associates uniqu
 
 **Hors périmètre pour cette tâche** : Awin (Fnac et les autres enseignes du programme), toute autre place Amazon que `.fr`, une éventuelle interface d'administration pour gérer plusieurs programmes/identifiants — pas à anticiper maintenant, la fonction pure/config le permettra sans réécriture profonde le moment venu.
 
+## Pages légales : mentions légales, CGU, CGV (18 août 2026)
+
+Déclenché par l'obligation Amazon Partenaires de mentionner "En tant que Partenaire Amazon, je réalise un bénéfice sur les achats remplissant les conditions requises" sur le site — mention distincte de celle déjà en place à côté de chaque lien affilié (`ListePubliqueClient.tsx`), qui elle reste où elle est (exigence de visibilité au moment du clic, ne peut pas être déplacée sur une page à part).
+
+- **Trois pages nouvelles**, liées depuis le pied de page sur tout le site : `/mentions-legales`, `/cgu`, `/cgv`.
+- **Identité de l'éditeur** (Prowebia, SASU au capital de 500 €, SIREN 992 497 891, RCS Amiens, siège 15 Rue du Bois 80540 Clairy-Saulchoix, président Thierry Lachat, TVA intracommunautaire FR18992497891) confirmée à partir du Kbis et des statuts constitutifs — Kdovie tourne sous cette même structure, pas d'entité à part.
+- **Objet social à surveiller** : les statuts actuels ne mentionnent explicitement aucune activité de plateforme d'intermédiation/cagnotte — zone grise plutôt que blocage, mais une modification statutaire (décision de l'associé unique seul, cf. article 18 des statuts) est recommandée avant un vrai volume de cotisations. Action côté utilisateur, pas de dépendance technique.
+- **RC Pro (MAIF) à étendre** : l'activité déclarée est "formateur en informatique / développeur / audit", pas la gestion d'une plateforme avec cotisations entre tiers — à signaler à l'assureur. Action côté utilisateur.
+- **Contenu rédigé** : voir le brouillon partagé en conversation (mentions légales et CGU rédigés en premier jet, CGV volontairement laissé en page "en cours de rédaction" tant que le statut juridique — TVA déjà connue, mais médiation de la consommation non souscrite, politique de remboursement des cotisations et applicabilité du droit de rétractation encore à trancher — n'est pas stabilisé).
+- **Hors périmètre pour cette tâche** : une politique de confidentialité RGPD dédiée (distincte des CGU) est nécessaire mais pas encore rédigée — à traiter séparément.
+- Email de contact dans les mentions légales et le CGV : `contact@kdovie.com`.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
@@ -439,6 +451,8 @@ Liens d'affiliation développés (tâche #19, 18 août 2026, voir section dédi�
 - Titre cliquable (`TitreArticle`, nouveau prop `sponsored`) et lien "Aller l'acheter" (état confirmé de la réservation) sur `/liste/[slug]` passent par ces champs ; `rel` passe à `sponsored noopener noreferrer` uniquement quand `is_affiliate` est vrai. Le titre cliquable de `/compte/evenements/[slug]` (gestion, `GiftItemCard`) continue de pointer vers `source_url` brute, aucun changement là.
 - Mention de transparence ("lien affilié — Kdovie peut percevoir une commission, sans coût supplémentaire pour vous") affichée à côté du nom du marchand sur la carte, et sous le bouton "Aller l'acheter" dans la modale de confirmation — uniquement quand le lien est effectivement affilié.
 - Testé : appels directs de `getAffiliateLink` sur de vraies `source_url` de la base (Amazon avec et sans `tag` déjà présent, but.fr, simplybook.it) — comportement conforme dans tous les cas. Rendu vérifié par capture d'écran avec un tag de test temporaire posé le temps du test puis retiré ; absence de mismatch d'hydratation confirmée (aucune erreur console).
+
+Pages légales développées (18 août 2026, voir section dédiée ci-dessus) : `/mentions-legales`, `/cgu`, `/cgv`, contenu fourni par l'utilisateur (Kbis/statuts pour l'identité de l'éditeur), email de contact `contact@kdovie.com`. `PageLegale` (`components/layout/PageLegale.tsx`) mutualise l'ossature des trois pages ; `LiensLegaux` (`components/layout/LiensLegaux.tsx`) mutualise les trois `<Link>` ajoutés dans les six pieds de page existants (accueil, connexion, dashboard, profil, gestion de liste, liste publique) — pas de refonte plus large des footers, juste l'ajout de ces liens dans chacun, styles inchangés. Politique de confidentialité et médiation de la consommation laissées en placeholders explicites dans les mentions légales (hors périmètre de cette tâche, actions en attente côté utilisateur). CGV volontairement laissée en page "en cours de rédaction". Vérifié par build/lint/tsc propres et capture d'écran.
 
 À venir, dans l'ordre : bêta fermée, lancement. L'envoi réel des invitations par e-mail (Resend) est à cadrer séparément, pas dans cet ordre actuel.
 

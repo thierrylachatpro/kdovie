@@ -9,6 +9,7 @@ import { initiales } from "@/lib/initials";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
 import CopierLienButton from "@/components/evenements/CopierLienButton";
 import FilActivite, { type ActiviteItem } from "@/components/compte/FilActivite";
+import LiensLegaux from "@/components/layout/LiensLegaux";
 
 export default async function ComptePage() {
   const supabase = await createClient();
@@ -360,6 +361,7 @@ export default async function ComptePage() {
             <a href="#" className="hover:text-corail">
               Contact
             </a>
+            <LiensLegaux className="hover:text-corail" />
             <DeconnexionButton className="text-sm text-[#8A7263] hover:text-corail" />
           </nav>
         </div>

@@ -10,6 +10,7 @@ import VisibiliteListe from "@/components/evenements/VisibiliteListe";
 import SupprimerListeButton from "@/components/evenements/SupprimerListeButton";
 import AjouterArticleForm from "@/components/gift-items/AjouterArticleForm";
 import GiftItemCard from "@/components/gift-items/GiftItemCard";
+import LiensLegaux from "@/components/layout/LiensLegaux";
 
 const MESSAGES_ERREUR: Record<string, string> = {
   champs_invalides: "Merci de renseigner au moins le lien et le titre de l'article.",
@@ -220,6 +221,7 @@ export default async function EvenementPage({
             <a href="#" className="hover:text-corail">
               Contact
             </a>
+            <LiensLegaux className="hover:text-corail" />
             <Link href="/compte" className="hover:text-corail">
               Mes listes
             </Link>

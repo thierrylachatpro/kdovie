@@ -1,5 +1,6 @@
 import Link from "next/link";
 import ConnexionForm from "@/components/auth/ConnexionForm";
+import LiensLegaux from "@/components/layout/LiensLegaux";
 
 export default async function ConnexionPage({
   searchParams,
@@ -131,6 +132,7 @@ export default async function ConnexionPage({
             <a href="#" className="hover:text-corail">
               Contact
             </a>
+            <LiensLegaux className="hover:text-corail" />
             <Link href="/" className="hover:text-corail">
               Retour à l&apos;accueil
             </Link>

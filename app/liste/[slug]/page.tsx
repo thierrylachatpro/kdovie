@@ -6,6 +6,7 @@ import ListePubliqueClient from "@/components/gift-items/ListePubliqueClient";
 import type { FeeMode } from "@/lib/fee-calculation";
 import type { OrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 import { getAffiliateLink } from "@/lib/affiliate-link";
+import LiensLegaux from "@/components/layout/LiensLegaux";
 
 export default async function ListePubliquePage({
   params,
@@ -201,6 +202,7 @@ export default async function ListePubliquePage({
             <a href="#" className="hover:text-corail">
               Contact
             </a>
+            <LiensLegaux className="hover:text-corail" />
             <Link href="/" className="hover:text-corail">
               Créer ma propre liste
             </Link>

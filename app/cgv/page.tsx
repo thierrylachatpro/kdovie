@@ -1,0 +1,28 @@
+import type { Metadata } from "next";
+import PageLegale from "@/components/layout/PageLegale";
+
+export const metadata: Metadata = {
+  title: "Conditions générales de vente | Kdovie",
+};
+
+export default function CgvPage() {
+  return (
+    <PageLegale title="Conditions générales de vente">
+      <p className="font-heading text-lg font-bold text-[#4A3529]">
+        Cette page est en cours de rédaction.
+      </p>
+      <p className="text-[16px] leading-relaxed text-[#5C4436]">
+        Les conditions générales de vente encadrant les cotisations réalisées sur Kdovie
+        (paiement, remboursement, droit de rétractation, médiation de la consommation) seront
+        publiées prochainement, une fois le cadrage juridique finalisé.
+      </p>
+      <p className="text-[16px] leading-relaxed text-[#5C4436]">
+        Pour toute question en attendant, contactez-nous à{" "}
+        <a href="mailto:contact@kdovie.com" className="text-corail underline">
+          contact@kdovie.com
+        </a>
+        .
+      </p>
+    </PageLegale>
+  );
+}

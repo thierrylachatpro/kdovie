@@ -6,6 +6,7 @@ import { stripe } from "@/lib/stripe";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
 import PseudoCard from "@/components/compte/PseudoCard";
 import StripeStatusCard, { type StripeStatus } from "@/components/compte/StripeStatusCard";
+import LiensLegaux from "@/components/layout/LiensLegaux";
 
 export default async function ProfilPage() {
   const supabase = await createClient();
@@ -147,6 +148,7 @@ export default async function ProfilPage() {
             <a href="#" className="hover:text-corail">
               Contact
             </a>
+            <LiensLegaux className="hover:text-corail" />
             <Link href="/compte" className="hover:text-corail">
               Mes listes
             </Link>
