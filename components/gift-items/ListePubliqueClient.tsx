@@ -46,12 +46,14 @@ export default function ListePubliqueClient({
   const [modalDone, setModalDone] = useState(false);
   const [contributionItemId, setContributionItemId] = useState<string | null>(null);
 
-  // Retour d'une éventuelle authentification 3D Secure (paiement de
-  // cotisation redirigé hors de la page), voir CLAUDE.md > tâche #18.
+  // Retour de la page de paiement Stripe Checkout (succès ou annulation),
+  // voir CLAUDE.md > tâche #18.
   const [redirectStatus] = useState<"succeeded" | "failed" | null>(() => {
     if (typeof window === "undefined") return null;
-    const status = new URLSearchParams(window.location.search).get("redirect_status");
-    return status === "succeeded" || status === "failed" ? status : null;
+    const status = new URLSearchParams(window.location.search).get("cotisation");
+    if (status === "succes") return "succeeded";
+    if (status === "annulee") return "failed";
+    return null;
   });
 
   useEffect(() => {
@@ -290,6 +292,7 @@ export default function ListePubliqueClient({
       {contributionItem && (
         <ContributionModal
           item={contributionItem}
+          slug={slug}
           feeMode={feeMode}
           cagnotteEnValidation={organizerStripeStatus === "en_attente"}
           onClose={() => setContributionItemId(null)}
