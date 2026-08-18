@@ -1,8 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { stripe } from "@/lib/stripe";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
 import PseudoCard from "@/components/compte/PseudoCard";
+import StripeStatusCard, { type StripeStatus } from "@/components/compte/StripeStatusCard";
 
 export default async function ProfilPage() {
   const supabase = await createClient();
@@ -19,6 +22,32 @@ export default async function ProfilPage() {
     .select("display_name, created_at")
     .eq("id", user.id)
     .single();
+
+  const { data: stripeAccount } = await supabase
+    .from("organizer_stripe_accounts")
+    .select("stripe_account_id, payouts_enabled")
+    .eq("organizer_id", user.id)
+    .maybeSingle();
+
+  let stripeStatus: StripeStatus = "non_connecte";
+  if (stripeAccount) {
+    let payoutsEnabled = stripeAccount.payouts_enabled;
+    // L'onboarding Stripe se termine hors de l'app (formulaire hébergé) —
+    // on rafraîchit le statut réel au chargement tant qu'il n'est pas actif,
+    // pas de webhook dédié au compte Connect pour l'instant.
+    if (!payoutsEnabled) {
+      const account = await stripe.accounts.retrieve(stripeAccount.stripe_account_id);
+      payoutsEnabled = account.payouts_enabled;
+      if (payoutsEnabled !== stripeAccount.payouts_enabled) {
+        const admin = createAdminClient();
+        await admin
+          .from("organizer_stripe_accounts")
+          .update({ payouts_enabled: payoutsEnabled })
+          .eq("organizer_id", user.id);
+      }
+    }
+    stripeStatus = payoutsEnabled ? "actif" : "en_attente";
+  }
 
   const dateCreation = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString("fr-FR", {
@@ -99,6 +128,8 @@ export default async function ProfilPage() {
           fallbackDisplayName={fallbackDisplayName}
           dateCreation={dateCreation}
         />
+
+        <StripeStatusCard status={stripeStatus} />
 
         <section className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[28px] bg-[#F7E7D6] p-6.5">
           <div>
