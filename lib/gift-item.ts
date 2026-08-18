@@ -1,7 +1,7 @@
 export const GIFT_ITEM_MODES: { id: string; label: string }[] = [
-  { id: "auto", label: "Automatique" },
-  { id: "cotisation_obligatoire", label: "Cotisation obligatoire" },
-  { id: "cotisation_impossible", label: "Cotisation impossible" },
+  { id: "auto", label: "Cotisation et Réservation" },
+  { id: "cotisation_obligatoire", label: "Cotisation uniquement" },
+  { id: "cotisation_impossible", label: "Réservation uniquement" },
 ];
 
 const GIFT_ITEM_STATUSES: Record<string, { label: string; className: string }> = {
