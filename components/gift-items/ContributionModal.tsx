@@ -51,12 +51,9 @@ export default function ContributionModal({
   const previewOrganisateurCents = montantValide
     ? computeMontantOrganisateurCents(previewPreleveCents)
     : 0;
-  // Frais bancaires Stripe + commission Kdovie affichés en une seule ligne à
-  // l'invité — la répartition exacte entre les deux n'a pas d'intérêt pour
-  // lui, voir CLAUDE.md > tâche #18.
-  const previewFraisTotalCents = montantValide
-    ? computeFraisStripeCents(previewPreleveCents) +
-      computeApplicationFeeAmountCents(previewPreleveCents)
+  const previewFraisStripeCents = montantValide ? computeFraisStripeCents(previewPreleveCents) : 0;
+  const previewCommissionKdovieCents = montantValide
+    ? computeApplicationFeeAmountCents(previewPreleveCents)
     : 0;
 
   async function handleSubmitMontant(event: FormEvent<HTMLFormElement>) {
@@ -189,9 +186,15 @@ export default function ContributionModal({
                             </td>
                           </tr>
                           <tr>
-                            <td className="py-1.5">+ Frais de transaction</td>
+                            <td className="py-1.5">+ Frais bancaires (Stripe)</td>
                             <td className="py-1.5 text-right">
-                              {formatPriceCents(previewFraisTotalCents)}
+                              {formatPriceCents(previewFraisStripeCents)}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="py-1.5">+ Frais de traitement Kdovie</td>
+                            <td className="py-1.5 text-right">
+                              {formatPriceCents(previewCommissionKdovieCents)}
                             </td>
                           </tr>
                           <tr>
@@ -214,9 +217,15 @@ export default function ContributionModal({
                             </td>
                           </tr>
                           <tr>
-                            <td className="py-1.5">− Frais de transaction</td>
+                            <td className="py-1.5">− Frais bancaires (Stripe)</td>
                             <td className="py-1.5 text-right">
-                              {formatPriceCents(previewFraisTotalCents)}
+                              {formatPriceCents(previewFraisStripeCents)}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td className="py-1.5">− Frais de traitement Kdovie</td>
+                            <td className="py-1.5 text-right">
+                              {formatPriceCents(previewCommissionKdovieCents)}
                             </td>
                           </tr>
                           <tr>
