@@ -5,10 +5,10 @@ import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import { eventStatusClassName, eventStatusLabel } from "@/lib/event-status";
 import { formatPriceCents } from "@/lib/gift-item";
-import { formatRelativeTimeFr } from "@/lib/relative-time";
 import { initiales } from "@/lib/initials";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
 import CopierLienButton from "@/components/evenements/CopierLienButton";
+import FilActivite, { type ActiviteItem } from "@/components/compte/FilActivite";
 
 export default async function ComptePage() {
   const supabase = await createClient();
@@ -98,15 +98,16 @@ export default async function ComptePage() {
     };
   });
 
-  type ActiviteItem = { texte: string; date: string; couleur: string };
   const activite: ActiviteItem[] = [
     ...(reservations ?? []).map((r) => ({
-      texte: `${r.guest_name ?? "Anonyme"} a réservé « ${r.gift_items?.title ?? "un cadeau"} »`,
+      nom: r.guest_name ?? "Anonyme",
+      texte: `a réservé « ${r.gift_items?.title ?? "un cadeau"} »`,
       date: r.reserved_at,
       couleur: "#8BA888",
     })),
     ...(contributions ?? []).map((c) => ({
-      texte: `${c.guest_name ?? "Anonyme"} a cotisé ${formatPriceCents(c.amount_cents)} pour « ${c.gift_items?.title ?? "un cadeau"} »`,
+      nom: c.guest_name ?? "Anonyme",
+      texte: `a cotisé ${formatPriceCents(c.amount_cents)} pour « ${c.gift_items?.title ?? "un cadeau"} »`,
       date: c.created_at,
       couleur: "#E8734A",
     })),
@@ -343,33 +344,7 @@ export default async function ComptePage() {
             <h2 className="font-heading mb-5 text-[22px] font-bold text-[#4A3529]">
               Dernières nouvelles
             </h2>
-            {activite.length > 0 ? (
-              <div className="flex flex-col gap-3.5">
-                {activite.map((a, index) => (
-                  <div key={index} className="flex items-start gap-3.5">
-                    <span
-                      className="mt-1.5 block h-3 w-3 flex-none rounded-[5px]"
-                      style={{ background: a.couleur }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="text-base leading-relaxed text-[#4A3529]">{a.texte}</div>
-                      <div className="mt-1 text-[13px] text-[#8A7263]">
-                        {formatRelativeTimeFr(a.date)}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-gris">
-                Pas encore d&apos;activité, elle apparaîtra ici dès qu&apos;un proche réservera
-                ou cotisera.
-              </p>
-            )}
-            <p className="mt-5.5 text-sm text-[#8A7263]">
-              Les noms des cadeaux réservés restent cachés jusqu&apos;à l&apos;événement, pour
-              garder la surprise.
-            </p>
+            <FilActivite activite={activite} />
           </div>
         </section>
       </main>
