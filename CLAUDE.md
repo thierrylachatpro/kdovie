@@ -257,6 +257,25 @@ Série de retouches décidées après les premiers tests réels de la cagnotte, 
 
 **Suppression de copie** : retirer la phrase "L'organisateur ne verra pas votre choix avant l'événement" du parcours de réservation/cotisation invité.
 
+## Raccourcissement automatique du titre scrapé (18 août 2026)
+
+Constat : certains sites (Amazon en particulier, mais pas uniquement) renvoient des titres produit très longs, bourrés de mots-clés SEO ("TV gratuite et en direct, télécommande vocale Alexa, alimentation via votre TV, configuration facile..."). Ça alourdit l'affichage partout où le titre apparaît (cartes, fil d'activité du dashboard, description de la ligne Stripe Checkout). Un raccourcissement automatique est nécessaire, en plus de (pas à la place de) la modification manuelle déjà possible.
+
+- **Nouvelle colonne `gift_items.original_title`** (text, nullable) — conserve le titre brut tel que scrapé, pour un rappel au survol (voir plus bas). Reste `null` pour un article en saisie manuelle (rien à raccourcir, l'organisateur tape déjà son propre titre).
+- **Heuristique de raccourcissement**, appliquée uniquement côté scraping (onglet "Par lien"), avant que le titre ne préremplisse le formulaire :
+  1. Si le titre contient un séparateur assez tôt (" : " ou " | ", fréquent chez Amazon — le vrai nom du produit précède souvent) et que la portion avant ce séparateur fait entre ~15 et ~90 caractères, couper là.
+  2. Sinon, tronquer à ~60 caractères sur une limite de mot (jamais couper au milieu d'un mot), en ajoutant "…".
+  3. Le titre raccourci devient la valeur de `gift_items.title` (celle utilisée partout dans l'app) ; le titre brut original va dans `original_title`.
+- **Titre complet accessible via "voir plus" (18 août 2026, révisé)** : pas d'infobulle native (`title=""`) — support erratique en lecteur d'écran (JAWS l'ignore sous Chrome/Firefox/Edge, doublon possible avec le nom accessible sous NVDA) en plus d'être inaccessible au clavier et au tactile. À la place, partout où le titre raccourci est affiché avec un `original_title` non vide, terminer par un contrôle "… voir plus" qui déplie le titre complet en place (dans la carte, sans élément flottant à positionner), avec un contrôle "réduire" pour revenir à la version courte. Exigences d'accessibilité, non négociables pour que ce soit un vrai progrès et pas juste un déplacement du problème :
+  - Un vrai `<button type="button">`, jamais un `<span>`/`<a>` avec seulement `onClick` — focusable au clavier nativement, activable par Entrée/Espace sans JS supplémentaire.
+  - `aria-expanded={déplié}` sur ce bouton, pour que l'état soit annoncé par les lecteurs d'écran.
+  - Libellé accessible explicite sur l'action, pas seulement "…" visuel — ex. `aria-label="Afficher le titre complet"` / `"Réduire le titre"`, ou texte visible équivalent.
+  - Composant réutilisable, état local simple (déplié/replié), pas de dépendance ajoutée. Rien à afficher si `original_title` est vide (article en saisie manuelle ou déjà assez court).
+- **Pas rétroactif** : ne s'applique qu'aux nouveaux articles ajoutés à partir de maintenant. Les articles déjà en base ne sont pas retouchés — l'organisateur peut toujours les raccourcir à la main via l'édition existante s'il le souhaite.
+- Le titre raccourci reste modifiable manuellement comme aujourd'hui (`GiftItemCard`) — ce raccourcissement automatique est un point de départ, pas une valeur figée.
+
+**Statut (18 août 2026)** : seul le composant "voir plus" est développé pour l'instant — `components/gift-items/TitreArticle.tsx` (bouton natif, `aria-expanded`, libellé accessible explicite, jamais imbriqué dans le `<a>` du lien produit), posé sur `GiftItemCard` et la carte de `ListePubliqueClient`. Migration `0013_gift_items_original_title.sql` écrite (pas encore appliquée à la base distante). **L'heuristique de raccourcissement côté scraping n'est pas encore construite** : `original_title` n'est renseigné nulle part pour l'instant, donc le bouton n'apparaîtra sur aucun article tant que ce second morceau (scrape-action.ts) n'est pas fait — prochaine étape logique, pas demandée dans ce tour-ci.
+
 ## Bloc "Ma cagnotte" sur /compte/profil (18 août 2026)
 
 Renommer le titre du bloc Stripe Connect de "Cagnotte Stripe" à **"Ma cagnotte"**. Réécrire le texte d'explication pour clarifier, simplement et de façon rassurante, qu'un compte chez Stripe (notre partenaire de paiement) est nécessaire pour recevoir l'argent des cagnottes directement et en sécurité — ton chaleureux cohérent avec le reste du produit, pas de jargon technique (pas de "KYC", pas de "Connect Express").

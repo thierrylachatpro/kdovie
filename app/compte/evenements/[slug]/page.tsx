@@ -50,7 +50,7 @@ export default async function EvenementPage({
   const { data: giftItems } = await supabase
     .from("gift_items")
     .select(
-      "id, title, price_cents, image_url, description, source_url, mode, status, funded_amount_cents, is_priority",
+      "id, title, original_title, price_cents, image_url, description, source_url, mode, status, funded_amount_cents, is_priority",
     )
     .eq("event_id", event.id)
     .order("created_at", { ascending: false });

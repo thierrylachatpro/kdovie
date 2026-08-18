@@ -114,6 +114,7 @@ export type Database = {
           is_priority: boolean
           locked_at: string | null
           mode: string
+          original_title: string | null
           price_cents: number | null
           source_url: string | null
           status: string
@@ -131,6 +132,7 @@ export type Database = {
           is_priority?: boolean
           locked_at?: string | null
           mode?: string
+          original_title?: string | null
           price_cents?: number | null
           source_url?: string | null
           status?: string
@@ -148,6 +150,7 @@ export type Database = {
           is_priority?: boolean
           locked_at?: string | null
           mode?: string
+          original_title?: string | null
           price_cents?: number | null
           source_url?: string | null
           status?: string
@@ -273,6 +276,7 @@ export type Database = {
           is_priority: boolean
           locked_at: string | null
           mode: string
+          original_title: string | null
           price_cents: number | null
           source_url: string | null
           status: string

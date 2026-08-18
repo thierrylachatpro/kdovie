@@ -9,10 +9,12 @@ import ContributionModal from "@/components/gift-items/ContributionModal";
 import type { FeeMode } from "@/lib/fee-calculation";
 import type { OrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 import { estAttenue, sortGiftItems } from "@/lib/gift-item-sort";
+import TitreArticle from "@/components/gift-items/TitreArticle";
 
 type GiftItem = {
   id: string;
   title: string;
+  original_title: string | null;
   price_cents: number | null;
   image_url: string | null;
   source_url: string | null;
@@ -205,20 +207,14 @@ export default function ListePubliqueClient({
               )}
               <div className="min-w-60 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-2.5">
-                  {item.source_url ? (
-                    <a
-                      href={item.source_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="font-heading text-lg leading-tight font-bold text-[#4A3529] hover:text-corail hover:underline"
-                    >
-                      {item.title}
-                    </a>
-                  ) : (
-                    <h3 className="font-heading text-lg leading-tight font-bold text-[#4A3529]">
-                      {item.title}
-                    </h3>
-                  )}
+                  <h3 className="contents">
+                    <TitreArticle
+                      title={item.title}
+                      originalTitle={item.original_title}
+                      sourceUrl={item.source_url}
+                      className="font-heading text-lg leading-tight font-bold text-[#4A3529]"
+                    />
+                  </h3>
                   <span
                     className={`flex-none rounded-full px-3 py-1.5 text-[13px] font-semibold ${
                       isTaken

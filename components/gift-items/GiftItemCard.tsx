@@ -10,10 +10,12 @@ import { formatPriceCents } from "@/lib/gift-item";
 import { estAttenue } from "@/lib/gift-item-sort";
 import ModeSelect from "@/components/gift-items/ModeSelect";
 import KdovieSpinner from "@/components/ui/KdovieSpinner";
+import TitreArticle from "@/components/gift-items/TitreArticle";
 
 type GiftItem = {
   id: string;
   title: string;
+  original_title: string | null;
   price_cents: number | null;
   image_url: string | null;
   description: string | null;
@@ -167,18 +169,14 @@ export default function GiftItemCard({
                 >
                   {isPriority ? "★" : "☆"}
                 </button>
-                {item.source_url ? (
-                  <a
-                    href={item.source_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-heading text-xl font-bold text-[#4A3529] hover:text-corail hover:underline"
-                  >
-                    {item.title}
-                  </a>
-                ) : (
-                  <h3 className="font-heading text-xl font-bold text-[#4A3529]">{item.title}</h3>
-                )}
+                <h3 className="contents">
+                  <TitreArticle
+                    title={item.title}
+                    originalTitle={item.original_title}
+                    sourceUrl={item.source_url}
+                    className="font-heading text-xl font-bold text-[#4A3529]"
+                  />
+                </h3>
                 <span
                   className="rounded-full px-3 py-1.5 text-[13px] font-semibold"
                   style={{ background: badge.bg, color: badge.fg }}
