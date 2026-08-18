@@ -26,6 +26,7 @@ export default async function ComptePage() {
       .from("events")
       .select("id, type, name, slug, event_date, status")
       .eq("organizer_id", user.id)
+      .is("deleted_at", null)
       .order("created_at", { ascending: false }),
   ]);
 

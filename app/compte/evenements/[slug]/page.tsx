@@ -7,6 +7,7 @@ import { initiales } from "@/lib/initials";
 import { sortGiftItems } from "@/lib/gift-item-sort";
 import EnTeteListe from "@/components/evenements/EnTeteListe";
 import VisibiliteListe from "@/components/evenements/VisibiliteListe";
+import SupprimerListeButton from "@/components/evenements/SupprimerListeButton";
 import AjouterArticleForm from "@/components/gift-items/AjouterArticleForm";
 import GiftItemCard from "@/components/gift-items/GiftItemCard";
 
@@ -40,6 +41,7 @@ export default async function EvenementPage({
       .select("id, type, name, slug, event_date, status")
       .eq("slug", slug)
       .eq("organizer_id", user.id)
+      .is("deleted_at", null)
       .single(),
   ]);
 
@@ -201,6 +203,10 @@ export default async function EvenementPage({
           ) : (
             <p className="text-sm text-gris">Aucun cadeau ajouté pour l&apos;instant.</p>
           )}
+        </section>
+
+        <section className="mt-11 border-t border-[#F2DFC9] pt-7">
+          <SupprimerListeButton eventId={event.id} slug={event.slug} />
         </section>
       </main>
 

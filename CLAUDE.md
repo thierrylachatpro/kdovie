@@ -291,6 +291,25 @@ Décision qui remplace le choix du 16 août ("pas de renommage", voir section "R
 - **Change** : tous les textes UI visibles ("Vos événements" → "Vos listes", "Type d'événement" → "Type de liste", "Nouvel événement" → "Nouvelle liste", "Mes événements" dans la nav → "Mes listes", etc.) — à passer en revue sur tout le produit, sauf si un terme reste plus juste dans son contexte précis (ex. "Anniversaire" reste un type de liste, pas à renommer).
 - **Ne change pas** : le nom de la table `events`, les segments de route `/compte/evenements/...`, les noms de fichiers/variables/fonctions dans le code — renommer la couche technique serait un chantier disproportionné (migration de schéma, réécriture des routes) pour un gain purement cosmétique côté utilisateur. Cette couche interne reste "événement", conformément au principe "sauf si vraiment justifié" évoqué par l'utilisateur.
 
+## Suppression d'une liste par l'organisateur (18 août 2026)
+
+Nouvelle fonctionnalité, absente du périmètre initial. Contrairement à la fermeture d'une liste (`status = 'brouillon'`, réversible par l'organisateur, voir "Statut de liste" plus haut), la suppression est un **soft delete** : rien n'est jamais retiré en base, ni pour une liste vierge ni pour une liste avec de l'activité réelle (réservations, cotisations déjà payées via Stripe) — seule sa visibilité change. Ça évite le problème d'un hard delete sur des lignes `contributions` qui représentent de l'argent réellement transféré (traçabilité comptable, gestion d'un chargeback Stripe a posteriori).
+
+- **Nouvelle colonne `events.deleted_at`** (timestamptz, nullable), indépendante de `status` (brouillon/ouverte garde son sens fonctionnel propre, la suppression est une dimension à part par-dessus). Nouvelle migration, ne pas mélanger avec une migration existante.
+- **Déclenchée par l'organisateur**, sans condition sur l'activité de la liste (avec ou sans réservation/cotisation) — pas de distinction de cas à gérer côté UI/action serveur, `deleted_at` se pose dans tous les cas.
+- **Dashboard organisateur (`/compte`)** : filtre `deleted_at is null`, une liste supprimée disparaît immédiatement de sa vue, comme n'importe quelle liste normale qui n'existerait plus pour lui.
+- **Page publique `/liste/[slug]`** : si `deleted_at` est renseigné, basculer sur l'écran "liste introuvable" déjà existant (`not-found.tsx` du segment) — pas sur l'écran "pas encore ouverte", qui reste réservé au cas `status = 'brouillon'`. Un invité avec un ancien lien ne doit voir aucune différence entre "jamais existé" et "supprimée".
+- **Slug retiré définitivement** : une fois une liste supprimée, son slug ne redevient jamais disponible pour une nouvelle liste — évite qu'un lien déjà partagé à des invités pointe un jour vers un contenu totalement différent. Contrainte à faire respecter à la création d'un événement (le check d'unicité de slug doit porter sur tous les événements, supprimés ou non, pas seulement sur `deleted_at is null`).
+- **Irréversible pour l'organisateur** : il n'a lui-même aucun moyen de restaurer une liste supprimée — contrairement au toggle brouillon/ouverte. Seul le super-administrateur peut la lui rendre visible à nouveau (voir ci-dessous).
+- **`gift_items`/`reservations`/`contributions`** : aucune colonne ni trigger à toucher, ces lignes restent intactes et inchangées, seule la liste parente devient invisible.
+
+### Dashboard super-administrateur
+
+- **Rôle admin** : nouvelle colonne `profiles.is_admin` (boolean, défaut `false`) plutôt qu'une simple vérification d'email codée en dur côté serveur — posée dès maintenant même s'il n'y a qu'un seul compte admin (le tien) aujourd'hui.
+- **Nouvelle route protégée**, réservée aux comptes `is_admin = true` (vérification serveur, redirection ou 404 sinon) — emplacement à trancher à l'implémentation (ex. `/admin`), pas encore décidé dans le détail ici.
+- **Périmètre pour cette tâche** : lister/consulter les listes supprimées (celles avec `deleted_at` renseigné, tous organisateurs confondus) **et** un bouton pour les restaurer (remet `deleted_at` à `null`, la liste redevient visible dans le dashboard de son organisateur d'origine). Pas de périmètre plus large pour l'instant (pas de vue globale sur tous les comptes/toutes les listes non supprimées, pas de statistiques) — à étendre plus tard si besoin s'en fait sentir.
+- Lecture/écriture depuis cette route à faire via le client `service_role` (comme `reserve_gift_item`/`confirm_contribution`), avec le check `is_admin` fait côté serveur avant tout accès — jamais une policy RLS ouverte à `authenticated` sur les listes d'autrui.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
@@ -393,13 +412,20 @@ Ajustements listes publique et gestion développés (18 août 2026, voir section
 - Terminologie "liste" plutôt qu'"événement" appliquée aux libellés UI visibles (nav, titres, boutons, formulaires) sur tout le produit — la table `events`, les routes `/compte/evenements/...` et le code restent inchangés. Les mentions du mot "événement" au sens de l'occasion réelle (la fête elle-même, pas l'outil Kdovie) sont volontairement conservées, ex. "cachés jusqu'à l'événement" sur le dashboard, deux réponses de la FAQ d'accueil.
 - Vérifié : tri unitairement par script (ordre exact conforme au cadrage sur 8 cas de figure), rendu visuel des deux pages par capture d'écran (Playwright), et le parcours de réservation avec nom vide testé contre un vrai article de la base distante de l'utilisateur — a révélé que l'échec attendu (contrainte `not null` encore active tant que la migration `0012` n'est pas appliquée) remonte proprement une erreur, sans corrompre l'état de l'article (vérifié avant/après).
 
+Suppression d'une liste par l'organisateur développée (18 août 2026, voir section dédiée ci-dessus) :
+- Migrations `0014_events_deleted_at.sql` (colonne `events.deleted_at`) et `0015_profiles_is_admin.sql` (colonne `profiles.is_admin`, défaut `false`) écrites, pas encore appliquées à la base distante. Aucun changement nécessaire à la contrainte unique sur `slug` (posée en 0002) : c'est une contrainte de colonne classique déjà appliquée à toutes les lignes sans distinction de `deleted_at`.
+- `SupprimerListeButton` (confirmation en deux temps, même mécanique que la suppression d'un article) posé en bas de `/compte/evenements/[slug]` ; action serveur `deleteEvent` (client authentifié normal, RLS `events_update_own` suffit puisque l'organisateur agit sur sa propre liste) qui pose `deleted_at` et redirige vers `/compte`.
+- Filtre `deleted_at is null` ajouté aux requêtes `events` de `/compte` (dashboard) et `/compte/evenements/[slug]` (gestion, une liste supprimée devient inatteignable même par URL directe). Sur `/liste/[slug]`, même filtre : une liste supprimée retombe naturellement sur l'écran "liste introuvable" déjà existant via le `if (!event) notFound()` déjà en place, sans nouvelle branche de code.
+- Dashboard super-administrateur sur `/admin` (`lib/admin-auth.ts` : `isCurrentUserAdmin`, re-vérifié à la fois dans `page.tsx` et dans l'action serveur `restoreEvent` — jamais la vérification page seule) : 404 (pas de redirection) pour un compte non-admin, afin de ne rien laisser deviner de cette route. Liste les événements avec `deleted_at` renseigné (tous organisateurs confondus) via le client `service_role`, bouton "Restaurer" (`deleted_at = null`). Aucun moyen de devenir admin depuis l'app — `profiles.is_admin` à activer manuellement en base après application de la migration `0015`.
+- Vérifié : build/lint/tsc propres, rendu du bouton de suppression par capture d'écran (état replié et confirmation), accès `/admin` sans session confirmé bloqué en 404. Reste à tester le parcours complet (suppression, restauration) une fois les migrations `0014`/`0015` appliquées et `is_admin` activé pour le compte de l'utilisateur.
+
 À venir, dans l'ordre : liens d'affiliation, bêta fermée, lancement. L'envoi réel des invitations par e-mail (Resend) est à cadrer séparément, pas dans cet ordre actuel.
 
 ## Workflow git
 
 Fais un commit à chaque fois qu'une tâche du backlog (ou une fonctionnalité significative) est terminée et validée — pas un seul gros commit en fin de session. Message clair, en français, qui référence la tâche si pertinent (ex : "feat: ajout d'article multi-boutique avec scraping (#16)"). Ne commite jamais un état qui ne build pas ou dont les tests/lint échouent.
 
-Le remote `origin` est configuré (https://github.com/thierrylachatpro/kdovie). Chaque `git push` doit être explicitement confirmé par l'utilisateur avant d'être exécuté — ne jamais pousser automatiquement sans demander, le commit local suffit à la fin d'une tâche.
+Le remote `origin` est configuré (https://github.com/thierrylachatpro/kdovie). Tu fais un `git push` systématique et tu penses à le préciser, avec son identifiant.
 
 ## Mode de collaboration
 

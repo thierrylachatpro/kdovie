@@ -39,3 +39,30 @@ export async function updateEvent(
 
   return { error: error?.message ?? null };
 }
+
+// Soft delete (deleted_at, jamais de suppression réelle) — voir CLAUDE.md >
+// "Suppression d'une liste par l'organisateur". Irréversible pour
+// l'organisateur : seul le super-administrateur peut restaurer.
+export async function deleteEvent(eventId: string, slug: string): Promise<{ error: string | null } | void> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/connexion");
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .update({ deleted_at: new Date().toISOString() })
+    .eq("id", eventId);
+
+  if (error) {
+    return { error: "Impossible de supprimer la liste, réessayez." };
+  }
+
+  revalidatePath(`/compte/evenements/${slug}`);
+  revalidatePath("/compte");
+  redirect("/compte");
+}

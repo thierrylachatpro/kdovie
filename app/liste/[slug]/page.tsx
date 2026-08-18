@@ -16,9 +16,14 @@ export default async function ListePubliquePage({
     .from("events")
     .select("id, type, name, event_date, slug, status, organizer_id, fee_mode")
     .eq("slug", slug)
+    .is("deleted_at", null)
     .single();
 
   if (!event) {
+    // Couvre aussi bien un slug qui n'a jamais existé qu'une liste
+    // supprimée par son organisateur (deleted_at renseigné) — un invité ne
+    // doit voir aucune différence entre les deux cas, voir CLAUDE.md >
+    // "Suppression d'une liste par l'organisateur".
     notFound();
   }
 
