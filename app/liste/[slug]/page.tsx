@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import ListePubliqueClient from "@/components/gift-items/ListePubliqueClient";
+import type { FeeMode } from "@/lib/fee-calculation";
+import type { OrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 
 export default async function ListePubliquePage({
   params,
@@ -12,7 +14,7 @@ export default async function ListePubliquePage({
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, type, name, event_date, slug, status, organizer_id")
+    .select("id, type, name, event_date, slug, status, organizer_id, fee_mode")
     .eq("slug", slug)
     .single();
 
@@ -26,6 +28,20 @@ export default async function ListePubliquePage({
     .eq("id", event.organizer_id)
     .single();
   const organizerPseudo = organizerProfile?.display_name?.trim() || null;
+
+  // Colonne payouts_enabled ouverte à anon (migration 0010) uniquement,
+  // stripe_account_id/organizer_id restent privés — voir CLAUDE.md > tâche #18.
+  const { data: stripeAccount } = await supabase
+    .from("organizer_stripe_accounts")
+    .select("payouts_enabled")
+    .eq("organizer_id", event.organizer_id)
+    .maybeSingle();
+
+  const organizerStripeStatus: OrganizerStripeStatus = !stripeAccount
+    ? "aucun"
+    : stripeAccount.payouts_enabled
+      ? "actif"
+      : "en_attente";
 
   const estOuverte = event.status === "ouverte";
 
@@ -103,6 +119,8 @@ export default async function ListePubliquePage({
             typeIcon={eventTypeIcon(event.type)}
             metaText={metaParts.join(" · ")}
             initialItems={giftItems ?? []}
+            feeMode={event.fee_mode as FeeMode}
+            organizerStripeStatus={organizerStripeStatus}
           />
         ) : (
           <>

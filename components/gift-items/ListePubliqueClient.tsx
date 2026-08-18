@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/client";
 import { formatPriceCents } from "@/lib/gift-item";
 import { hostnameFromUrl } from "@/lib/url";
 import { reserveGiftItem } from "@/app/liste/[slug]/reservation-actions";
+import ContributionModal from "@/components/gift-items/ContributionModal";
+import type { FeeMode } from "@/lib/fee-calculation";
+import type { OrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 
 type GiftItem = {
   id: string;
@@ -26,6 +29,8 @@ export default function ListePubliqueClient({
   typeIcon,
   metaText,
   initialItems,
+  feeMode,
+  organizerStripeStatus,
 }: {
   eventId: string;
   slug: string;
@@ -33,10 +38,28 @@ export default function ListePubliqueClient({
   typeIcon: string;
   metaText: string;
   initialItems: GiftItem[];
+  feeMode: FeeMode;
+  organizerStripeStatus: OrganizerStripeStatus;
 }) {
   const [items, setItems] = useState(initialItems);
   const [modalItemId, setModalItemId] = useState<string | null>(null);
   const [modalDone, setModalDone] = useState(false);
+  const [contributionItemId, setContributionItemId] = useState<string | null>(null);
+
+  // Retour d'une éventuelle authentification 3D Secure (paiement de
+  // cotisation redirigé hors de la page), voir CLAUDE.md > tâche #18.
+  const [redirectStatus] = useState<"succeeded" | "failed" | null>(() => {
+    if (typeof window === "undefined") return null;
+    const status = new URLSearchParams(window.location.search).get("redirect_status");
+    return status === "succeeded" || status === "failed" ? status : null;
+  });
+
+  useEffect(() => {
+    if (!redirectStatus) return;
+    const url = new URL(window.location.href);
+    url.search = "";
+    window.history.replaceState({}, "", url.toString());
+  }, [redirectStatus]);
 
   // Anti-doublon : reflète en direct la réservation faite par un autre
   // invité pendant la consultation, voir CLAUDE.md > tâche #17.
@@ -85,6 +108,7 @@ export default function ListePubliqueClient({
     (a, b) => (a.status === "reserve" ? 1 : 0) - (b.status === "reserve" ? 1 : 0),
   );
   const modalItem = items.find((item) => item.id === modalItemId) ?? null;
+  const contributionItem = items.find((item) => item.id === contributionItemId) ?? null;
 
   function openModal(itemId: string) {
     setModalItemId(itemId);
@@ -98,6 +122,20 @@ export default function ListePubliqueClient({
 
   return (
     <>
+      {redirectStatus && (
+        <section
+          className={`mb-5 rounded-2xl px-5 py-4 text-[15px] font-semibold ${
+            redirectStatus === "succeeded"
+              ? "bg-[#DCE7DA] text-[#2F4A2C]"
+              : "bg-[#F7D9C9] text-corail-dark"
+          }`}
+        >
+          {redirectStatus === "succeeded"
+            ? "Votre cotisation a bien été prise en compte, merci !"
+            : "Le paiement n'a pas pu être confirmé, votre cotisation n'a pas été prise en compte."}
+        </section>
+      )}
+
       <section className="mb-7 rounded-[32px] bg-[#F7E7D6] p-9">
         <div className="flex flex-wrap items-center gap-5.5">
           <span className="flex h-19 w-19 flex-none items-center justify-center rounded-[26px] bg-corail text-[34px]">
@@ -128,7 +166,11 @@ export default function ListePubliqueClient({
           const isTaken = item.status === "reserve";
           const isPot = item.status === "cagnotte";
           const canReserve = item.status === "disponible" && item.mode !== "cotisation_obligatoire";
-          const enAttenteCagnotte = !canReserve && !isTaken && !isPot;
+          const canContribute =
+            organizerStripeStatus !== "aucun" &&
+            item.status !== "reserve" &&
+            item.mode !== "cotisation_impossible";
+          const rienDisponible = !canReserve && !canContribute && !isTaken;
           const percent =
             isPot && item.price_cents
               ? Math.round((item.funded_amount_cents / item.price_cents) * 100)
@@ -184,12 +226,19 @@ export default function ListePubliqueClient({
                         style={{ width: `${Math.min(100, percent)}%` }}
                       />
                     </div>
-                    <div className="text-sm text-[#7A6354]">{percent} % réunis</div>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-[#7A6354]">
+                      <span>{percent} % réunis</span>
+                      {organizerStripeStatus === "en_attente" && (
+                        <span className="rounded-full bg-[#F5E3C9] px-2.5 py-0.5 text-[13px] font-semibold text-[#7A5A16]">
+                          Cagnotte en validation
+                        </span>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
 
-              <div className="flex-none">
+              <div className="flex flex-none flex-col items-stretch gap-2">
                 {canReserve && (
                   <button
                     type="button"
@@ -199,12 +248,25 @@ export default function ListePubliqueClient({
                     Je réserve
                   </button>
                 )}
+                {canContribute && (
+                  <button
+                    type="button"
+                    onClick={() => setContributionItemId(item.id)}
+                    className={`font-heading rounded-2xl px-5 py-3.5 text-base font-bold ${
+                      canReserve
+                        ? "bg-creme text-[#5C4436] hover:bg-white"
+                        : "bg-corail text-creme hover:bg-[#D45F37]"
+                    }`}
+                  >
+                    Je cotise
+                  </button>
+                )}
                 {isTaken && (
                   <div className="rounded-2xl bg-[#DCE7DA] px-5 py-3.5 text-center text-[15px] font-semibold text-[#2F4A2C]">
                     Déjà réservé
                   </div>
                 )}
-                {(isPot || enAttenteCagnotte) && (
+                {rienDisponible && (
                   <div className="rounded-2xl bg-creme px-5 py-3.5 text-center text-[15px] text-[#7A6354]">
                     Cagnotte bientôt disponible
                   </div>
@@ -222,6 +284,15 @@ export default function ListePubliqueClient({
           done={modalDone}
           onDone={() => setModalDone(true)}
           onClose={closeModal}
+        />
+      )}
+
+      {contributionItem && (
+        <ContributionModal
+          item={contributionItem}
+          feeMode={feeMode}
+          cagnotteEnValidation={organizerStripeStatus === "en_attente"}
+          onClose={() => setContributionItemId(null)}
         />
       )}
     </>
