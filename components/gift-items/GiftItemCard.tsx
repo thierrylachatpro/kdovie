@@ -184,15 +184,17 @@ export default function GiftItemCard({
                   {badge.label}
                 </span>
               </div>
-              <div className="mb-1.5 text-base font-semibold text-[#5C4436]">
-                {formatPriceCents(item.price_cents)}
+              <div className="mb-1.5 flex flex-wrap items-center gap-4">
+                <span className="text-base font-semibold text-[#5C4436]">
+                  {formatPriceCents(item.price_cents)}
+                </span>
+                <ModeSelect itemId={item.id} slug={slug} mode={item.mode} disabled={locked} />
               </div>
               {item.description && (
                 <p className="mb-1.5 max-w-130 text-[15px] leading-relaxed text-[#7A6354]">
                   {item.description}
                 </p>
               )}
-              <ModeSelect itemId={item.id} slug={slug} mode={item.mode} disabled={locked} />
 
               {item.status === "cagnotte" && (
                 <div className="mt-3 max-w-90">
