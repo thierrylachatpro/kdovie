@@ -460,7 +460,7 @@ Pages légales développées (18 août 2026, voir section dédiée ci-dessus) : 
 
 Fais un commit à chaque fois qu'une tâche du backlog (ou une fonctionnalité significative) est terminée et validée — pas un seul gros commit en fin de session. Message clair, en français, qui référence la tâche si pertinent (ex : "feat: ajout d'article multi-boutique avec scraping (#16)"). Ne commite jamais un état qui ne build pas ou dont les tests/lint échouent.
 
-Le remote `origin` est configuré (https://github.com/thierrylachatpro/kdovie). Tu fais un `git push` systématique et tu penses à le préciser, avec son identifiant.
+Le remote `origin` est configuré (https://github.com/thierrylachatpro/kdovie). Depuis le 18 août 2026, `git push` se fait systématiquement après chaque commit, sans attendre de confirmation — ne plus demander avant de pousser (règle précédente, abandonnée sur demande explicite de l'utilisateur).
 
 ## Mode de collaboration
 

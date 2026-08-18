@@ -76,11 +76,6 @@ export default async function ComptePage() {
     const total = items.length;
     const termines = items.filter((i) => i.status !== "disponible").length;
     const percent = total > 0 ? Math.round((termines / total) * 100) : 0;
-    const cagnotte = items.find((i) => i.status === "cagnotte") ?? null;
-    const cagnottePourcent =
-      cagnotte && cagnotte.price_cents
-        ? Math.round((cagnotte.funded_amount_cents / cagnotte.price_cents) * 100)
-        : null;
     const dateFormatee = event.event_date
       ? new Date(event.event_date).toLocaleDateString("fr-FR", {
           day: "numeric",
@@ -93,8 +88,6 @@ export default async function ComptePage() {
       total,
       termines,
       percent,
-      cagnotte,
-      cagnottePourcent,
       dateFormatee,
       lienPublic: `${protocol}://${host}/liste/${event.slug}`,
     };
@@ -305,16 +298,6 @@ export default async function ComptePage() {
                       />
                     </div>
                   </div>
-
-                  {event.cagnotte && (
-                    <div className="rounded-2xl bg-creme px-4 py-3.5 text-sm text-[#5C4436]">
-                      <strong className="font-heading">Cagnotte en cours</strong> ·{" "}
-                      {event.cagnotte.title}
-                      {event.cagnottePourcent !== null
-                        ? `, ${event.cagnottePourcent} % réunis`
-                        : `, ${formatPriceCents(event.cagnotte.funded_amount_cents)} réunis`}
-                    </div>
-                  )}
 
                   <div className="mt-auto flex flex-wrap gap-2.5">
                     <Link
