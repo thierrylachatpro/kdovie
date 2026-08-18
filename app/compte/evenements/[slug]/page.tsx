@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import type { EventStatus } from "@/lib/event-status";
 import { initiales } from "@/lib/initials";
+import { sortGiftItems } from "@/lib/gift-item-sort";
 import EnTeteListe from "@/components/evenements/EnTeteListe";
 import VisibiliteListe from "@/components/evenements/VisibiliteListe";
 import AjouterArticleForm from "@/components/gift-items/AjouterArticleForm";
@@ -48,24 +49,38 @@ export default async function EvenementPage({
 
   const { data: giftItems } = await supabase
     .from("gift_items")
-    .select("id, title, price_cents, image_url, description, mode, status, funded_amount_cents")
+    .select(
+      "id, title, price_cents, image_url, description, source_url, mode, status, funded_amount_cents, is_priority",
+    )
     .eq("event_id", event.id)
     .order("created_at", { ascending: false });
 
-  const items = giftItems ?? [];
+  const items = sortGiftItems(giftItems ?? []);
   const reservedIds = items.filter((i) => i.status === "reserve").map((i) => i.id);
+  const cagnotteIds = items.filter((i) => i.status === "cagnotte").map((i) => i.id);
 
-  const { data: reservations } =
+  const [{ data: reservations }, { data: contributions }] = await Promise.all([
     reservedIds.length > 0
-      ? await supabase
-          .from("reservations")
+      ? supabase.from("reservations").select("gift_item_id, guest_name").in("gift_item_id", reservedIds)
+      : Promise.resolve({ data: [] }),
+    cagnotteIds.length > 0
+      ? supabase
+          .from("contributions")
           .select("gift_item_id, guest_name")
-          .in("gift_item_id", reservedIds)
-      : { data: [] };
+          .eq("status", "succeeded")
+          .in("gift_item_id", cagnotteIds)
+      : Promise.resolve({ data: [] }),
+  ]);
 
   const guestNameByItemId = new Map(
     (reservations ?? []).map((r) => [r.gift_item_id, r.guest_name]),
   );
+  const contributorNamesByItemId = new Map<string, (string | null)[]>();
+  (contributions ?? []).forEach((c) => {
+    const current = contributorNamesByItemId.get(c.gift_item_id) ?? [];
+    current.push(c.guest_name);
+    contributorNamesByItemId.set(c.gift_item_id, current);
+  });
 
   const host = (await headers()).get("host");
   const protocol = host?.startsWith("localhost") ? "http" : "https";
@@ -140,13 +155,6 @@ export default async function EvenementPage({
       </header>
 
       <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">
-        <Link
-          href="/compte"
-          className="mb-4.5 inline-block text-[15px] font-semibold text-corail hover:text-[#8F3A1C]"
-        >
-          ← Retour au tableau de bord
-        </Link>
-
         <EnTeteListe
           eventId={event.id}
           slug={event.slug}
@@ -186,6 +194,7 @@ export default async function EvenementPage({
                   slug={event.slug}
                   toneIndex={index}
                   reservedByName={guestNameByItemId.get(item.id) ?? null}
+                  contributorNames={contributorNamesByItemId.get(item.id) ?? []}
                 />
               ))}
             </div>
@@ -206,7 +215,7 @@ export default async function EvenementPage({
               Contact
             </a>
             <Link href="/compte" className="hover:text-corail">
-              Mes événements
+              Mes listes
             </Link>
           </nav>
         </div>

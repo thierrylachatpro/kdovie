@@ -166,7 +166,7 @@ const FAQS = [
   {
     question: "Est-ce que Kdovie est gratuit ?",
     answer:
-      "Créer un compte, des listes et des événements est gratuit et sans limite. Seules les cagnottes ont de faibles frais de traitement bancaire.",
+      "Créer un compte et des listes est gratuit et sans limite. Seules les cagnottes ont de faibles frais de traitement bancaire.",
   },
 ];
 

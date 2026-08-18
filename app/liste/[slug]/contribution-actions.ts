@@ -24,10 +24,10 @@ export async function createContribution(
   guestEmail: string,
   montantNetCents: number,
 ): Promise<{ error: string | null; checkoutUrl?: string }> {
+  // Prénom/nom facultatif depuis le 18 août 2026 (voir CLAUDE.md >
+  // "Ajustements listes publique et gestion") — "Anonyme" affiché côté app
+  // quand vide.
   const nom = guestName.trim();
-  if (!nom) {
-    return { error: "Merci d'indiquer votre prénom et nom." };
-  }
   if (!Number.isFinite(montantNetCents) || montantNetCents < 100) {
     return { error: "Le montant minimum est de 1 €." };
   }
@@ -87,7 +87,7 @@ export async function createContribution(
     .from("contributions")
     .insert({
       gift_item_id: giftItem.id,
-      guest_name: nom,
+      guest_name: nom || null,
       guest_email: guestEmail.trim() || null,
       amount_cents: montantNetCents,
       status: "pending",

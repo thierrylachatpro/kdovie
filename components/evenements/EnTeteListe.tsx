@@ -93,12 +93,12 @@ export default function EnTeteListe({
   return (
     <section className="mb-7 rounded-[32px] bg-[#F7E7D6] p-8">
       <h2 className="font-heading mb-5 text-2xl font-bold text-[#C0512A]">
-        Modifier l&apos;événement
+        Modifier la liste
       </h2>
 
       <label className="mb-5 flex max-w-130 flex-col gap-2">
         <span className="font-heading text-base font-bold text-[#4A3529]">
-          Nom de l&apos;événement
+          Nom de la liste
         </span>
         <input
           type="text"

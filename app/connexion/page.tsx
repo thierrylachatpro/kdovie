@@ -62,8 +62,8 @@ export default async function ConnexionPage({
               Content de vous revoir
             </h2>
             <p className="mt-4 mb-7 text-lg leading-relaxed text-[#5C4436]">
-              Vos listes, vos événements passés et vos cagnottes en cours
-              vous attendent au même endroit.
+              Vos listes, passées ou en cours, et vos cagnottes vous attendent au même
+              endroit.
             </p>
             <div className="flex flex-col gap-3.5">
               <div className="flex items-center gap-3.5 rounded-[20px] bg-creme p-4">

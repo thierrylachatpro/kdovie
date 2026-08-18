@@ -102,19 +102,12 @@ export default async function ProfilPage() {
             href="/compte"
             className="rounded-2xl bg-[#F7E7D6] px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F2DFC9]"
           >
-            Mes événements
+            Mes listes
           </Link>
         </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-[720px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">
-        <Link
-          href="/compte"
-          className="mb-4.5 inline-block text-[15px] font-semibold text-corail hover:text-[#8F3A1C]"
-        >
-          ← Retour à vos listes
-        </Link>
-
         <h1 className="font-heading text-[40px] leading-[1.1] font-bold text-corail">
           Mon compte
         </h1>
@@ -155,7 +148,7 @@ export default async function ProfilPage() {
               Contact
             </a>
             <Link href="/compte" className="hover:text-corail">
-              Mes événements
+              Mes listes
             </Link>
           </nav>
         </div>

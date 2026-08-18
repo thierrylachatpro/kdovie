@@ -72,6 +72,36 @@ export async function updateGiftItemMode(
   return { error: error?.message ?? null };
 }
 
+// Contrairement à updateGiftItem/deleteGiftItem, jamais bloquée par le
+// verrouillage d'un article — is_priority n'est pas dans le trigger
+// protect_gift_item_mode, voir migration 0011 et CLAUDE.md > "Ajustements
+// listes publique et gestion".
+export async function updateGiftItemPriority(
+  itemId: string,
+  isPriority: boolean,
+  slug: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/connexion");
+  }
+
+  const { error } = await supabase
+    .from("gift_items")
+    .update({ is_priority: isPriority })
+    .eq("id", itemId);
+
+  if (!error) {
+    revalidatePath(`/compte/evenements/${slug}`);
+  }
+
+  return { error: error?.message ?? null };
+}
+
 export async function updateGiftItem(
   itemId: string,
   slug: string,

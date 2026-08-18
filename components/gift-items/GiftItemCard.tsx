@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, type ChangeEvent } from "react";
+import { useState, useTransition, type ChangeEvent } from "react";
 import {
   deleteGiftItem,
   updateGiftItem,
+  updateGiftItemPriority,
 } from "@/app/compte/evenements/[slug]/gift-item-actions";
 import { formatPriceCents } from "@/lib/gift-item";
+import { estAttenue } from "@/lib/gift-item-sort";
 import ModeSelect from "@/components/gift-items/ModeSelect";
 import KdovieSpinner from "@/components/ui/KdovieSpinner";
 
@@ -15,9 +17,11 @@ type GiftItem = {
   price_cents: number | null;
   image_url: string | null;
   description: string | null;
+  source_url: string | null;
   status: string;
   mode: string;
   funded_amount_cents: number;
+  is_priority: boolean;
 };
 
 const TONES = ["#F7D9C9", "#F5E3C9", "#DCE7DA"];
@@ -33,11 +37,13 @@ export default function GiftItemCard({
   slug,
   toneIndex,
   reservedByName,
+  contributorNames,
 }: {
   item: GiftItem;
   slug: string;
   toneIndex: number;
   reservedByName: string | null;
+  contributorNames: (string | null)[];
 }) {
   const [mode, setMode] = useState<"reading" | "editing" | "confirming">("reading");
   const [draftTitle, setDraftTitle] = useState(item.title);
@@ -49,8 +55,17 @@ export default function GiftItemCard({
   const [erreur, setErreur] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [nomRevele, setNomRevele] = useState(false);
+  const [isPriority, setIsPriority] = useState(item.is_priority);
+  const [, startPriorityTransition] = useTransition();
 
   const locked = item.status !== "disponible";
+  const attenue = estAttenue({
+    status: item.status,
+    mode: item.mode,
+    price_cents: item.price_cents,
+    funded_amount_cents: item.funded_amount_cents,
+    is_priority: item.is_priority,
+  });
   const badge = BADGES[item.status] ?? BADGES.disponible;
   const percent =
     item.status === "cagnotte" && item.price_cents
@@ -100,12 +115,23 @@ export default function GiftItemCard({
     setMode("reading");
   }
 
+  function togglePriority() {
+    const next = !isPriority;
+    setIsPriority(next);
+    startPriorityTransition(async () => {
+      const result = await updateGiftItemPriority(item.id, next, slug);
+      if (result.error) {
+        setIsPriority(!next);
+      }
+    });
+  }
+
   return (
     <article
       className={`rounded-[26px] border-2 p-6 ${
         mode === "confirming"
           ? "border-corail"
-          : locked
+          : attenue
             ? "border-[#EFE3D4] bg-[#FDF3E9]"
             : "border-[#F2DFC9] bg-white"
       }`}
@@ -116,11 +142,11 @@ export default function GiftItemCard({
           <img
             src={item.image_url}
             alt=""
-            className={`h-22 w-22 flex-none rounded-[22px] object-cover ${locked ? "opacity-80" : ""}`}
+            className={`h-22 w-22 flex-none rounded-[22px] object-cover ${attenue ? "opacity-80" : ""}`}
           />
         ) : (
           <div
-            className={`flex h-22 w-22 flex-none items-center justify-center rounded-[22px] text-[34px] ${locked ? "opacity-80" : ""}`}
+            className={`flex h-22 w-22 flex-none items-center justify-center rounded-[22px] text-[34px] ${attenue ? "opacity-80" : ""}`}
             style={{ background: TONES[toneIndex % TONES.length] }}
           >
             🎁
@@ -131,7 +157,28 @@ export default function GiftItemCard({
           {mode === "reading" || mode === "confirming" ? (
             <div>
               <div className="mb-1.5 flex flex-wrap items-center gap-2.5">
-                <h3 className="font-heading text-xl font-bold text-[#4A3529]">{item.title}</h3>
+                <button
+                  type="button"
+                  onClick={togglePriority}
+                  title={isPriority ? "Retirer la mise en avant" : "Mettre en avant"}
+                  className={`text-xl leading-none ${
+                    isPriority ? "text-jaune" : "text-[#D8C7B0] hover:text-jaune"
+                  }`}
+                >
+                  {isPriority ? "★" : "☆"}
+                </button>
+                {item.source_url ? (
+                  <a
+                    href={item.source_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="font-heading text-xl font-bold text-[#4A3529] hover:text-corail hover:underline"
+                  >
+                    {item.title}
+                  </a>
+                ) : (
+                  <h3 className="font-heading text-xl font-bold text-[#4A3529]">{item.title}</h3>
+                )}
                 <span
                   className="rounded-full px-3 py-1.5 text-[13px] font-semibold"
                   style={{ background: badge.bg, color: badge.fg }}
@@ -186,15 +233,27 @@ export default function GiftItemCard({
                       nomRevele ? "" : "cursor-pointer blur-[5px] select-none"
                     }`}
                   >
-                    {reservedByName ?? "Un invité"}
+                    {reservedByName ?? "Anonyme"}
                   </button>{" "}
                   a déjà réservé ce cadeau : il n&apos;est plus modifiable ni supprimable.
                 </p>
               )}
               {item.status === "cagnotte" && (
                 <p className="mt-3.5 max-w-130 border-l-[3px] border-jaune pl-3 text-[15px] leading-relaxed text-[#7A6354]">
-                  Des invités ont commencé à cotiser sur ce cadeau : il n&apos;est plus
-                  modifiable ni supprimable.
+                  <button
+                    type="button"
+                    onClick={() => setNomRevele((v) => !v)}
+                    title={nomRevele ? "Masquer" : "Afficher"}
+                    className={`font-heading font-semibold text-[#5C4436] ${
+                      nomRevele ? "" : "cursor-pointer blur-[5px] select-none"
+                    }`}
+                  >
+                    {contributorNames.length > 0
+                      ? contributorNames.map((n) => n ?? "Anonyme").join(", ")
+                      : "Des invités"}
+                  </button>{" "}
+                  {contributorNames.length === 1 ? "a" : "ont"} cotisé sur ce cadeau : il
+                  n&apos;est plus modifiable ni supprimable.
                 </p>
               )}
             </div>

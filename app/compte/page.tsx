@@ -101,12 +101,12 @@ export default async function ComptePage() {
   type ActiviteItem = { texte: string; date: string; couleur: string };
   const activite: ActiviteItem[] = [
     ...(reservations ?? []).map((r) => ({
-      texte: `${r.guest_name} a réservé « ${r.gift_items?.title ?? "un cadeau"} »`,
+      texte: `${r.guest_name ?? "Anonyme"} a réservé « ${r.gift_items?.title ?? "un cadeau"} »`,
       date: r.reserved_at,
       couleur: "#8BA888",
     })),
     ...(contributions ?? []).map((c) => ({
-      texte: `${c.guest_name} a cotisé ${formatPriceCents(c.amount_cents)} pour « ${c.gift_items?.title ?? "un cadeau"} »`,
+      texte: `${c.guest_name ?? "Anonyme"} a cotisé ${formatPriceCents(c.amount_cents)} pour « ${c.gift_items?.title ?? "un cadeau"} »`,
       date: c.created_at,
       couleur: "#E8734A",
     })),
@@ -192,7 +192,7 @@ export default async function ComptePage() {
             href="/compte/evenements/nouveau"
             className="font-heading rounded-[20px] bg-corail px-[26px] py-[17px] text-[17px] font-bold text-creme hover:bg-[#D45F37]"
           >
-            + Nouvel événement
+            + Nouvelle liste
           </Link>
         </section>
 
@@ -202,7 +202,7 @@ export default async function ComptePage() {
             <strong className="font-semibold text-[#4A3529]">
               {evenementsAvecStats.length}
             </strong>{" "}
-            événements
+            listes
           </span>
           <span className="inline-flex items-center gap-2">
             <span className="block h-2.5 w-2.5 rounded-[3px] bg-jaune" />
@@ -250,7 +250,7 @@ export default async function ComptePage() {
         <section className="mb-11">
           <div className="mb-5 flex flex-wrap items-baseline justify-between gap-4">
             <h2 className="font-heading text-[28px] font-bold text-[#C0512A]">
-              Mes événements
+              Mes listes
             </h2>
             <span className="text-[15px] text-[#8A7263]">
               {evenementsAvecStats.length} liste
@@ -327,12 +327,12 @@ export default async function ComptePage() {
             </div>
           ) : (
             <div className="flex flex-col items-center gap-3 rounded-[28px] border-2 border-dashed border-[#F2DFC9] px-6 py-12 text-center">
-              <p className="text-sm text-gris">Vous n&apos;avez pas encore d&apos;événement.</p>
+              <p className="text-sm text-gris">Vous n&apos;avez pas encore de liste.</p>
               <Link
                 href="/compte/evenements/nouveau"
                 className="rounded-lg bg-jaune px-5 py-2.5 text-sm font-medium text-corail-dark"
               >
-                Créer mon premier événement
+                Créer ma première liste
               </Link>
             </div>
           )}

@@ -8,6 +8,7 @@ import { reserveGiftItem } from "@/app/liste/[slug]/reservation-actions";
 import ContributionModal from "@/components/gift-items/ContributionModal";
 import type { FeeMode } from "@/lib/fee-calculation";
 import type { OrganizerStripeStatus } from "@/lib/organizer-stripe-status";
+import { estAttenue, sortGiftItems } from "@/lib/gift-item-sort";
 
 type GiftItem = {
   id: string;
@@ -18,6 +19,7 @@ type GiftItem = {
   status: string;
   mode: string;
   funded_amount_cents: number;
+  is_priority: boolean;
 };
 
 const TONES = ["#F7D9C9", "#F5E3C9", "#DCE7DA"];
@@ -83,6 +85,7 @@ export default function ListePubliqueClient({
             status: string;
             mode: string;
             funded_amount_cents: number;
+            is_priority: boolean;
           };
           setItems((current) =>
             current.map((item) =>
@@ -92,6 +95,7 @@ export default function ListePubliqueClient({
                     status: updated.status,
                     mode: updated.mode,
                     funded_amount_cents: updated.funded_amount_cents,
+                    is_priority: updated.is_priority,
                   }
                 : item,
             ),
@@ -106,9 +110,7 @@ export default function ListePubliqueClient({
   }, [eventId]);
 
   const availableCount = items.filter((item) => item.status === "disponible").length;
-  const sorted = [...items].sort(
-    (a, b) => (a.status === "reserve" ? 1 : 0) - (b.status === "reserve" ? 1 : 0),
-  );
+  const sorted = sortGiftItems(items);
   const modalItem = items.find((item) => item.id === modalItemId) ?? null;
   const contributionItem = items.find((item) => item.id === contributionItemId) ?? null;
 
@@ -177,11 +179,14 @@ export default function ListePubliqueClient({
             isPot && item.price_cents
               ? Math.round((item.funded_amount_cents / item.price_cents) * 100)
               : 0;
+          const attenue = estAttenue(item);
 
           return (
             <article
               key={item.id}
-              className={`flex flex-wrap items-center gap-5 rounded-[26px] border-2 border-[#F2DFC9] bg-white p-5 ${isTaken ? "opacity-75" : ""}`}
+              className={`flex flex-wrap items-center gap-5 rounded-[26px] border-2 p-5 ${
+                attenue ? "border-[#EFE3D4] bg-[#FDF3E9] opacity-75" : "border-[#F2DFC9] bg-white"
+              }`}
             >
               {item.image_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -200,9 +205,20 @@ export default function ListePubliqueClient({
               )}
               <div className="min-w-60 flex-1">
                 <div className="mb-1 flex flex-wrap items-center gap-2.5">
-                  <h3 className="font-heading text-lg leading-tight font-bold text-[#4A3529]">
-                    {item.title}
-                  </h3>
+                  {item.source_url ? (
+                    <a
+                      href={item.source_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-heading text-lg leading-tight font-bold text-[#4A3529] hover:text-corail hover:underline"
+                    >
+                      {item.title}
+                    </a>
+                  ) : (
+                    <h3 className="font-heading text-lg leading-tight font-bold text-[#4A3529]">
+                      {item.title}
+                    </h3>
+                  )}
                   <span
                     className={`flex-none rounded-full px-3 py-1.5 text-[13px] font-semibold ${
                       isTaken
@@ -229,7 +245,12 @@ export default function ListePubliqueClient({
                       />
                     </div>
                     <div className="flex flex-wrap items-center gap-2 text-sm text-[#7A6354]">
-                      <span>{percent} % réunis</span>
+                      <span>
+                        {formatPriceCents(item.funded_amount_cents)}
+                        {item.price_cents !== null
+                          ? ` sur ${formatPriceCents(item.price_cents)}`
+                          : " réunis"}
+                      </span>
                       {organizerStripeStatus === "en_attente" && (
                         <span className="rounded-full bg-[#F5E3C9] px-2.5 py-0.5 text-[13px] font-semibold text-[#7A5A16]">
                           Cagnotte en validation
@@ -317,11 +338,8 @@ function ReservationModal({
 }) {
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
-  const [touched, setTouched] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
-
-  const nomValide = nom.trim().length >= 2;
 
   function handleNomChange(event: ChangeEvent<HTMLInputElement>) {
     setNom(event.target.value);
@@ -329,10 +347,6 @@ function ReservationModal({
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!nomValide) {
-      setTouched(true);
-      return;
-    }
     setErreur(null);
     setIsPending(true);
     const result = await reserveGiftItem(item.id, slug, nom, email);
@@ -373,23 +387,16 @@ function ReservationModal({
             <form onSubmit={handleSubmit} className="flex flex-col gap-4.5">
               <label className="flex flex-col gap-2">
                 <span className="font-heading text-base font-bold text-[#4A3529]">
-                  Prénom et nom
+                  Prénom et nom{" "}
+                  <span className="text-sm font-medium text-[#8A7263]">— facultatif</span>
                 </span>
                 <input
                   type="text"
                   value={nom}
                   onChange={handleNomChange}
                   placeholder="Sophie Martin"
-                  className={`w-full rounded-[18px] border-2 bg-white px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:ring-2 focus:ring-jaune ${
-                    touched && !nomValide ? "border-corail" : "border-[#F2DFC9]"
-                  }`}
+                  className="w-full rounded-[18px] border-2 border-[#F2DFC9] bg-white px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:ring-2 focus:ring-jaune"
                 />
-                {touched && !nomValide && (
-                  <span className="text-sm text-corail-dark">
-                    Indiquez votre prénom et votre nom, pour que l&apos;organisateur sache qui a
-                    réservé.
-                  </span>
-                )}
               </label>
               <label className="flex flex-col gap-2">
                 <span className="font-heading text-base font-bold text-[#4A3529]">
@@ -416,8 +423,7 @@ function ReservationModal({
                 {isPending ? "Envoi…" : "Confirmer la réservation"}
               </button>
               <span className="text-center text-sm text-[#8A7263]">
-                Aucun compte à créer. L&apos;organisateur ne verra pas votre choix avant
-                l&apos;événement.
+                Aucun compte à créer.
               </span>
             </form>
           </div>
@@ -433,13 +439,25 @@ function ReservationModal({
               « {item.title} » est maintenant réservé à votre nom. Les autres invités ne le
               verront plus dans la liste.
             </p>
-            <button
-              type="button"
-              onClick={onClose}
-              className="font-heading rounded-2xl bg-corail px-6.5 py-4 text-base font-bold text-creme"
-            >
-              Revenir à la liste
-            </button>
+            <div className="flex flex-wrap justify-center gap-3">
+              {item.source_url && (
+                <a
+                  href={item.source_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-heading rounded-2xl bg-creme px-6.5 py-4 text-base font-bold text-[#5C4436] hover:bg-white"
+                >
+                  Aller l&apos;acheter
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="font-heading rounded-2xl bg-corail px-6.5 py-4 text-base font-bold text-creme"
+              >
+                Revenir à la liste
+              </button>
+            </div>
           </div>
         )}
       </div>

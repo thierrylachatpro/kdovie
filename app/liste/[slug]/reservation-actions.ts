@@ -11,15 +11,15 @@ export async function reserveGiftItem(
   guestName: string,
   guestEmail: string,
 ): Promise<{ error: string | null }> {
+  // Prénom/nom facultatif depuis le 18 août 2026 (voir CLAUDE.md >
+  // "Ajustements listes publique et gestion") — "Anonyme" affiché côté app
+  // quand vide.
   const nom = guestName.trim();
-  if (!nom) {
-    return { error: "Merci d'indiquer votre prénom et nom." };
-  }
 
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("reserve_gift_item", {
     p_gift_item_id: giftItemId,
-    p_guest_name: nom,
+    p_guest_name: (nom || null) as unknown as string,
     p_guest_email: guestEmail.trim() || (null as unknown as string),
   });
 

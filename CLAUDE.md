@@ -117,7 +117,7 @@ Pas de contenu pré-rempli complexe pour le MVP — juste des catégories suggé
 
 Décision qui affine le modèle initial sans le remettre en cause sur le fond — à ne pas re-débattre, juste à implémenter :
 
-- **Pas de renommage.** Le mot "événement" reste tel quel partout : table `events`, routes `/compte/evenements/...`, tous les libellés UI ("Vos événements", "Type d'événement"...). Seule la notion de date/type imposés change, pas la terminologie.
+- **Pas de renommage** *(décision initiale du 16 août — voir la mise à jour du 18 août dans "Terminologie : liste plutôt qu'événement" plus bas, qui la remplace pour les libellés UI uniquement)*. Le mot "événement" reste tel quel partout : table `events`, routes `/compte/evenements/...`, tous les libellés UI ("Vos événements", "Type d'événement"...). Seule la notion de date/type imposés change, pas la terminologie.
 - **Date : déjà optionnelle, ne pas y toucher davantage.** Le champ `event_date` est déjà nullable en base et déjà marqué "optionnelle" dans `NouvelEvenementForm`. Il reste dans le formulaire de création, discret comme aujourd'hui — pas de retrait du formulaire, pas de mise en avant non plus.
 - **Type : doit devenir optionnel.** Une liste peut exister sans catégorie d'événement précise ("juste une liste"). Implique :
   - Nouvelle migration (`0004_...`, ne pas modifier `0002_events_gift_items.sql` déjà appliquée) qui rend `events.type` nullable et ajuste le check constraint pour autoriser NULL en plus des 7 valeurs existantes.
@@ -228,6 +228,50 @@ Compte Stripe créé par l'utilisateur, Connect activé en mode **marketplace** 
 - Le réglage `fee_mode` est modifiable par l'organisateur à tout moment : il n'affecte que les contributions futures, pas de verrouillage nécessaire (contrairement au `mode` des articles qui se verrouille après action d'un invité).
 - Afficher clairement à l'invité, avant paiement, le détail en mode `frais_en_sus` (ex. "20,00€ pour le cadeau + 0,75€ de frais = 20,75€ prélevés") pour éviter toute impression de frais cachés — sujet sensible sur de l'argent destiné à un cadeau.
 
+## Ajustements listes publique et gestion (18 août 2026)
+
+Série de retouches décidées après les premiers tests réels de la cagnotte, sur `/liste/[slug]` (page publique) et `/compte/evenements/[slug]` (gestion) :
+
+**Priorité (organisateur uniquement)** : nouveau champ `gift_items.is_priority` (boolean, défaut `false`), réglable uniquement depuis la page de gestion — jamais visible ni signalé côté invité sur `/liste/[slug]`. Contrairement à title/price/image/description, ce champ n'est **pas** verrouillé par le trigger existant : l'organisateur peut le modifier même une fois l'article réservé/en cagnotte, puisque ça ne touche à aucune règle métier côté invité, juste à son propre classement visuel.
+
+**Tri des articles (public et gestion, même logique des deux côtés)** :
+1. D'abord tous les articles `is_priority = true` qui ne sont **pas** "terminés" (terminé = cagnotte finalisée ou article réservé) — tout en tête de liste, devant même les articles non-prioritaires disponibles. À l'intérieur de ce sous-groupe, garder l'ordre du point 2 ci-dessous.
+2. Puis les articles non-prioritaires (ou prioritaires mais terminés — la priorité ne s'applique plus une fois terminé), dans cet ordre :
+   - cadeaux non réservés (réservation directe possible, y compris les articles en mode `automatique` n'ayant encore reçu aucune action — même s'ils pourraient aussi recevoir une cotisation, ils comptent ici)
+   - cagnottes non démarrées (mode `cotisation_obligatoire`, ou `automatique`, avec `funded_amount_cents = 0` — distinctes du groupe précédent uniquement par le fait qu'aucune réservation directe n'est possible dessus)
+   - cagnotte démarrée (`status = 'cagnotte'`, `funded_amount_cents < price_cents`)
+   - cagnotte finalisée (`status = 'cagnotte'`, `funded_amount_cents >= price_cents`)
+   - cadeaux réservés (`status = 'reserve'`)
+
+**Fond blanc vs atténué** : les 3 premiers groupes de la liste ci-dessus (non réservés, cagnottes non démarrées, cagnotte démarrée) restent sur fond blanc — tout ce qui reste actionnable pour un invité. Cagnotte finalisée et cadeaux réservés passent sur un fond atténué (non blanc), pour signaler visuellement "déjà réglé".
+
+**Affichage du montant de cagnotte** : remplacer le texte "X % réunis" par le montant réel, ex. "150,00 € sur 500,00 €" — cohérent avec ce qui existe déjà côté gestion, à appliquer aussi sur la page publique. La barre de progression visuelle reste inchangée (toujours calculée en %, seul le texte à côté change).
+
+**Floutage des participants, y compris cagnotte** : côté gestion uniquement, étendre le floutage déjà en place sur le nom du réservataire (révélable d'un clic) aux noms des contributeurs d'une cagnotte — même traitement pour les deux. Rien de tout ça côté page publique : un invité ne voit jamais aucun nom (ni le sien après action, ni ceux des autres), comportement déjà en place à ne pas changer.
+
+**Titre de l'article cliquable** : sur les deux pages, le titre ouvre `source_url` dans un nouvel onglet (`target="_blank" rel="noopener noreferrer"`). Si `source_url` est vide (article en saisie manuelle, migration 0007), le titre reste simple texte, non cliquable.
+
+**Après une réservation confirmée** : proposer un lien/bouton vers `source_url` (page produit chez le marchand) pour que l'invité puisse aller l'acheter — seulement si `source_url` est renseignée.
+
+**Prénom/nom de l'invité devient optionnel** (réservation et cotisation) : aujourd'hui `not null` en base sur `reservations.guest_name` et `contributions.guest_name` — nouvelle migration pour rendre les deux colonnes nullable. Quand vide, afficher "Anonyme" partout où un nom serait montré (y compris une fois "révélé" via le floutage ci-dessus).
+
+**Suppression de copie** : retirer la phrase "L'organisateur ne verra pas votre choix avant l'événement" du parcours de réservation/cotisation invité.
+
+## Bloc "Ma cagnotte" sur /compte/profil (18 août 2026)
+
+Renommer le titre du bloc Stripe Connect de "Cagnotte Stripe" à **"Ma cagnotte"**. Réécrire le texte d'explication pour clarifier, simplement et de façon rassurante, qu'un compte chez Stripe (notre partenaire de paiement) est nécessaire pour recevoir l'argent des cagnottes directement et en sécurité — ton chaleureux cohérent avec le reste du produit, pas de jargon technique (pas de "KYC", pas de "Connect Express").
+
+## Suppression des fils d'ariane (18 août 2026)
+
+Retirer les liens "← Retour à ..." (ex. "Retour à vos listes", "Retour au tableau de bord") sur toutes les pages du compte organisateur — la navigation du header suffit déjà, ce lien redondant est à supprimer partout où il apparaît.
+
+## Terminologie : "liste" plutôt qu'"événement" (18 août 2026)
+
+Décision qui remplace le choix du 16 août ("pas de renommage", voir section "Recadrage" plus haut) — mais seulement pour les **libellés visibles par l'utilisateur**, pas pour la couche technique :
+
+- **Change** : tous les textes UI visibles ("Vos événements" → "Vos listes", "Type d'événement" → "Type de liste", "Nouvel événement" → "Nouvelle liste", "Mes événements" dans la nav → "Mes listes", etc.) — à passer en revue sur tout le produit, sauf si un terme reste plus juste dans son contexte précis (ex. "Anniversaire" reste un type de liste, pas à renommer).
+- **Ne change pas** : le nom de la table `events`, les segments de route `/compte/evenements/...`, les noms de fichiers/variables/fonctions dans le code — renommer la couche technique serait un chantier disproportionné (migration de schéma, réécriture des routes) pour un gain purement cosmétique côté utilisateur. Cette couche interne reste "événement", conformément au principe "sauf si vraiment justifié" évoqué par l'utilisateur.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
@@ -318,6 +362,17 @@ Paiement de la cotisation basculé sur Stripe Checkout (18 août 2026, retour d'
 - **Piège découvert en testant contre les vraies données** : `session.payment_intent` est toujours `null` juste après `stripe.checkout.sessions.create()` — Stripe ne crée le PaymentIntent d'une Checkout Session qu'au moment où elle est réellement utilisée par l'invité, pas à sa création. Le code s'appuyait dessus pour corréler la ligne `contributions` au paiement, ce qui cassait systématiquement ("Impossible de préparer le paiement"). Corrigé : la ligne `contributions` est désormais insérée *avant* la création de la session, et son `id` sert de `client_reference_id` Stripe pour la retrouver côté webhook — `stripe_payment_intent_id` n'est renseigné qu'a posteriori, une fois l'événement reçu, pour la traçabilité. Le webhook écoute donc `checkout.session.completed` (et non plus `payment_intent.succeeded`) et filtre sur `payment_status === "paid"`.
 - **Action manuelle requise côté Stripe Dashboard** : le endpoint webhook déjà créé par l'utilisateur écoutait `payment_intent.succeeded` — à reconfigurer pour écouter `checkout.session.completed` à la place, sans quoi Stripe n'envoie jamais l'événement attendu par le code actuel.
 - Testé de bout en bout contre les vraies données de l'utilisateur : Checkout Session créée avec un compte Connect actif réel, événement `checkout.session.completed` signé (`Stripe.webhooks.generateTestHeaderString`) envoyé au webhook local avec une contribution de test insérée en base — `confirm_contribution` appelée avec succès (statut "succeeded", article verrouillé en "cagnotte", `funded_amount_cents` incrémenté), puis état restauré à l'identique pour ne pas polluer les données de test de l'utilisateur.
+
+Ajustements listes publique et gestion développés (18 août 2026, voir sections dédiées ci-dessus pour le détail du cadrage) :
+- Migration `0011_gift_items_is_priority.sql` (colonne `gift_items.is_priority`, non verrouillée par le trigger existant) et `0012_guest_name_optional.sql` (`reservations.guest_name`/`contributions.guest_name` deviennent nullable) écrites, pas encore appliquées à la base distante.
+- `lib/gift-item-sort.ts` : logique de tri partagée (groupes 1 à 5 + sous-groupe prioritaires non terminés en tête), utilisée à l'identique sur `/liste/[slug]` (`ListePubliqueClient`) et `/compte/evenements/[slug]` (page de gestion) — `estAttenue`/`estTermine` exportées aussi pour le fond blanc/atténué des cartes.
+- Étoile de mise en avant sur `GiftItemCard` (nouvelle action serveur `updateGiftItemPriority`, jamais bloquée par le verrouillage), invisible côté invité.
+- Montant réel de cagnotte ("150,00 € sur 300,00 €") sur la page publique, cohérent avec la gestion. Floutage des contributeurs (gestion uniquement) sur le même modèle que le réservataire, gère le pluriel ("a" / "ont cotisé"). Titre cliquable vers `source_url` sur les deux pages. Lien "Aller l'acheter" après confirmation de réservation, si `source_url` renseignée.
+- Prénom/nom devient facultatif (réservation et cotisation) : validation retirée côté client et serveur, `"Anonyme"` affiché partout où un nom serait montré (y compris fil d'activité du dashboard) une fois vide.
+- Fils d'ariane "← Retour à ..." retirés de `/compte/profil`, `/compte/evenements/[slug]` et `/compte/evenements/nouveau`.
+- Bloc Stripe Connect renommé "Ma cagnotte" sur `/compte/profil`, texte réécrit sans jargon ("KYC", "Connect Express" bannis).
+- Terminologie "liste" plutôt qu'"événement" appliquée aux libellés UI visibles (nav, titres, boutons, formulaires) sur tout le produit — la table `events`, les routes `/compte/evenements/...` et le code restent inchangés. Les mentions du mot "événement" au sens de l'occasion réelle (la fête elle-même, pas l'outil Kdovie) sont volontairement conservées, ex. "cachés jusqu'à l'événement" sur le dashboard, deux réponses de la FAQ d'accueil.
+- Vérifié : tri unitairement par script (ordre exact conforme au cadrage sur 8 cas de figure), rendu visuel des deux pages par capture d'écran (Playwright), et le parcours de réservation avec nom vide testé contre un vrai article de la base distante de l'utilisateur — a révélé que l'échec attendu (contrainte `not null` encore active tant que la migration `0012` n'est pas appliquée) remonte proprement une erreur, sans corrompre l'état de l'article (vérifié avant/après).
 
 À venir, dans l'ordre : liens d'affiliation, bêta fermée, lancement. L'envoi réel des invitations par e-mail (Resend) est à cadrer séparément, pas dans cet ordre actuel.
 

@@ -43,9 +43,7 @@ export default function StripeStatusCard({ status }: { status: StripeStatus }) {
     <section className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[28px] bg-[#F7E7D6] p-6.5">
       <div className="max-w-105">
         <div className="mb-1.5 flex items-center gap-2.5">
-          <span className="font-heading text-lg font-bold text-[#4A3529]">
-            Cagnotte Stripe
-          </span>
+          <span className="font-heading text-lg font-bold text-[#4A3529]">Ma cagnotte</span>
           <span
             className={`rounded-full px-3 py-1 text-[13px] font-semibold ${STATUS_CLASS[status]}`}
           >
@@ -54,11 +52,11 @@ export default function StripeStatusCard({ status }: { status: StripeStatus }) {
         </div>
         <p className="text-[15px] leading-relaxed text-[#7A6354]">
           {status === "non_connecte" &&
-            "Connectez un compte Stripe pour recevoir les cotisations de vos invités directement sur votre compte bancaire."}
+            "Pour recevoir l'argent de vos cagnottes directement et en toute sécurité, il vous faut un compte chez Stripe, notre partenaire de paiement. C'est rapide et gratuit."}
           {status === "en_attente" &&
-            "Votre compte est créé, mais Stripe doit encore vérifier votre identité avant de pouvoir vous reverser les cagnottes. Vos invités peuvent déjà cotiser en attendant."}
+            "Votre compte Stripe est créé, il ne reste qu'à confirmer votre identité — une formalité de sécurité de quelques minutes. En attendant, vos invités peuvent déjà cotiser normalement."}
           {status === "actif" &&
-            "Votre compte Stripe est vérifié. Les cagnottes de vos listes sont reversées directement dessus."}
+            "Tout est en ordre : l'argent de vos cagnottes arrive directement et en toute sécurité sur votre compte Stripe."}
         </p>
       </div>
       <form action={startStripeOnboarding}>

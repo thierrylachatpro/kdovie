@@ -25,7 +25,7 @@ export default function NouvelEvenementForm() {
   return (
     <form action={createEvent} className="flex w-full max-w-md flex-col gap-4">
       <label className="flex flex-col gap-1.5 text-left text-sm">
-        Type d&apos;événement
+        Type de liste
         <select
           name="type"
           defaultValue=""
@@ -41,7 +41,7 @@ export default function NouvelEvenementForm() {
       </label>
 
       <label className="flex flex-col gap-1.5 text-left text-sm">
-        Nom de l&apos;événement
+        Nom de la liste
         <input
           type="text"
           name="name"
@@ -79,7 +79,7 @@ export default function NouvelEvenementForm() {
         type="submit"
         className="mt-2 rounded-lg bg-jaune px-5 py-2.5 text-sm font-medium text-corail-dark"
       >
-        Créer l&apos;événement
+        Créer la liste
       </button>
     </form>
   );

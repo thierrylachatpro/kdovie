@@ -20,7 +20,7 @@ export type Database = {
           created_at: string
           gift_item_id: string
           guest_email: string | null
-          guest_name: string
+          guest_name: string | null
           id: string
           status: string
           stripe_payment_intent_id: string | null
@@ -30,7 +30,7 @@ export type Database = {
           created_at?: string
           gift_item_id: string
           guest_email?: string | null
-          guest_name: string
+          guest_name?: string | null
           id?: string
           status?: string
           stripe_payment_intent_id?: string | null
@@ -40,7 +40,7 @@ export type Database = {
           created_at?: string
           gift_item_id?: string
           guest_email?: string | null
-          guest_name?: string
+          guest_name?: string | null
           id?: string
           status?: string
           stripe_payment_intent_id?: string | null
@@ -111,6 +111,7 @@ export type Database = {
           funded_amount_cents: number
           id: string
           image_url: string | null
+          is_priority: boolean
           locked_at: string | null
           mode: string
           price_cents: number | null
@@ -127,6 +128,7 @@ export type Database = {
           funded_amount_cents?: number
           id?: string
           image_url?: string | null
+          is_priority?: boolean
           locked_at?: string | null
           mode?: string
           price_cents?: number | null
@@ -143,6 +145,7 @@ export type Database = {
           funded_amount_cents?: number
           id?: string
           image_url?: string | null
+          is_priority?: boolean
           locked_at?: string | null
           mode?: string
           price_cents?: number | null
@@ -222,7 +225,7 @@ export type Database = {
           cancelled_at: string | null
           gift_item_id: string
           guest_email: string | null
-          guest_name: string
+          guest_name: string | null
           id: string
           reserved_at: string
         }
@@ -230,7 +233,7 @@ export type Database = {
           cancelled_at?: string | null
           gift_item_id: string
           guest_email?: string | null
-          guest_name: string
+          guest_name?: string | null
           id?: string
           reserved_at?: string
         }
@@ -238,7 +241,7 @@ export type Database = {
           cancelled_at?: string | null
           gift_item_id?: string
           guest_email?: string | null
-          guest_name?: string
+          guest_name?: string | null
           id?: string
           reserved_at?: string
         }
@@ -267,6 +270,7 @@ export type Database = {
           funded_amount_cents: number
           id: string
           image_url: string | null
+          is_priority: boolean
           locked_at: string | null
           mode: string
           price_cents: number | null
@@ -292,7 +296,7 @@ export type Database = {
           cancelled_at: string | null
           gift_item_id: string
           guest_email: string | null
-          guest_name: string
+          guest_name: string | null
           id: string
           reserved_at: string
         }

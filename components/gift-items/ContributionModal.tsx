@@ -43,7 +43,6 @@ export default function ContributionModal({
   const montantValue = parseFloat(montant.replace(",", "."));
   const montantNetCents = Number.isFinite(montantValue) ? Math.round(montantValue * 100) : 0;
   const montantValide = montantNetCents >= 100;
-  const nomValide = nom.trim().length >= 2;
 
   const previewPreleveCents = montantValide
     ? computeMontantPreleveCents(montantNetCents, feeMode)
@@ -58,7 +57,7 @@ export default function ContributionModal({
 
   async function handleSubmitMontant(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!montantValide || !nomValide) {
+    if (!montantValide) {
       setTouched(true);
       return;
     }
@@ -246,22 +245,16 @@ export default function ContributionModal({
 
             <label className="flex flex-col gap-2">
               <span className="font-heading text-base font-bold text-[#4A3529]">
-                Prénom et nom
+                Prénom et nom{" "}
+                <span className="text-sm font-medium text-[#8A7263]">— facultatif</span>
               </span>
               <input
                 type="text"
                 value={nom}
                 onChange={(event: ChangeEvent<HTMLInputElement>) => setNom(event.target.value)}
                 placeholder="Sophie Martin"
-                className={`w-full rounded-[18px] border-2 bg-white px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:ring-2 focus:ring-jaune ${
-                  touched && !nomValide ? "border-corail" : "border-[#F2DFC9]"
-                }`}
+                className="w-full rounded-[18px] border-2 border-[#F2DFC9] bg-white px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:ring-2 focus:ring-jaune"
               />
-              {touched && !nomValide && (
-                <span className="text-sm text-corail-dark">
-                  Indiquez votre prénom et votre nom.
-                </span>
-              )}
             </label>
 
             <label className="flex flex-col gap-2">
