@@ -42,6 +42,14 @@ export async function startStripeOnboarding() {
         transfers: { requested: true },
         card_payments: { requested: true },
       },
+      // Préremplit le profil d'activité (obligatoire côté Stripe même pour
+      // un particulier) pour éviter que l'onboarding ne le redemande à
+      // l'écran — pas de code MCC injecté, laissé au choix de l'organisateur
+      // dans le flux plutôt que deviné ici.
+      business_profile: {
+        product_description:
+          "Cagnotte cadeau pour un événement personnel (naissance, mariage, anniversaire, etc.)",
+      },
     });
     stripeAccountId = account.id;
 
