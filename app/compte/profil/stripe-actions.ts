@@ -29,7 +29,24 @@ export async function startStripeOnboarding() {
 
   let stripeAccountId = existing?.stripe_account_id ?? null;
 
+  const host = (await headers()).get("host");
+  const protocol = host?.startsWith("localhost") ? "http" : "https";
+
   if (!stripeAccountId) {
+    // URL publique à présenter à Stripe pour business_profile.url : la
+    // liste de l'organisateur si elle existe déjà, sinon le site Kdovie —
+    // un particulier n'a pas de site pro à fournir, voir CLAUDE.md > tâche #18.
+    const { data: firstEvent } = await supabase
+      .from("events")
+      .select("slug")
+      .eq("organizer_id", user.id)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    const businessUrl = firstEvent
+      ? `${protocol}://${host}/liste/${firstEvent.slug}`
+      : `${protocol}://${host}`;
+
     const account = await stripe.accounts.create({
       type: "express",
       country: "FR",
@@ -44,9 +61,18 @@ export async function startStripeOnboarding() {
       },
       // Préremplit le profil d'activité (obligatoire côté Stripe même pour
       // un particulier) pour éviter que l'onboarding ne le redemande à
-      // l'écran — pas de code MCC injecté, laissé au choix de l'organisateur
-      // dans le flux plutôt que deviné ici.
+      // l'écran. MCC 7299 "Services divers" : catégorie générique et
+      // honnête pour une cotisation cadeau entre particuliers — écarté
+      // 8398 "Charitable and Social Service Organizations - Fundraising"
+      // (le seul code lié au financement participatif dans la liste
+      // Stripe) car il implique un statut d'organisme caritatif que les
+      // organisateurs Kdovie n'ont pas, ce qui risquerait d'être signalé
+      // comme incorrect par les contrôles de cohérence de Stripe. Même
+      // code pour tous les comptes, l'activité étant identique pour tous
+      // les organisateurs.
       business_profile: {
+        mcc: "7299",
+        url: businessUrl,
         product_description:
           "Cagnotte cadeau pour un événement personnel (naissance, mariage, anniversaire, etc.)",
       },
@@ -63,8 +89,6 @@ export async function startStripeOnboarding() {
     }
   }
 
-  const host = (await headers()).get("host");
-  const protocol = host?.startsWith("localhost") ? "http" : "https";
   const returnUrl = `${protocol}://${host}/compte/profil`;
 
   const accountLink = await stripe.accountLinks.create({
