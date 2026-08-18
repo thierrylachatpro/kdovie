@@ -5,6 +5,8 @@ import { loadStripe } from "@stripe/stripe-js";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { formatPriceCents } from "@/lib/gift-item";
 import {
+  computeApplicationFeeAmountCents,
+  computeFraisStripeCents,
   computeMontantOrganisateurCents,
   computeMontantPreleveCents,
   type FeeMode,
@@ -43,6 +45,7 @@ export default function ContributionModal({
   const [isPending, setIsPending] = useState(false);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [montantPreleveCents, setMontantPreleveCents] = useState(0);
+  const [detailsOuverts, setDetailsOuverts] = useState(false);
 
   const montantValue = parseFloat(montant.replace(",", "."));
   const montantNetCents = Number.isFinite(montantValue) ? Math.round(montantValue * 100) : 0;
@@ -54,6 +57,10 @@ export default function ContributionModal({
     : 0;
   const previewOrganisateurCents = montantValide
     ? computeMontantOrganisateurCents(previewPreleveCents)
+    : 0;
+  const previewFraisStripeCents = montantValide ? computeFraisStripeCents(previewPreleveCents) : 0;
+  const previewCommissionKdovieCents = montantValide
+    ? computeApplicationFeeAmountCents(previewPreleveCents)
     : 0;
 
   async function handleSubmitMontant(event: FormEvent<HTMLFormElement>) {
@@ -162,6 +169,84 @@ export default function ContributionModal({
                       l&apos;organisateur recevra environ{" "}
                       {formatPriceCents(previewOrganisateurCents)} une fois les frais déduits.
                     </>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setDetailsOuverts((current) => !current)}
+                    className="mt-2 block text-sm font-semibold text-corail underline"
+                  >
+                    {detailsOuverts ? "Masquer le détail" : "Détails"}
+                  </button>
+
+                  {detailsOuverts && (
+                    <table className="mt-3 w-full border-collapse text-sm">
+                      <tbody>
+                        {feeMode === "frais_en_sus" ? (
+                          <>
+                            <tr>
+                              <td className="border-t border-[#F2DFC9] py-1.5">
+                                Montant cotisé (net pour l&apos;organisateur)
+                              </td>
+                              <td className="border-t border-[#F2DFC9] py-1.5 text-right">
+                                {formatPriceCents(montantNetCents)}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-1.5">+ Frais bancaires (Stripe)</td>
+                              <td className="py-1.5 text-right">
+                                {formatPriceCents(previewFraisStripeCents)}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-1.5">+ Frais de traitement Kdovie (1 %)</td>
+                              <td className="py-1.5 text-right">
+                                {formatPriceCents(previewCommissionKdovieCents)}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="border-t border-[#F2DFC9] py-1.5 font-semibold">
+                                = Total prélevé sur votre carte
+                              </td>
+                              <td className="border-t border-[#F2DFC9] py-1.5 text-right font-semibold">
+                                {formatPriceCents(previewPreleveCents)}
+                              </td>
+                            </tr>
+                          </>
+                        ) : (
+                          <>
+                            <tr>
+                              <td className="border-t border-[#F2DFC9] py-1.5">
+                                Montant prélevé sur votre carte
+                              </td>
+                              <td className="border-t border-[#F2DFC9] py-1.5 text-right">
+                                {formatPriceCents(previewPreleveCents)}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-1.5">− Frais bancaires (Stripe)</td>
+                              <td className="py-1.5 text-right">
+                                {formatPriceCents(previewFraisStripeCents)}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="py-1.5">− Frais de traitement Kdovie (1 %)</td>
+                              <td className="py-1.5 text-right">
+                                {formatPriceCents(previewCommissionKdovieCents)}
+                              </td>
+                            </tr>
+                            <tr>
+                              <td className="border-t border-[#F2DFC9] py-1.5 font-semibold">
+                                = Reçu par l&apos;organisateur
+                              </td>
+                              <td className="border-t border-[#F2DFC9] py-1.5 text-right font-semibold">
+                                {formatPriceCents(previewOrganisateurCents)}
+                              </td>
+                            </tr>
+                          </>
+                        )}
+                      </tbody>
+                    </table>
                   )}
                 </div>
               )}

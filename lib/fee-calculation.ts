@@ -33,3 +33,15 @@ export function computeMontantOrganisateurCents(montantPreleveCents: number): nu
     montantPreleveCents * (1 - TAUX_STRIPE - TAUX_KDOVIE) - FRAIS_FIXE_STRIPE_CENTS,
   );
 }
+
+// Part du montant prélevé correspondant aux frais bancaires Stripe (par
+// différence avec la commission Kdovie et le montant organisateur, plutôt
+// qu'un calcul indépendant, pour que les trois montants se recoupent
+// exactement à l'euro près dans le détail affiché à l'invité).
+export function computeFraisStripeCents(montantPreleveCents: number): number {
+  return (
+    montantPreleveCents -
+    computeApplicationFeeAmountCents(montantPreleveCents) -
+    computeMontantOrganisateurCents(montantPreleveCents)
+  );
+}
