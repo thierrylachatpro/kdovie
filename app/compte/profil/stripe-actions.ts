@@ -34,6 +34,10 @@ export async function startStripeOnboarding() {
       type: "express",
       country: "FR",
       email: user.email,
+      // Les organisateurs Kdovie sont des particuliers, jamais des
+      // entreprises — évite l'écran de choix "particulier / entreprise" et
+      // les questions orientées entreprise de l'onboarding par défaut.
+      business_type: "individual",
       capabilities: {
         transfers: { requested: true },
         card_payments: { requested: true },
