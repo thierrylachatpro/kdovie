@@ -34,7 +34,20 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (contribution && contribution.status === "pending") {
-      await admin.rpc("confirm_contribution", { p_contribution_id: contribution.id });
+      const { error } = await admin.rpc("confirm_contribution", {
+        p_contribution_id: contribution.id,
+      });
+      if (error) {
+        // Cas rare : l'article a été verrouillé en réservation directe par un
+        // autre invité entre la création du PaymentIntent et la confirmation
+        // du paiement. Le paiement Stripe a déjà eu lieu (fonds transférés à
+        // l'organisateur) — on logue pour un traitement manuel plutôt que de
+        // perdre l'information silencieusement.
+        console.error(
+          `confirm_contribution a échoué pour la contribution ${contribution.id} (PaymentIntent ${paymentIntent.id}) :`,
+          error.message,
+        );
+      }
     }
   }
 
