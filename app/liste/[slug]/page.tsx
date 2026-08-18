@@ -5,6 +5,7 @@ import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import ListePubliqueClient from "@/components/gift-items/ListePubliqueClient";
 import type { FeeMode } from "@/lib/fee-calculation";
 import type { OrganizerStripeStatus } from "@/lib/organizer-stripe-status";
+import { getAffiliateLink } from "@/lib/affiliate-link";
 
 export default async function ListePubliquePage({
   params,
@@ -61,6 +62,20 @@ export default async function ListePubliquePage({
     : { data: null };
 
   const estVide = estOuverte && (giftItems?.length ?? 0) === 0;
+
+  // Lien affilié calculé côté serveur, jamais dans ListePubliqueClient
+  // ("use client") : getAffiliateLink lit une variable d'environnement
+  // serveur (AMAZON_ASSOCIATE_TAG), absente du bundle navigateur — l'y
+  // appeler produirait un mismatch d'hydratation (rendu serveur avec tag,
+  // rendu client sans). Voir CLAUDE.md > "Liens d'affiliation (tâche #19)".
+  const items = (giftItems ?? []).map((item) => {
+    const affiliateUrl = item.source_url ? getAffiliateLink(item.source_url) : null;
+    return {
+      ...item,
+      affiliate_url: affiliateUrl,
+      is_affiliate: Boolean(item.source_url && affiliateUrl !== item.source_url),
+    };
+  });
 
   const dateFormatee = event.event_date
     ? new Date(event.event_date).toLocaleDateString("fr-FR", {
@@ -123,7 +138,7 @@ export default async function ListePubliquePage({
             eventName={event.name}
             typeIcon={eventTypeIcon(event.type)}
             metaText={metaParts.join(" · ")}
-            initialItems={giftItems ?? []}
+            initialItems={items}
             feeMode={event.fee_mode as FeeMode}
             organizerStripeStatus={organizerStripeStatus}
           />

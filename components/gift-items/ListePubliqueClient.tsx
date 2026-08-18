@@ -18,6 +18,12 @@ type GiftItem = {
   price_cents: number | null;
   image_url: string | null;
   source_url: string | null;
+  // Calculés côté serveur (app/liste/[slug]/page.tsx) via getAffiliateLink
+  // — jamais recalculés ici, voir le commentaire dans page.tsx (mismatch
+  // d'hydratation garanti sinon, AMAZON_ASSOCIATE_TAG n'existe pas côté
+  // navigateur).
+  affiliate_url: string | null;
+  is_affiliate: boolean;
   status: string;
   mode: string;
   funded_amount_cents: number;
@@ -169,6 +175,8 @@ export default function ListePubliqueClient({
       <section className="flex flex-col gap-4">
         {sorted.map((item, index) => {
           const shop = item.source_url ? hostnameFromUrl(item.source_url) : null;
+          const lienArticle = item.affiliate_url;
+          const estAffilie = item.is_affiliate;
           const isTaken = item.status === "reserve";
           const isPot = item.status === "cagnotte";
           const canReserve = item.status === "disponible" && item.mode !== "cotisation_obligatoire";
@@ -211,7 +219,8 @@ export default function ListePubliqueClient({
                     <TitreArticle
                       title={item.title}
                       originalTitle={item.original_title}
-                      sourceUrl={item.source_url}
+                      sourceUrl={lienArticle}
+                      sponsored={estAffilie}
                       className="font-heading text-lg leading-tight font-bold text-[#4A3529]"
                     />
                   </h3>
@@ -230,7 +239,18 @@ export default function ListePubliqueClient({
                 <div className="text-base font-semibold text-[#5C4436]">
                   {formatPriceCents(item.price_cents)}
                 </div>
-                {shop && <div className="text-sm text-[#8A7263]">{shop}</div>}
+                {shop && (
+                  <div className="text-sm text-[#8A7263]">
+                    {shop}
+                    {estAffilie && (
+                      <span className="text-[#A08D7E]">
+                        {" "}
+                        · lien affilié — Kdovie peut percevoir une commission, sans coût
+                        supplémentaire pour vous
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {isPot && (
                   <div className="mt-2 max-w-90">
@@ -341,6 +361,9 @@ function ReservationModal({
     setNom(event.target.value);
   }
 
+  const lienAchat = item.affiliate_url;
+  const achatAffilie = item.is_affiliate;
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErreur(null);
@@ -435,16 +458,24 @@ function ReservationModal({
               « {item.title} » est maintenant réservé à votre nom. Les autres invités ne le
               verront plus dans la liste.
             </p>
-            <div className="flex flex-wrap justify-center gap-3">
-              {item.source_url && (
-                <a
-                  href={item.source_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-heading rounded-2xl bg-creme px-6.5 py-4 text-base font-bold text-[#5C4436] hover:bg-white"
-                >
-                  Aller l&apos;acheter
-                </a>
+            <div className="flex flex-wrap items-start justify-center gap-3">
+              {lienAchat && (
+                <div className="flex flex-col items-center gap-1.5">
+                  <a
+                    href={lienAchat}
+                    target="_blank"
+                    rel={achatAffilie ? "sponsored noopener noreferrer" : "noopener noreferrer"}
+                    className="font-heading rounded-2xl bg-creme px-6.5 py-4 text-base font-bold text-[#5C4436] hover:bg-white"
+                  >
+                    Aller l&apos;acheter
+                  </a>
+                  {achatAffilie && (
+                    <span className="max-w-55 text-center text-xs text-[#A08D7E]">
+                      Lien affilié — Kdovie peut percevoir une commission, sans coût
+                      supplémentaire pour vous
+                    </span>
+                  )}
+                </div>
               )}
               <button
                 type="button"
