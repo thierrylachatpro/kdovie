@@ -110,13 +110,13 @@ export default async function ConnexionPage({
 
           <p className="mt-6 text-sm leading-relaxed text-[#8A7263]">
             En vous connectant, vous acceptez nos{" "}
-            <a href="#" className="underline">
+            <Link href="/cgu" className="underline">
               conditions d&apos;utilisation
-            </a>{" "}
+            </Link>{" "}
             et notre{" "}
-            <a href="#" className="underline">
+            <Link href="/mentions-legales#donnees-personnelles" className="underline">
               politique de confidentialité
-            </a>
+            </Link>
             .
           </p>
         </div>

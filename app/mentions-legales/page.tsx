@@ -61,7 +61,7 @@ export default function MentionsLegalesPage() {
         </p>
       </section>
 
-      <section className="flex flex-col gap-3">
+      <section id="donnees-personnelles" className="flex flex-col gap-3">
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">Données personnelles</h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           Kdovie traite des données personnelles (organisateurs et invités) dans le cadre de son
