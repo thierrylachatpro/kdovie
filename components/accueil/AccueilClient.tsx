@@ -711,12 +711,9 @@ export default function AccueilClient({ estConnecte }: { estConnecte: boolean })
             </span>
           </div>
           <nav className="flex flex-wrap gap-6 text-[15px] text-[#5C4436]">
-            <a href="#" className="hover:text-corail">
-              À propos
-            </a>
-            <a href="#" className="hover:text-corail">
+            <Link href="/aide" className="hover:text-corail">
               Aide
-            </a>
+            </Link>
             <a href="#" className="hover:text-corail">
               Confidentialité
             </a>

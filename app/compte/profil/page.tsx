@@ -104,9 +104,12 @@ export default async function ProfilPage() {
           </span>
         </Link>
         <div className="flex flex-wrap items-center gap-3">
-          <a href="#" className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]">
+          <Link
+            href="/aide"
+            className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
+          >
             Aide
-          </a>
+          </Link>
           <Link
             href="/compte"
             className="rounded-2xl bg-[#F7E7D6] px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F2DFC9]"
@@ -150,9 +153,9 @@ export default async function ProfilPage() {
         <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
           <span>© 2026 kdovie</span>
           <nav className="flex flex-wrap items-center gap-6">
-            <a href="#" className="hover:text-corail">
+            <Link href="/aide" className="hover:text-corail">
               Aide
-            </a>
+            </Link>
             <a href="#" className="hover:text-corail">
               Contact
             </a>

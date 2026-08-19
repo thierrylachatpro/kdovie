@@ -48,12 +48,12 @@ export default async function ConnexionPage({
             </span>
           </span>
         </Link>
-        <a
-          href="#"
+        <Link
+          href="/aide"
           className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
         >
           Aide
-        </a>
+        </Link>
       </header>
 
       <main className="mx-auto grid w-full max-w-[1180px] flex-1 items-center gap-16 px-6 py-6 sm:px-10 sm:py-10 md:grid-cols-2">
@@ -126,9 +126,9 @@ export default async function ConnexionPage({
         <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
           <span>© 2026 kdovie</span>
           <nav className="flex flex-wrap gap-6">
-            <a href="#" className="hover:text-corail">
+            <Link href="/aide" className="hover:text-corail">
               Aide
-            </a>
+            </Link>
             <a href="#" className="hover:text-corail">
               Contact
             </a>

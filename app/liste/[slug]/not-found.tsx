@@ -64,9 +64,9 @@ export default function ListeNotFound() {
         <div className="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
           <span>© 2026 kdovie</span>
           <nav className="flex flex-wrap items-center gap-6">
-            <a href="#" className="hover:text-corail">
+            <Link href="/aide" className="hover:text-corail">
               Aide
-            </a>
+            </Link>
             <a href="#" className="hover:text-corail">
               Contact
             </a>
