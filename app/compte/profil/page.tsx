@@ -37,14 +37,22 @@ export default async function ProfilPage() {
     // on rafraîchit le statut réel au chargement tant qu'il n'est pas actif,
     // pas de webhook dédié au compte Connect pour l'instant.
     if (!payoutsEnabled) {
-      const account = await stripe.accounts.retrieve(stripeAccount.stripe_account_id);
-      payoutsEnabled = account.payouts_enabled;
-      if (payoutsEnabled !== stripeAccount.payouts_enabled) {
-        const admin = createAdminClient();
-        await admin
-          .from("organizer_stripe_accounts")
-          .update({ payouts_enabled: payoutsEnabled })
-          .eq("organizer_id", user.id);
+      try {
+        const account = await stripe.accounts.retrieve(stripeAccount.stripe_account_id);
+        payoutsEnabled = account.payouts_enabled;
+        if (payoutsEnabled !== stripeAccount.payouts_enabled) {
+          const admin = createAdminClient();
+          await admin
+            .from("organizer_stripe_accounts")
+            .update({ payouts_enabled: payoutsEnabled })
+            .eq("organizer_id", user.id);
+        }
+      } catch {
+        // Le compte référencé en base peut être devenu inaccessible
+        // (supprimé côté Stripe, accès révoqué...) — ne jamais planter toute
+        // la page pour ça, rester sur "en attente" plutôt. Relancer
+        // l'onboarding depuis ce statut détecte ce cas et repart à zéro,
+        // voir startStripeOnboarding.
       }
     }
     stripeStatus = payoutsEnabled ? "actif" : "en_attente";

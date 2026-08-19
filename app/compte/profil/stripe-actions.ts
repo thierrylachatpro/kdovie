@@ -29,6 +29,18 @@ export async function startStripeOnboarding() {
 
   let stripeAccountId = existing?.stripe_account_id ?? null;
 
+  // Le compte référencé en base peut être devenu inaccessible (supprimé
+  // côté Stripe, accès révoqué...) — vérifié avant de s'en servir, sinon
+  // accountLinks.create plus bas planterait. Dans ce cas on repart sur un
+  // compte neuf, comme si l'organisateur n'en avait jamais eu.
+  if (stripeAccountId) {
+    try {
+      await stripe.accounts.retrieve(stripeAccountId);
+    } catch {
+      stripeAccountId = null;
+    }
+  }
+
   const host = (await headers()).get("host");
   const protocol = host?.startsWith("localhost") ? "http" : "https";
 
@@ -79,10 +91,19 @@ export async function startStripeOnboarding() {
     });
     stripeAccountId = account.id;
 
-    const { error } = await admin.from("organizer_stripe_accounts").insert({
-      organizer_id: user.id,
-      stripe_account_id: stripeAccountId,
-    });
+    // upsert plutôt qu'insert : une ligne peut déjà exister pour cet
+    // organizer_id (organizer_id est unique) si le compte précédent était
+    // inaccessible — on la remplace plutôt que d'échouer sur le conflit.
+    // payouts_enabled explicitement remis à false, le nouveau compte n'est
+    // pas encore vérifié même si l'ancien l'était.
+    const { error } = await admin.from("organizer_stripe_accounts").upsert(
+      {
+        organizer_id: user.id,
+        stripe_account_id: stripeAccountId,
+        payouts_enabled: false,
+      },
+      { onConflict: "organizer_id" },
+    );
 
     if (error) {
       redirect("/compte/profil?erreur=stripe_compte");
