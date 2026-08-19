@@ -257,6 +257,57 @@ Découvert incidemment pendant le test du correctif frais Stripe (voir section p
 
 **Statut : corrigé, appliqué et testé.** Migration `0016_confirm_contribution_idempotent.sql` appliquée à la base distante. Testé par un vrai appel RPC (pas une réimplémentation) : une contribution de test insérée en base, `confirm_contribution` appelée deux fois de suite sur le même `p_contribution_id` — le premier appel incrémente `funded_amount_cents` de 1500 (le montant de test) et verrouille l'article en `cagnotte`, le second appel renvoie le même état sans réincrément (`funded_amount_cents` reste à 1500, pas 3000). État de test restauré à l'identique ensuite.
 
+## Emails transactionnels (19 août 2026)
+
+Chantier absent du périmètre construit jusqu'ici : le panneau "Inviter mes proches" existe visuellement (`/compte/evenements/[slug]`) mais n'envoie rien de réel (décision explicite du 16 août, voir plus haut). Au-delà de ça, aucun email n'est envoyé nulle part dans le produit sauf le lien magique de connexion, géré nativement par Supabase Auth avec un template générique.
+
+**Fournisseur déjà tranché** : Resend (voir "Stack technique" en tête de fichier). `RESEND_API_KEY` réservée vide dans `.env.local` depuis le début du projet, jamais encore renseignée.
+
+**Approche technique recommandée**, à confirmer/ajuster à l'implémentation plutôt qu'à figer ici dans le détail :
+- Templates en React via `@react-email/components` (même éditeur que Resend, s'intègre nativement à `resend.emails.send`) plutôt que du HTML écrit à la main — cohérent avec le stack Next.js/React déjà en place, évite de maintenir deux systèmes de templating.
+- Un composant de mise en page partagé (en-tête avec logo Kdovie, palette chaleureuse déjà validée, pied de page avec liens légaux) réutilisé par tous les emails plutôt qu'un design par email — même logique que `PageLegale`/`LiensLegaux` pour les pages web.
+- Domaine d'envoi à vérifier dans Resend (enregistrements DNS SPF/DKIM à poser chez Hostinger, même registrar que pour `kdovie.com` — voir la procédure déjà suivie pour pointer le domaine vers Vercel). Adresse d'expédition à définir, ex. `Kdovie <hello@kdovie.com>` — à ajuster librement à l'implémentation.
+- Emails strictement transactionnels (déclenchés par une action précise d'un utilisateur) — pas de newsletter, pas de digest, pas de marketing. Hors périmètre pour l'instant.
+
+**Compte Resend à créer par l'utilisateur** (Claude ne peut pas créer de compte à sa place), clé posée en variable d'environnement Vercel une fois obtenue — même schéma que `SCRAPINGANT_API_KEY`/`AMAZON_ASSOCIATE_TAG`.
+
+### Périmètre de ce chantier : noyau essentiel d'abord
+
+Décision du 19 août 2026 avec l'utilisateur : ne pas tout construire d'un coup. Ce chantier couvre uniquement les quatre emails ci-dessous ; le reste (liste complète plus bas) est explicitement reporté à un chantier ultérieur, à recadrer le moment venu.
+
+1. **Lien magique de connexion** (organisateur) — migré de Supabase Auth vers Resend pour la cohérence visuelle avec la charte Kdovie, plutôt que laissé au template générique de Supabase. Mécanisme : un Auth Hook Supabase (« Send Email Hook ») intercepte l'envoi natif et délègue à une route Kdovie qui construit l'email et l'envoie via Resend — à valider précisément à l'implémentation, l'API exacte des Auth Hooks Supabase n'a pas été vérifiée en détail ici.
+2. **Invitation à consulter une liste** (invité) — déclenché par le clic sur "Envoyer" dans le panneau "Inviter mes proches" existant. Nouvelle Server Action qui envoie un email par destinataire saisi (pas un envoi groupé en copie, pour ne pas exposer les adresses des uns aux autres) avec le lien de la liste et le message personnalisable déjà prévu dans l'UI. Remplace l'état "Invitation envoyée" actuellement purement optimiste par un vrai envoi.
+3. **Confirmation de réservation** (invité) — déclenchée après un appel réussi à `reserve_gift_item`, uniquement si `guest_email` a été renseigné (facultatif, voir "Ajustements listes publique et gestion"). Contenu : nom du cadeau, lien "aller l'acheter" (via `getAffiliateLink` si applicable, cohérent avec la tâche #19).
+4. **Confirmation de cotisation** (invité) — déclenchée dans le webhook Stripe juste après un appel réussi à `confirm_contribution`, uniquement si `contributions.guest_email` est renseigné. Vient **en plus** du reçu de paiement automatique envoyé nativement par Stripe Checkout (les deux ne sont pas exclusifs) — celui de Kdovie permet d'inclure le nom du cadeau et le lien affilié "aller l'acheter", ce que le reçu Stripe générique ne fait pas.
+
+### Hors périmètre de ce chantier (backlog, à recadrer plus tard)
+
+Emails identifiés mais pas construits maintenant, dans un ordre d'utilité approximatif, à retrancher/réordonner à la prochaine session de cadrage :
+- Email de bienvenue à la création d'un compte organisateur.
+- Notification à l'organisateur qu'un invité a réservé un article.
+- Notification à l'organisateur qu'une cotisation a été reçue (montant, cumul de la cagnotte).
+- Notification à l'organisateur qu'une cagnotte est intégralement financée.
+- Rappel à l'organisateur si l'onboarding Stripe Connect reste inachevé après un délai.
+- Confirmation à l'organisateur qu'un reversement (payout) a eu lieu.
+- Rappel aux invités à l'approche de la date de l'événement, si `event_date` est renseignée.
+
+**Statut : implémenté et testé dans la mesure du possible sans compte Resend actif (19 août 2026).**
+
+Les 4 emails du noyau essentiel sont codés : `lib/resend.ts` (client, même schéma que `lib/stripe.ts`), `lib/send-email.ts` (`sendTransactionalEmail`, échec silencieux et loggé si `RESEND_API_KEY` absente ou si l'appel Resend échoue — jamais d'erreur bloquante pour la réservation/cotisation/connexion), `components/emails/EmailLayout.tsx` (mise en page partagée, palette Kdovie) + 4 templates (`LienMagiqueEmail`, `InvitationEmail`, `ReservationConfirmeeEmail`, `CotisationConfirmeeEmail`), branchés respectivement sur : `app/api/auth/send-email/route.ts` (Auth Hook Supabase), `app/compte/evenements/[slug]/invite-actions.ts` (`sendInvitations`, remplace l'état optimiste de `VisibiliteListe`), `app/liste/[slug]/reservation-actions.ts` (après `reserve_gift_item`), `app/api/webhooks/stripe/route.ts` (après `confirm_contribution`).
+
+Point 5 (lien magique) confirmé faisable : l'Auth Hook Supabase « Send Email » a une API stable et documentée (payload signé `standardwebhooks`, réponse HTTP 200 obligatoire même en cas d'échec interne pour ne pas bloquer la connexion), compatible avec le flux PKCE déjà en place (`signInWithOtp` + `exchangeCodeForSession`) puisqu'il n'intercepte que la composition/l'envoi de l'email, pas le mécanisme d'auth. Implémenté plutôt qu'écarté.
+
+**`@react-email/components` marqué "no longer supported" par npm à l'installation** (Resend a consolidé vers un nouveau package unifié `react-email` v6+). Gardé volontairement : le nouveau package a des problèmes rapportés spécifiquement sur Vercel (taille de bundle +~80 Mo par fonction, déploiements qui restent bloqués silencieusement) alors que `@react-email/components` reste fonctionnel. Pas une faille de sécurité, une consolidation d'offre — à surveiller, pas urgent.
+
+**Testé réellement** : `npx tsc --noEmit`, `npm run lint`, `npm run build` propres (route `/api/auth/send-email` bien générée). Rendu des 4 templates vérifié visuellement (route de preview temporaire + capture d'écran Playwright, supprimée ensuite) — tous conformes à la charte, aucune erreur de rendu. Route `/api/auth/send-email` testée avec une charge utile signée synthétique (secret de test temporaire, `standardwebhooks` en local pour signer côté script comme le fait Supabase) : signature vérifiée avec succès, payload parsé, réponse 200 — confirme que la vérification cryptographique et le parsing fonctionnent de bout en bout côté Kdovie.
+
+**Pas testé** (bloqué sans compte Resend, étape utilisateur) : envoi réel d'un email par Resend (aucun envoi n'a eu lieu, `RESEND_API_KEY` toujours vide) ; activation réelle du Send Email Hook côté Dashboard Supabase (étape manuelle, pas encore faite).
+
+**Reste à faire côté utilisateur avant que ça fonctionne en production :**
+- Créer un compte Resend, poser `RESEND_API_KEY` sur Vercel (même schéma que `SCRAPINGANT_API_KEY`/`AMAZON_ASSOCIATE_TAG`).
+- Vérifier un domaine d'envoi dans Resend pour `hello@kdovie.com` (enregistrements DNS SPF/DKIM chez Hostinger) — sans ça, les envois échoueront même une fois la clé posée.
+- Pour le lien magique uniquement : activer le hook « Send Email » dans Supabase Dashboard (Auth > Hooks) vers `https://kdovie.vercel.app/api/auth/send-email`, copier le secret de signature généré dans `SUPABASE_SEND_EMAIL_HOOK_SECRET` sur Vercel. ⚠️ Une fois activé, l'envoi natif Supabase est entièrement contourné, sans repli automatique si le hook échoue — à tester prudemment avant de s'y fier pleinement (le hook peut être désactivé instantanément depuis ce même écran du Dashboard en cas de souci).
+
 ## Ajustements listes publique et gestion (18 août 2026)
 
 Série de retouches décidées après les premiers tests réels de la cagnotte, sur `/liste/[slug]` (page publique) et `/compte/evenements/[slug]` (gestion) :
@@ -492,7 +543,7 @@ Petites retouches d'usage sur `/compte` et la gestion de liste (19 août 2026) :
 - **Fil d'activité du dashboard flouté** : les noms des invités dans "Dernières nouvelles" (`/compte`) étaient affichés en clair — même traitement révélable-au-clic que le réservataire/les contributeurs sur la page de gestion, porté par un nouveau composant client `FilActivite` (extrait du `page.tsx` server component pour porter l'état local de floutage par ligne).
 - **Sélecteur de mode (`ModeSelect`) sur la page de gestion** : corrigé en deux temps sur retour d'usage — d'abord élargi à toute la largeur (mauvaise interprétation), puis remis à sa largeur naturelle mais posé **à côté du prix** sur la même ligne plutôt que sur sa propre ligne pleine largeur en dessous. Intitulés renommés pour plus de clarté : "Automatique" → "Cotisation et Réservation", "Cotisation obligatoire" → "Cotisation uniquement", "Cotisation impossible" → "Réservation uniquement" (`lib/gift-item.ts`, `GIFT_ITEM_MODES` — seuls les libellés changent, les `id` internes `auto`/`cotisation_obligatoire`/`cotisation_impossible` restent inchangés).
 
-À venir, dans l'ordre : bêta fermée, lancement. L'envoi réel des invitations par e-mail (Resend) est à cadrer séparément, pas dans cet ordre actuel.
+À venir, dans l'ordre : emails transactionnels — noyau essentiel (voir section dédiée ci-dessus, cadré le 19 août 2026, pas encore implémenté), puis bêta fermée, puis lancement.
 
 ## Workflow git
 

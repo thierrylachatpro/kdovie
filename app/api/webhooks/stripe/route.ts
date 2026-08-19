@@ -2,6 +2,9 @@ import { headers } from "next/headers";
 import Stripe from "stripe";
 import { stripe } from "@/lib/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendTransactionalEmail } from "@/lib/send-email";
+import CotisationConfirmeeEmail from "@/components/emails/CotisationConfirmeeEmail";
+import { getAffiliateLink } from "@/lib/affiliate-link";
 
 // Appelle confirm_contribution via le client service_role une fois le
 // paiement confirmé par Stripe, voir CLAUDE.md > tâche #18, étape 5. La
@@ -37,7 +40,7 @@ export async function POST(request: Request) {
 
       const { data: contribution } = await admin
         .from("contributions")
-        .select("id, status")
+        .select("id, status, guest_email, amount_cents")
         .eq("id", contributionId)
         .maybeSingle();
 
@@ -49,7 +52,7 @@ export async function POST(request: Request) {
             .eq("id", contribution.id);
         }
 
-        const { error } = await admin.rpc("confirm_contribution", {
+        const { data: giftItem, error } = await admin.rpc("confirm_contribution", {
           p_contribution_id: contribution.id,
         });
         if (error) {
@@ -63,6 +66,21 @@ export async function POST(request: Request) {
             `confirm_contribution a échoué pour la contribution ${contribution.id} (session ${session.id}) :`,
             error.message,
           );
+        } else if (contribution.guest_email && giftItem) {
+          // Confirmation de cotisation, en plus du reçu Stripe natif — voir
+          // CLAUDE.md > "Emails transactionnels".
+          const buyUrl = giftItem.source_url ? getAffiliateLink(giftItem.source_url) : null;
+          const isAffiliate = Boolean(giftItem.source_url && buyUrl !== giftItem.source_url);
+          await sendTransactionalEmail({
+            to: contribution.guest_email,
+            subject: `Merci pour votre cotisation pour « ${giftItem.title} »`,
+            react: CotisationConfirmeeEmail({
+              giftTitle: giftItem.title,
+              amountCents: contribution.amount_cents,
+              buyUrl,
+              isAffiliate,
+            }),
+          });
         }
       }
     }

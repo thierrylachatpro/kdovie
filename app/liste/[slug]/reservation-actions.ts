@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendTransactionalEmail } from "@/lib/send-email";
+import ReservationConfirmeeEmail from "@/components/emails/ReservationConfirmeeEmail";
+import { getAffiliateLink } from "@/lib/affiliate-link";
 
 // Passe par le client service_role (jamais un appel RPC direct depuis le
 // navigateur) pour garder la validation côté serveur, voir CLAUDE.md > tâche #17.
@@ -15,12 +18,13 @@ export async function reserveGiftItem(
   // "Ajustements listes publique et gestion") — "Anonyme" affiché côté app
   // quand vide.
   const nom = guestName.trim();
+  const email = guestEmail.trim();
 
   const supabase = createAdminClient();
   const { error } = await supabase.rpc("reserve_gift_item", {
     p_gift_item_id: giftItemId,
     p_guest_name: (nom || null) as unknown as string,
-    p_guest_email: guestEmail.trim() || (null as unknown as string),
+    p_guest_email: email || (null as unknown as string),
   });
 
   if (error) {
@@ -32,6 +36,26 @@ export async function reserveGiftItem(
 
   revalidatePath(`/liste/${slug}`);
   revalidatePath(`/compte/evenements/${slug}`);
+
+  // Confirmation de réservation, uniquement si un email a été renseigné
+  // (facultatif) — voir CLAUDE.md > "Emails transactionnels".
+  if (email) {
+    const { data: item } = await supabase
+      .from("gift_items")
+      .select("title, source_url")
+      .eq("id", giftItemId)
+      .single();
+
+    if (item) {
+      const buyUrl = item.source_url ? getAffiliateLink(item.source_url) : null;
+      const isAffiliate = Boolean(item.source_url && buyUrl !== item.source_url);
+      await sendTransactionalEmail({
+        to: email,
+        subject: `« ${item.title} » est réservé, merci !`,
+        react: ReservationConfirmeeEmail({ giftTitle: item.title, buyUrl, isAffiliate }),
+      });
+    }
+  }
 
   return { error: null };
 }

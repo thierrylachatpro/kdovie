@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type ChangeEvent, type FormEvent } from "react";
 import { updateEventStatus } from "@/app/compte/evenements/[slug]/event-status-actions";
+import { sendInvitations } from "@/app/compte/evenements/[slug]/invite-actions";
 import type { EventStatus } from "@/lib/event-status";
 import KdovieSpinner from "@/components/ui/KdovieSpinner";
 
@@ -34,6 +35,8 @@ export default function VisibiliteListe({
     `Bonjour, voici ma liste de cadeaux pour ${eventName}. Choisissez ce qui vous fait plaisir, votre réservation reste une surprise. Merci beaucoup !`,
   );
   const [inviteSent, setInviteSent] = useState<number | false>(false);
+  const [isSending, setIsSending] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   const shared = value === "ouverte";
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=264x264&margin=8&color=4A3529&bgcolor=FFF8F0&data=${encodeURIComponent(lienPublic)}`;
@@ -73,11 +76,18 @@ export default function VisibiliteListe({
     setInviteSent(false);
   }
 
-  function handleSendInvites() {
+  async function handleSendInvites() {
     if (invitees.length === 0) return;
-    // Envoi non câblé pour l'instant : aucun e-mail n'est réellement expédié
-    // (pas d'intégration Resend en place), voir CLAUDE.md.
-    setInviteSent(invitees.length);
+    setIsSending(true);
+    setSendError(null);
+    const count = invitees.length;
+    const result = await sendInvitations(invitees, eventName, inviteMessage, lienPublic);
+    setIsSending(false);
+    if (result.error) {
+      setSendError(result.error);
+      return;
+    }
+    setInviteSent(count);
     setInvitees([]);
   }
 
@@ -232,16 +242,19 @@ export default function VisibiliteListe({
               <button
                 type="button"
                 onClick={handleSendInvites}
-                disabled={invitees.length === 0}
-                className={`font-heading rounded-[18px] px-6 py-4 text-base font-bold ${
+                disabled={invitees.length === 0 || isSending}
+                className={`font-heading inline-flex items-center gap-2.5 rounded-[18px] px-6 py-4 text-base font-bold disabled:opacity-60 ${
                   invitees.length > 0
                     ? "cursor-pointer bg-corail text-creme hover:bg-[#D45F37]"
                     : "cursor-default bg-[#F2DFC9] text-[#A08D7E]"
                 }`}
               >
-                {invitees.length > 0
-                  ? `Envoyer à ${invitees.length} ${invitees.length > 1 ? "personnes" : "personne"}`
-                  : "Envoyer l'invitation"}
+                {isSending && <KdovieSpinner className="h-4.5 w-4.5" variant="dark" />}
+                {isSending
+                  ? "Envoi en cours…"
+                  : invitees.length > 0
+                    ? `Envoyer à ${invitees.length} ${invitees.length > 1 ? "personnes" : "personne"}`
+                    : "Envoyer l'invitation"}
               </button>
               {inviteSent !== false && (
                 <span className="rounded-full bg-[#DCE7DA] px-4 py-2.5 text-[15px] font-semibold text-[#2F4A2C]">
@@ -249,6 +262,7 @@ export default function VisibiliteListe({
                 </span>
               )}
             </div>
+            {sendError && <p className="mt-2.5 text-sm text-corail-dark">{sendError}</p>}
           </div>
         </div>
       )}
