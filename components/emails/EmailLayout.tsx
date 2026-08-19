@@ -4,6 +4,7 @@ import {
   Head,
   Hr,
   Html,
+  Img,
   Link,
   Preview,
   Row,
@@ -44,16 +45,21 @@ export default function EmailLayout({
           <Column style={{ backgroundColor: SAUGE, height: 6, width: "17%" }} />
         </Row>
         <Container style={{ maxWidth: 560, margin: "0 auto", padding: "32px 24px" }}>
-          <Text
-            style={{
-              fontSize: 24,
-              fontWeight: 700,
-              color: CORAIL,
-              margin: "0 0 28px",
-            }}
-          >
-            🎁 kdovie
-          </Text>
+          <Row style={{ margin: "0 0 28px", width: "auto" }}>
+            <Column style={{ verticalAlign: "middle", paddingRight: 8 }}>
+              <Img
+                src={`${SITE_URL}/logo-email.png`}
+                width={32}
+                height={32}
+                alt="Kdovie"
+              />
+            </Column>
+            <Column style={{ verticalAlign: "middle" }}>
+              <Text style={{ fontSize: 24, fontWeight: 700, color: CORAIL, margin: 0 }}>
+                kdovie
+              </Text>
+            </Column>
+          </Row>
 
           <Section
             style={{

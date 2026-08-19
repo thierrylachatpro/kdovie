@@ -91,11 +91,11 @@ const OCCASIONS: Occasion[] = [
     label: "Pot de départ",
     kicker: "Pot de départ",
     title: "Une collecte sans le tableur",
-    body: "Le bureau participe en ligne, chacun laisse un mot, et l'organisateur ne court plus après les billets.",
+    body: "Le bureau cotise en ligne à son rythme, et l'organisateur ne court plus après les billets.",
     listName: "Départ de Nadia",
     ideas: [
       "Participation à montant libre",
-      "Mots signés par l'équipe",
+      "Cagnotte qui se remplit en direct",
       "Un seul virement à la fin",
     ],
     tiles: [
@@ -157,17 +157,17 @@ const FAQS = [
   {
     question: "Est-ce que je vois qui a réservé quoi ?",
     answer:
-      "Vous décidez. Par défaut les réservations vous sont cachées pour garder la surprise, et se dévoilent après l'événement.",
+      "Par défaut, les réservations et cotisations restent floutées pour préserver la surprise — vous pouvez les révéler à tout moment, d'un simple clic.",
   },
   {
     question: "Comment fonctionne l'argent d'une cagnotte ?",
     answer:
-      "Les participations sont conservées jusqu'à la date de l'événement, puis versées sur votre compte. Si la cagnotte n'aboutit pas, chacun est remboursé.",
+      "Chaque participation part directement vers vous via Stripe, notre partenaire de paiement, sans attendre la fin de la cagnotte. Si elle n'atteint pas son objectif, vous recevez quand même ce qui a été collecté — il n'y a pas de remboursement automatique.",
   },
   {
     question: "Est-ce que Kdovie est gratuit ?",
     answer:
-      "Créer un compte et des listes est gratuit et sans limite. Seules les cagnottes ont de faibles frais de traitement bancaire.",
+      "Créer un compte et des listes est gratuit et sans limite. Seules les cagnottes ont de petits frais (traitement bancaire et une commission Kdovie), toujours affichés clairement avant le paiement.",
   },
 ];
 
@@ -177,7 +177,7 @@ function formatEuros(montant: number) {
   return `${montant.toLocaleString("fr-FR")} €`;
 }
 
-export default function AccueilClient() {
+export default function AccueilClient({ estConnecte }: { estConnecte: boolean }) {
   const [occasionIndex, setOccasionIndex] = useState(0);
   const [pot, setPot] = useState(780);
   const [backers, setBackers] = useState(5);
@@ -185,6 +185,9 @@ export default function AccueilClient() {
 
   const occasion = OCCASIONS[occasionIndex];
   const progression = Math.min(100, Math.round((pot / CAGNOTTE_GOAL) * 100));
+  const lienNouvelleListe = estConnecte
+    ? "/compte/evenements/nouveau"
+    : "/connexion?next=/compte/evenements/nouveau";
 
   function ajouterPart(montant: number) {
     setPot((p) => Math.min(CAGNOTTE_GOAL, p + montant));
@@ -198,6 +201,12 @@ export default function AccueilClient() {
 
   return (
     <div className="flex flex-1 flex-col overflow-x-hidden">
+      <div className="flex h-2">
+        <span className="flex-[3] bg-corail" />
+        <span className="flex-[2] bg-jaune" />
+        <span className="flex-1 bg-sauge" />
+      </div>
+
       <header className="mx-auto flex w-full max-w-[1240px] flex-wrap items-center justify-between gap-6 px-6 py-5 sm:px-10">
         <div className="flex items-center gap-2.5">
           <svg
@@ -239,13 +248,13 @@ export default function AccueilClient() {
         </nav>
         <div className="flex items-center gap-3">
           <Link
-            href="/connexion"
+            href={estConnecte ? "/compte" : "/connexion"}
             className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
           >
-            Se connecter
+            {estConnecte ? "Mes listes" : "Se connecter"}
           </Link>
           <Link
-            href="/connexion?next=/compte/evenements/nouveau"
+            href={lienNouvelleListe}
             className="rounded-2xl bg-corail px-[22px] py-3 text-[15px] font-semibold text-creme hover:bg-[#D45F37]"
           >
             Créer ma liste
@@ -269,7 +278,7 @@ export default function AccueilClient() {
           </p>
           <div className="mt-8 mb-7 flex flex-wrap gap-3.5">
             <Link
-              href="/connexion?next=/compte/evenements/nouveau"
+              href={lienNouvelleListe}
               className="font-heading rounded-[20px] bg-corail px-8 py-[18px] text-lg font-bold text-creme hover:bg-[#D45F37]"
             >
               Créer ma liste gratuitement
@@ -510,7 +519,7 @@ export default function AccueilClient() {
               </div>
               <div className="flex gap-3">
                 <span className="font-bold text-sauge">✓</span>
-                Chaque participant laisse un petit mot
+                Le nom de chacun reste flouté, à révéler quand vous voulez
               </div>
               <div className="flex gap-3">
                 <span className="font-bold text-sauge">✓</span>
@@ -667,7 +676,7 @@ export default function AccueilClient() {
             gratuit, et vos proches vous diront merci.
           </p>
           <Link
-            href="/connexion?next=/compte/evenements/nouveau"
+            href={lienNouvelleListe}
             className="font-heading inline-block rounded-[22px] bg-jaune px-10 py-5 text-lg font-bold text-[#6B4A0F] hover:bg-creme hover:text-[#C0512A]"
           >
             Créer ma liste gratuitement
@@ -711,7 +720,7 @@ export default function AccueilClient() {
             <a href="#" className="hover:text-corail">
               Confidentialité
             </a>
-            <a href="#" className="hover:text-corail">
+            <a href="mailto:contact@kdovie.com" className="hover:text-corail">
               Contact
             </a>
             <LiensLegaux className="hover:text-corail" />
