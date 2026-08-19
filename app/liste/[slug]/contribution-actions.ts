@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
 import {
-  computeApplicationFeeAmountCents,
+  computeMontantOrganisateurCents,
   computeMontantPreleveCents,
   type FeeMode,
 } from "@/lib/fee-calculation";
@@ -71,7 +71,18 @@ export async function createContribution(
     montantNetCents,
     event.fee_mode as FeeMode,
   );
-  const applicationFeeAmountCents = computeApplicationFeeAmountCents(montantPreleveCents);
+  // Pour une destination charge (transfer_data.destination, celle utilisée
+  // ici), Stripe prélève TOUJOURS ses propres frais de traitement sur le
+  // solde de la plateforme, quel que soit on_behalf_of — voir CLAUDE.md >
+  // "Bug frais Stripe absorbés par Kdovie au lieu de l'organisateur". En
+  // envoyant à Stripe uniquement la commission Kdovie (1 %), la plateforme
+  // n'avait donc pas de quoi couvrir ces frais et perdait de l'argent à
+  // chaque cotisation. application_fee_amount doit couvrir commission +
+  // frais Stripe combinés, pour que le compte connecté reçoive exactement
+  // computeMontantOrganisateurCents(montantPreleveCents) — le montant net
+  // déjà annoncé à l'invité — dans les deux fee_mode.
+  const applicationFeeAmountCents =
+    montantPreleveCents - computeMontantOrganisateurCents(montantPreleveCents);
 
   const host = (await headers()).get("host");
   const protocol = host?.startsWith("localhost") ? "http" : "https";
