@@ -8,4 +8,4 @@ import { Resend } from "resend";
 // RESEND_API_KEY avant tout appel réel.
 export const resend = new Resend(process.env.RESEND_API_KEY || "re_non_configuree");
 
-export const EMAIL_FROM = "Kdovie <hello@kdovie.com>";
+export const EMAIL_FROM = "Kdovie <contact@kdovie.com>";
