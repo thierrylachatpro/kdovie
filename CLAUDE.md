@@ -434,6 +434,10 @@ Déclenché par l'obligation Amazon Partenaires de mentionner "En tant que Parte
 - **Hors périmètre pour cette tâche** : une politique de confidentialité RGPD dédiée (distincte des CGU) est nécessaire mais pas encore rédigée — à traiter séparément.
 - Email de contact dans les mentions légales et le CGV : `contact@kdovie.com`.
 
+## Backlog produit : pages "À propos", "Aide" (19 août 2026)
+
+Constaté en vérifiant la cohérence de la page d'accueil : le pied de page (`components/accueil/AccueilClient.tsx`) contient des liens "À propos" et "Aide" qui ne mènent nulle part (`href="#"`), en plus des trois pages légales déjà construites (mentions légales, CGU, CGV) et du lien "Confidentialité" — celui-ci restera un lien mort tant que la politique de confidentialité RGPD elle-même n'est pas rédigée (déjà noté comme hors périmètre dans "Pages légales" ci-dessus). Décision du 19 août 2026 : reporté, à recadrer plus tard (contenu à définir : une vraie page "À propos", une FAQ/aide dédiée ou un renvoi vers `contact@kdovie.com`) — ne pas construire ces pages sans en rediscuter d'abord.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
