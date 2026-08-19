@@ -115,4 +115,11 @@ export const emailStyles = {
     margin: "8px 8px 8px 0",
     border: `2px solid ${BORDURE}`,
   },
+  lienDiscret: {
+    display: "inline-block",
+    color: TEXTE_DOUX,
+    fontSize: 13,
+    textDecoration: "underline",
+    margin: "20px 0 0",
+  },
 };

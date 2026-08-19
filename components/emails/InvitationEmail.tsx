@@ -13,7 +13,7 @@ export default function InvitationEmail({
   return (
     <EmailLayout preview={`On vous invite à consulter la liste « ${eventName} »`}>
       <Text style={emailStyles.titre}>« {eventName} »</Text>
-      <Text style={emailStyles.texte}>{message}</Text>
+      <Text style={{ ...emailStyles.texte, whiteSpace: "pre-line" }}>{message}</Text>
       <Link href={lienListe} style={emailStyles.bouton}>
         Voir la liste
       </Link>

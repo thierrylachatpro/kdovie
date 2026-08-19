@@ -4,11 +4,13 @@ import { formatPriceCents } from "@/lib/gift-item";
 
 export default function CotisationConfirmeeEmail({
   giftTitle,
+  eventName,
   amountCents,
   buyUrl,
   isAffiliate,
 }: {
   giftTitle: string;
+  eventName: string;
   amountCents: number;
   buyUrl: string | null;
   isAffiliate: boolean;
@@ -18,14 +20,15 @@ export default function CotisationConfirmeeEmail({
       <Text style={emailStyles.titre}>Merci pour votre cotisation !</Text>
       <Text style={emailStyles.texte}>
         Votre participation de <strong>{formatPriceCents(amountCents)}</strong> pour «{" "}
-        <strong>{giftTitle}</strong> » a bien été prise en compte.
+        <strong>{giftTitle}</strong> » sur la liste « <strong>{eventName}</strong> » a bien été
+        prise en compte.
       </Text>
       <Text style={emailStyles.texteDoux}>
         Cet e-mail vient en complément du reçu de paiement déjà envoyé par Stripe.
       </Text>
       {buyUrl && (
         <>
-          <Link href={buyUrl} style={emailStyles.boutonSecondaire}>
+          <Link href={buyUrl} style={emailStyles.bouton}>
             Voir le cadeau
           </Link>
           {isAffiliate && (

@@ -32,7 +32,7 @@ export default function VisibiliteListe({
   const [invitees, setInvitees] = useState<string[]>([]);
   const [inviteDraft, setInviteDraft] = useState("");
   const [inviteMessage, setInviteMessage] = useState(
-    `Bonjour, voici ma liste de cadeaux pour ${eventName}. Choisissez ce qui vous fait plaisir, votre réservation reste une surprise. Merci beaucoup !`,
+    "Bonjour !\nVoici ma liste de cadeaux. Choisissez ce qui vous fait plaisir (un cadeau, cotiser à une cagnotte). Votre réservation restera une surprise pour moi.\nMerci beaucoup !",
   );
   const [inviteSent, setInviteSent] = useState<number | false>(false);
   const [isSending, setIsSending] = useState(false);

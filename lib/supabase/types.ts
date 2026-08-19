@@ -269,6 +269,33 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cancel_reservation: {
+        Args: { p_reservation_id: string }
+        Returns: {
+          created_at: string
+          currency: string
+          description: string | null
+          event_id: string
+          funded_amount_cents: number
+          id: string
+          image_url: string | null
+          is_priority: boolean
+          locked_at: string | null
+          mode: string
+          original_title: string | null
+          price_cents: number | null
+          source_url: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "gift_items"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       confirm_contribution: {
         Args: { p_contribution_id: string }
         Returns: {

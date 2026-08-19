@@ -5,6 +5,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendTransactionalEmail } from "@/lib/send-email";
 import ReservationConfirmeeEmail from "@/components/emails/ReservationConfirmeeEmail";
 import { getAffiliateLink } from "@/lib/affiliate-link";
+import { truncateTitle } from "@/lib/gift-item";
+import { SITE_URL } from "@/lib/site-url";
 
 // Passe par le client service_role (jamais un appel RPC direct depuis le
 // navigateur) pour garder la validation côté serveur, voir CLAUDE.md > tâche #17.
@@ -21,7 +23,7 @@ export async function reserveGiftItem(
   const email = guestEmail.trim();
 
   const supabase = createAdminClient();
-  const { error } = await supabase.rpc("reserve_gift_item", {
+  const { data: reservation, error } = await supabase.rpc("reserve_gift_item", {
     p_gift_item_id: giftItemId,
     p_guest_name: (nom || null) as unknown as string,
     p_guest_email: email || (null as unknown as string),
@@ -39,20 +41,35 @@ export async function reserveGiftItem(
 
   // Confirmation de réservation, uniquement si un email a été renseigné
   // (facultatif) — voir CLAUDE.md > "Emails transactionnels".
-  if (email) {
+  if (email && reservation) {
     const { data: item } = await supabase
       .from("gift_items")
-      .select("title, source_url")
+      .select("title, source_url, event_id")
       .eq("id", giftItemId)
       .single();
 
     if (item) {
+      const { data: event } = await supabase
+        .from("events")
+        .select("name")
+        .eq("id", item.event_id)
+        .single();
+
+      const giftTitle = truncateTitle(item.title);
       const buyUrl = item.source_url ? getAffiliateLink(item.source_url) : null;
       const isAffiliate = Boolean(item.source_url && buyUrl !== item.source_url);
+      const cancelUrl = `${SITE_URL}/liste/${slug}/annuler/${reservation.id}`;
+
       await sendTransactionalEmail({
         to: email,
-        subject: `« ${item.title} » est réservé, merci !`,
-        react: ReservationConfirmeeEmail({ giftTitle: item.title, buyUrl, isAffiliate }),
+        subject: `« ${giftTitle} » est réservé, merci !`,
+        react: ReservationConfirmeeEmail({
+          giftTitle,
+          eventName: event?.name ?? "votre liste",
+          buyUrl,
+          isAffiliate,
+          cancelUrl,
+        }),
       });
     }
   }

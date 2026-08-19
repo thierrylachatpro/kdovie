@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendTransactionalEmail } from "@/lib/send-email";
 import CotisationConfirmeeEmail from "@/components/emails/CotisationConfirmeeEmail";
 import { getAffiliateLink } from "@/lib/affiliate-link";
+import { truncateTitle } from "@/lib/gift-item";
 
 // Appelle confirm_contribution via le client service_role une fois le
 // paiement confirmé par Stripe, voir CLAUDE.md > tâche #18, étape 5. La
@@ -69,13 +70,21 @@ export async function POST(request: Request) {
         } else if (contribution.guest_email && giftItem) {
           // Confirmation de cotisation, en plus du reçu Stripe natif — voir
           // CLAUDE.md > "Emails transactionnels".
+          const { data: contribEvent } = await admin
+            .from("events")
+            .select("name")
+            .eq("id", giftItem.event_id)
+            .single();
+
+          const giftTitle = truncateTitle(giftItem.title);
           const buyUrl = giftItem.source_url ? getAffiliateLink(giftItem.source_url) : null;
           const isAffiliate = Boolean(giftItem.source_url && buyUrl !== giftItem.source_url);
           await sendTransactionalEmail({
             to: contribution.guest_email,
-            subject: `Merci pour votre cotisation pour « ${giftItem.title} »`,
+            subject: `Merci pour votre cotisation pour « ${giftTitle} »`,
             react: CotisationConfirmeeEmail({
-              giftTitle: giftItem.title,
+              giftTitle,
+              eventName: contribEvent?.name ?? "la liste",
               amountCents: contribution.amount_cents,
               buyUrl,
               isAffiliate,

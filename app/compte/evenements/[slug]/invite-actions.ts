@@ -28,11 +28,25 @@ export async function sendInvitations(
     return { error: "Ajoutez au moins un destinataire." };
   }
 
+  // Pseudo de l'organisateur dans l'objet, quand renseigné — cohérent avec
+  // le pseudo public déjà affiché sur /liste/[slug], voir CLAUDE.md >
+  // "Pseudo public sur la page liste". Pas de fallback sur l'email (même
+  // règle que côté page publique : rien à faire fuiter si le pseudo est vide).
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single();
+  const organizerName = profile?.display_name?.trim() || null;
+  const subject = organizerName
+    ? `${organizerName} vous envoie sa liste de cadeaux`
+    : "On vous envoie une liste de cadeaux";
+
   await Promise.all(
     emails.map((email) =>
       sendTransactionalEmail({
         to: email,
-        subject: `${eventName} — une liste de cadeaux pour vous`,
+        subject,
         react: InvitationEmail({ eventName, message, lienListe }),
       }),
     ),

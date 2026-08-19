@@ -66,12 +66,19 @@ export default function ListePubliqueClient({
     return null;
   });
 
+  // Retour du lien d'annulation de réservation envoyé par email, voir
+  // CLAUDE.md > "Emails transactionnels".
+  const [annulationSucces] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return new URLSearchParams(window.location.search).get("annulation") === "succes";
+  });
+
   useEffect(() => {
-    if (!redirectStatus) return;
+    if (!redirectStatus && !annulationSucces) return;
     const url = new URL(window.location.href);
     url.search = "";
     window.history.replaceState({}, "", url.toString());
-  }, [redirectStatus]);
+  }, [redirectStatus, annulationSucces]);
 
   // Anti-doublon : reflète en direct la réservation faite par un autre
   // invité pendant la consultation, voir CLAUDE.md > tâche #17.
@@ -145,6 +152,12 @@ export default function ListePubliqueClient({
           {redirectStatus === "succeeded"
             ? "Votre cotisation a bien été prise en compte, merci !"
             : "Le paiement n'a pas pu être confirmé, votre cotisation n'a pas été prise en compte."}
+        </section>
+      )}
+
+      {annulationSucces && (
+        <section className="mb-5 rounded-2xl bg-[#DCE7DA] px-5 py-4 text-[15px] font-semibold text-[#2F4A2C]">
+          Votre réservation a bien été annulée.
         </section>
       )}
 
