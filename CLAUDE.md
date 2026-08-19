@@ -321,6 +321,50 @@ Nouvelle fonctionnalité, absente du périmètre initial des emails transactionn
 - **`app/liste/[slug]/cancel-reservation-actions.ts`** (`cancelReservation`) : appelle `cancel_reservation` via le client `service_role`, revalide les deux pages concernées, redirige vers `/liste/[slug]?annulation=succes`. `ListePubliqueClient` affiche un bandeau de confirmation sur ce paramètre, même mécanique que les retours `?cotisation=succes/annulee` de Stripe Checkout.
 - **Testé** : build/tsc/lint propres ; rendu visuel vérifié par capture d'écran pour les deux états de la page (introuvable, et réservation active) ; `truncateTitle` vérifié unitairement sur plusieurs titres réels de la base. **Statut (19 août 2026) : flux complet validé en conditions réelles par l'utilisateur** (vraie réservation, annulation via le lien reçu par email, article revenu à `disponible`) — migration `0017` appliquée, plus rien de bloquant sur cette fonctionnalité.
 
+## Email de bienvenue organisateur (19 août 2026)
+
+Premier chantier du backlog "hors périmètre" listé dans la section "Emails transactionnels"
+ci-dessus. Décision avec l'utilisateur sur le reste du backlog de cette section, à ne pas
+redébattre :
+
+- **Notifications organisateur (réservation reçue / cotisation reçue / cagnotte financée à
+  100 %) : écartées, pas seulement reportées.** Contraires à la mécanique déjà en place ailleurs
+  dans le produit (réservations et cotisations floutées par défaut, révélables seulement d'un
+  clic — voir "Ajustements listes publique et gestion" ci-dessous) : l'organisateur est censé
+  garder la surprise jusqu'à l'événement, une notification immédiate casserait ça. Ne pas
+  reproposer ces 3 emails sans en rediscuter explicitement.
+- **Rappel onboarding Stripe inachevé, confirmation de payout, rappel avant l'événement** :
+  toujours au backlog, mais chantier à part — contrairement aux emails déjà construits
+  (déclenchés par une action immédiate), ces 3-là nécessitent un déclenchement différé/planifié
+  (cron), pas juste un événement applicatif.
+
+**Implémentation** : email envoyé à la toute première connexion réussie d'un organisateur (pas à
+la création du compte au sens strict — l'auth.users est créé dès la demande du lien magique,
+avant toute vérification que l'email est bien le sien).
+
+- **Migration `0018_profiles_welcome_email_sent_at.sql`** (écrite, pas encore appliquée à la base
+  distante) : nouvelle colonne `profiles.welcome_email_sent_at` (timestamptz, nullable). Choix
+  délibéré plutôt qu'une heuristique sur `created_at`/`last_sign_in_at` du user Supabase (peu
+  fiable selon le délai entre la demande du lien et son clic, et le Send Email Hook existant —
+  qui intercepte déjà le lien magique lui-même — ne se déclenche qu'à la demande du lien, pas à
+  la confirmation qu'il a été utilisé). `lib/supabase/types.ts` mis à jour à la main, même
+  pratique que pour les colonnes des migrations précédentes pas encore appliquées.
+- **`app/auth/callback/route.ts`** (`envoyerBienvenueSiPremiereConnexion`, appelée juste après un
+  `exchangeCodeForSession` réussi, avant la redirection) : `update profiles set
+  welcome_email_sent_at = now() where id = ... and welcome_email_sent_at is null returning id` via
+  le client `service_role` — atomique et idempotent, un rejeu du callback (double clic, retour
+  arrière du navigateur) ne renvoie jamais l'email deux fois. Si la ligne revient (première fois),
+  envoi de l'email ; sinon rien. Comme les autres emails transactionnels, une erreur ici est
+  loguée et avalée, ne bloque jamais la connexion.
+- **`components/emails/BienvenueEmail.tsx`** : même `EmailLayout`/`emailStyles` que les 4 emails
+  existants. Contenu volontairement court — la valeur du compte permanent multi-événements, le
+  rappel que les proches n'ont pas besoin de compte, et **le rappel que les réservations restent
+  floutées** (cohérent avec la décision ci-dessus d'avoir écarté les notifications immédiates) —
+  puis un bouton vers la création de la première liste et un renvoi vers `/aide`.
+- **Testé** : `tsc`/`lint` propres. **Pas testé en conditions réelles** : bloqué tant que la
+  migration `0018` n'est pas appliquée à la base distante (comme les migrations précédentes en
+  attente).
+
 ## Ajustements listes publique et gestion (18 août 2026)
 
 Série de retouches décidées après les premiers tests réels de la cagnotte, sur `/liste/[slug]` (page publique) et `/compte/evenements/[slug]` (gestion) :
@@ -562,11 +606,23 @@ Petites retouches d'usage sur `/compte` et la gestion de liste (19 août 2026) :
 
 À venir, dans l'ordre : tester le parcours complet plus généralement (revue de cohérence sur toutes les pages, voir audit en cours), puis bêta fermée, puis lancement.
 
+## Environnements dev/prod séparés (19 août 2026)
+
+Décision avec l'utilisateur pour se donner un environnement de test avant la bêta, sans risquer les vraies données :
+
+- **Deux bases Supabase distinctes** : le projet Supabase existant reste la prod (celui déjà utilisé partout dans ce fichier), un second projet neuf est créé pour le dev, avec les 18 migrations rejouées dessus depuis le début — vraie isolation, pas de base partagée.
+- **Branches** : `main` reste la branche de prod (comportement inchangé, c'est elle que `kdovie.com` sert). Nouvelle branche `dev` pour le travail en cours, fusionnée dans `main` seulement une fois une fonctionnalité validée.
+- **Montage Vercel, contre-intuitif mais nécessaire pour garder l'URL `kdovie.vercel.app` exacte côté dev** : le domaine système `<projet>.vercel.app` suit toujours ce que Vercel appelle sa "branche de production" au niveau plateforme — impossible de l'assigner librement à une branche via le code. Solution : la "branche de production" au sens Vercel est basculée sur `dev` (elle hérite donc de `kdovie.vercel.app`), et le domaine `kdovie.com` est épinglé explicitement sur `main` (Vercel permet d'assigner un domaine personnalisé à une branche précise, indépendamment de ce label). Résultat : `main` continue de servir `kdovie.com` exactement comme avant, `dev` sert `kdovie.vercel.app`. Implique de surcharger les variables d'environnement par branche dans Vercel (les valeurs "Production" au sens Vercel doivent pointer vers la nouvelle base de dev, celles de la branche `main` — via override "Preview" restreint à cette branche — doivent pointer vers la vraie base de prod). Stripe reste en clés de test partagées entre les deux environnements pour l'instant (tout le produit est déjà en mode test, voir "Cagnotte et frais").
+- **`components/layout/BandeauEnvironnement.tsx`** : bandeau discret ajouté en haut de `app/layout.tsx`, visible uniquement quand `VERCEL_GIT_COMMIT_REF` (variable système Vercel, jamais présente en local) est renseignée et différente de `main` — donc sur `kdovie.vercel.app` et sur les previews de PR, jamais sur `kdovie.com` ni en `npm run dev` local. Sert à ne jamais confondre les deux environnements, vu que les libellés Vercel eux-mêmes sont inversés dans ce montage (dev = "Production" au sens Vercel).
+- **Reste à faire côté utilisateur** (aucune dépendance technique bloquante côté code) : créer le second projet Supabase et y rejouer les migrations, puis dans le dashboard Vercel — Project Settings → Git : changer la branche de production pour `dev` ; Project Settings → Domains : éditer `kdovie.com` pour l'épingler sur la branche `main` ; Environment Variables : poser les identifiants de la nouvelle base de dev sous le scope "Production", et ajouter un override "Preview" restreint à la branche `main` avec les identifiants de la vraie base de prod.
+
 ## Workflow git
 
 Fais un commit à chaque fois qu'une tâche du backlog (ou une fonctionnalité significative) est terminée et validée — pas un seul gros commit en fin de session. Message clair, en français, qui référence la tâche si pertinent (ex : "feat: ajout d'article multi-boutique avec scraping (#16)"). Ne commite jamais un état qui ne build pas ou dont les tests/lint échouent.
 
 Le remote `origin` est configuré (https://github.com/thierrylachatpro/kdovie). Depuis le 18 août 2026, `git push` se fait systématiquement après chaque commit, sans attendre de confirmation — ne plus demander avant de pousser (règle précédente, abandonnée sur demande explicite de l'utilisateur).
+
+Depuis le 19 août 2026 (voir "Environnements dev/prod séparés" ci-dessus) : le travail en cours se fait sur la branche `dev`, fusionnée dans `main` uniquement une fois une fonctionnalité validée — ne plus pousser directement sur `main` pour du travail non encore validé.
 
 ## Mode de collaboration
 

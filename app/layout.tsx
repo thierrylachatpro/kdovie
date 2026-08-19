@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Quicksand, Work_Sans } from "next/font/google";
+import BandeauEnvironnement from "@/components/layout/BandeauEnvironnement";
 import "./globals.css";
 
 const quicksand = Quicksand({
@@ -25,7 +26,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="fr"
       className={`${quicksand.variable} ${workSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-creme text-foreground">{children}</body>
+      <body className="min-h-full flex flex-col bg-creme text-foreground">
+        <BandeauEnvironnement />
+        {children}
+      </body>
     </html>
   );
 }

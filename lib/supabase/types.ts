@@ -212,6 +212,7 @@ export type Database = {
           id: string
           is_admin: boolean
           updated_at: string
+          welcome_email_sent_at: string | null
         }
         Insert: {
           created_at?: string
@@ -219,6 +220,7 @@ export type Database = {
           id: string
           is_admin?: boolean
           updated_at?: string
+          welcome_email_sent_at?: string | null
         }
         Update: {
           created_at?: string
@@ -226,6 +228,7 @@ export type Database = {
           id?: string
           is_admin?: boolean
           updated_at?: string
+          welcome_email_sent_at?: string | null
         }
         Relationships: []
       }
