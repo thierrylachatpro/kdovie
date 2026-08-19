@@ -299,14 +299,16 @@ Point 5 (lien magique) confirmé faisable : l'Auth Hook Supabase « Send Email �
 
 **`@react-email/components` marqué "no longer supported" par npm à l'installation** (Resend a consolidé vers un nouveau package unifié `react-email` v6+). Gardé volontairement : le nouveau package a des problèmes rapportés spécifiquement sur Vercel (taille de bundle +~80 Mo par fonction, déploiements qui restent bloqués silencieusement) alors que `@react-email/components` reste fonctionnel. Pas une faille de sécurité, une consolidation d'offre — à surveiller, pas urgent.
 
+**Dette technique à reprendre plus tard (pas oubliée)** : migrer de `@react-email/components` vers le nouveau package unifié `react-email` v6+, une fois les rapports de bugs Vercel (bundle/déploiements bloqués) résolus côté Resend — à vérifier avant de s'y remettre, ne pas migrer tant que ce n'est pas confirmé stable sur Vercel.
+
 **Testé réellement** : `npx tsc --noEmit`, `npm run lint`, `npm run build` propres (route `/api/auth/send-email` bien générée). Rendu des 4 templates vérifié visuellement (route de preview temporaire + capture d'écran Playwright, supprimée ensuite) — tous conformes à la charte, aucune erreur de rendu. Route `/api/auth/send-email` testée avec une charge utile signée synthétique (secret de test temporaire, `standardwebhooks` en local pour signer côté script comme le fait Supabase) : signature vérifiée avec succès, payload parsé, réponse 200 — confirme que la vérification cryptographique et le parsing fonctionnent de bout en bout côté Kdovie.
 
 **Pas testé** (bloqué sans compte Resend, étape utilisateur) : envoi réel d'un email par Resend (aucun envoi n'a eu lieu, `RESEND_API_KEY` toujours vide) ; activation réelle du Send Email Hook côté Dashboard Supabase (étape manuelle, pas encore faite).
 
 **Reste à faire côté utilisateur avant que ça fonctionne en production :**
-- Créer un compte Resend, poser `RESEND_API_KEY` sur Vercel (même schéma que `SCRAPINGANT_API_KEY`/`AMAZON_ASSOCIATE_TAG`).
-- Vérifier un domaine d'envoi dans Resend pour `hello@kdovie.com` (enregistrements DNS SPF/DKIM chez Hostinger) — sans ça, les envois échoueront même une fois la clé posée.
-- Pour le lien magique uniquement : activer le hook « Send Email » dans Supabase Dashboard (Auth > Hooks) vers `https://kdovie.vercel.app/api/auth/send-email`, copier le secret de signature généré dans `SUPABASE_SEND_EMAIL_HOOK_SECRET` sur Vercel. ⚠️ Une fois activé, l'envoi natif Supabase est entièrement contourné, sans repli automatique si le hook échoue — à tester prudemment avant de s'y fier pleinement (le hook peut être désactivé instantanément depuis ce même écran du Dashboard en cas de souci).
+- ~~Créer un compte Resend, poser `RESEND_API_KEY` sur Vercel~~ — fait le 19 août 2026 (clé régénérée par précaution après un premier collage en conversation, bonne pratique).
+- ~~Vérifier un domaine d'envoi dans Resend pour `kdovie.com`~~ — fait le 19 août 2026, domaine "Verified" côté Resend.
+- **Reste uniquement** : pour le lien magique, activer le hook « Send Email » dans Supabase Dashboard (Auth > Hooks) vers `https://kdovie.vercel.app/api/auth/send-email`, copier le secret de signature généré dans `SUPABASE_SEND_EMAIL_HOOK_SECRET` sur Vercel. ⚠️ Une fois activé, l'envoi natif Supabase est entièrement contourné, sans repli automatique si le hook échoue — à tester prudemment avant de s'y fier pleinement (le hook peut être désactivé instantanément depuis ce même écran du Dashboard en cas de souci). Les 3 autres emails (invitation, confirmation réservation, confirmation cotisation) n'ont aucune dépendance à cette étape et sont déjà utilisables en conditions réelles maintenant que la clé et le domaine sont en place.
 
 ## Ajustements listes publique et gestion (18 août 2026)
 
