@@ -49,7 +49,22 @@ async function reponseMaintenance(request: NextRequest): Promise<NextResponse | 
   // continuer à répondre normalement même en mode maintenance, ce ne sont
   // pas des visiteurs humains — /bientot-disponible elle-même est exclue
   // pour éviter une boucle de réécriture infinie.
-  if (pathname.startsWith("/api") || pathname.startsWith("/bientot-disponible")) {
+  //
+  // /admin, /connexion et /auth/callback sont exclus pour la même raison
+  // que /api : ils ont déjà leur propre protection (isCurrentUserAdmin +
+  // 404 sur /admin, formulaire d'auth normal sur les deux autres), donc les
+  // exclure ne fuite rien. Sans cette exclusion, activer la maintenance
+  // enfermerait l'administrateur dehors sans aucun moyen d'y retourner pour
+  // la désactiver (bug rencontré en le testant sur l'environnement de dev,
+  // où MAINTENANCE_BYPASS_TOKEN n'est délibérément pas posé — voir plus
+  // bas) : le bouton /admin ne doit jamais pouvoir se verrouiller lui-même.
+  if (
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/bientot-disponible") ||
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/connexion") ||
+    pathname.startsWith("/auth/callback")
+  ) {
     return null;
   }
 
