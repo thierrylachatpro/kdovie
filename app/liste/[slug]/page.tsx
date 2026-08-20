@@ -98,11 +98,9 @@ export default async function ListePubliquePage({
       })
     : null;
 
-  const metaParts = [
-    eventTypeLabel(event.type),
-    dateFormatee,
-    organizerPseudo ? `liste de ${organizerPseudo}` : null,
-  ].filter((part): part is string => Boolean(part));
+  const metaParts = [eventTypeLabel(event.type), dateFormatee].filter(
+    (part): part is string => Boolean(part),
+  );
 
   return (
     <div className="flex flex-1 flex-col">
@@ -150,6 +148,7 @@ export default async function ListePubliquePage({
             slug={event.slug}
             eventName={event.name}
             typeIcon={eventTypeIcon(event.type)}
+            organizerPseudo={organizerPseudo}
             metaText={metaParts.join(" · ")}
             initialItems={items}
             feeMode={event.fee_mode as FeeMode}
@@ -166,6 +165,11 @@ export default async function ListePubliquePage({
                   <h1 className="font-heading text-[38px] leading-[1.1] font-bold text-[#C0512A]">
                     {event.name}
                   </h1>
+                  {organizerPseudo && (
+                    <p className="text-[15px] font-semibold text-corail">
+                      La liste de {organizerPseudo}
+                    </p>
+                  )}
                   <div className="text-[17px] text-[#7A6354]">{metaParts.join(" · ")}</div>
                 </div>
               </div>

@@ -37,6 +37,7 @@ export default function ListePubliqueClient({
   slug,
   eventName,
   typeIcon,
+  organizerPseudo,
   metaText,
   initialItems,
   feeMode,
@@ -46,6 +47,7 @@ export default function ListePubliqueClient({
   slug: string;
   eventName: string;
   typeIcon: string;
+  organizerPseudo: string | null;
   metaText: string;
   initialItems: GiftItem[];
   feeMode: FeeMode;
@@ -170,6 +172,11 @@ export default function ListePubliqueClient({
             <h1 className="font-heading text-[38px] leading-[1.1] font-bold text-[#C0512A]">
               {eventName}
             </h1>
+            {organizerPseudo && (
+              <p className="text-[15px] font-semibold text-corail">
+                La liste de {organizerPseudo}
+              </p>
+            )}
             <div className="text-[17px] text-[#7A6354]">{metaText}</div>
           </div>
           <div className="rounded-[20px] bg-creme px-5 py-4 text-center">
