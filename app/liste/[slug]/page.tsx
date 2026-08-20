@@ -98,7 +98,7 @@ export default async function ListePubliquePage({
       })
     : null;
 
-  const metaParts = [eventTypeLabel(event.type), dateFormatee].filter(
+  const metaParts = [event.type ? eventTypeLabel(event.type) : null, dateFormatee].filter(
     (part): part is string => Boolean(part),
   );
 
