@@ -4,10 +4,10 @@ import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import { eventStatusClassName, eventStatusLabel } from "@/lib/event-status";
 import { formatPriceCents } from "@/lib/gift-item";
-import { initiales } from "@/lib/initials";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
 import FilActivite, { type ActiviteItem } from "@/components/compte/FilActivite";
 import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavConnecte from "@/components/layout/NavConnecte";
 
 export default async function ComptePage() {
   const supabase = await createClient();
@@ -111,52 +111,41 @@ export default async function ComptePage() {
 
   return (
     <div className="flex flex-1 flex-col">
-      <header className="w-full bg-corail px-8 pt-5 pb-[22px]">
-        <div className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-5">
-          <Link href="/" className="inline-flex items-center gap-3">
-            <span className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl bg-creme">
-              <svg
-                viewBox="0 0 56 56"
-                fill="none"
-                xmlns="http://www.w3.org/2000/svg"
-                aria-hidden="true"
-                className="block h-[34px] w-[34px]"
-              >
-                <rect x="10" y="24" width="36" height="22" rx="2" fill="#E8734A" />
-                <rect x="7" y="16" width="42" height="10" rx="2" fill="#F5B942" />
-                <rect x="25" y="16" width="6" height="30" fill="#FFF8F0" />
-                <path
-                  d="M28 16C28 16 20 16 17 12C15 9.5 17 6 20 6C24 6 28 12 28 16Z"
-                  fill="#8BA888"
-                />
-                <path
-                  d="M28 16C28 16 36 16 39 12C41 9.5 39 6 36 6C32 6 28 12 28 16Z"
-                  fill="#8BA888"
-                />
-              </svg>
+      <div className="flex h-2">
+        <span className="flex-[3] bg-corail" />
+        <span className="flex-[2] bg-jaune" />
+        <span className="flex-[1] bg-sauge" />
+      </div>
+
+      <header className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-5 px-6 py-5 sm:px-10">
+        <Link href="/" className="inline-flex items-center gap-2.5">
+          <svg
+            viewBox="0 0 56 56"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            aria-hidden="true"
+            className="block h-[38px] w-[38px]"
+          >
+            <rect x="10" y="24" width="36" height="22" rx="2" fill="#E8734A" />
+            <rect x="7" y="16" width="42" height="10" rx="2" fill="#F5B942" />
+            <rect x="25" y="16" width="6" height="30" fill="#FFF8F0" />
+            <path
+              d="M28 16C28 16 20 16 17 12C15 9.5 17 6 20 6C24 6 28 12 28 16Z"
+              fill="#8BA888"
+            />
+            <path
+              d="M28 16C28 16 36 16 39 12C41 9.5 39 6 36 6C32 6 28 12 28 16Z"
+              fill="#8BA888"
+            />
+          </svg>
+          <span className="flex flex-col leading-tight">
+            <span className="font-heading text-2xl font-bold tracking-tight text-corail">
+              kdovie
             </span>
-            <span className="font-heading text-[23px] font-bold tracking-[-0.01em] text-creme">
-              Kdovie
-            </span>
-          </Link>
-          <div className="flex flex-wrap items-center gap-2.5">
-            <Link
-              href="/compte"
-              className="rounded-[15px] px-4 py-2.5 text-[15px] font-semibold text-creme hover:bg-[#D45F37]"
-            >
-              Mes listes
-            </Link>
-            <Link
-              href="/compte/profil"
-              className="flex items-center gap-2.5 rounded-2xl bg-creme py-2 pr-4 pl-2 hover:bg-[#FDEDE6]"
-            >
-              <span className="font-heading flex h-8 w-8 flex-none items-center justify-center rounded-[11px] bg-jaune text-sm font-bold text-[#7A5A16]">
-                {initiales(nomAffiche)}
-              </span>
-              <span className="text-[15px] font-semibold text-[#4A3529]">Mon compte</span>
-            </Link>
-          </div>
-        </div>
+            <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
+          </span>
+        </Link>
+        <NavConnecte estConnecte={true} />
       </header>
 
       <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">
