@@ -20,7 +20,7 @@ export default async function ContactPage() {
       .select("display_name")
       .eq("id", user.id)
       .single();
-    pseudo = profile?.display_name?.trim() || null;
+    pseudo = profile?.display_name?.trim() || user.email?.split("@")[0] || null;
   }
 
   return (

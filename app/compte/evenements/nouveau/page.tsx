@@ -32,7 +32,7 @@ export default async function NouvelEvenementPage({
     .select("display_name")
     .eq("id", user.id)
     .single();
-  const pseudo = profile?.display_name?.trim() || null;
+  const pseudo = profile?.display_name?.trim() || user.email?.split("@")[0] || null;
 
   return (
     <div className="flex flex-1 flex-col">

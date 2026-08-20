@@ -104,7 +104,10 @@ export default async function ProfilPage() {
             <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
           </span>
         </Link>
-        <NavConnecte estConnecte={true} pseudo={profile?.display_name?.trim() || null} />
+        <NavConnecte
+          estConnecte={true}
+          pseudo={profile?.display_name?.trim() || user.email?.split("@")[0] || null}
+        />
       </header>
 
       <main className="mx-auto flex w-full max-w-[720px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">

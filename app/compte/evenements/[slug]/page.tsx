@@ -51,7 +51,7 @@ export default async function EvenementPage({
     .select("display_name")
     .eq("id", user.id)
     .single();
-  const pseudo = profile?.display_name?.trim() || null;
+  const pseudo = profile?.display_name?.trim() || user.email?.split("@")[0] || null;
 
   const { data: giftItems } = await supabase
     .from("gift_items")

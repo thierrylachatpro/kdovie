@@ -55,7 +55,7 @@ export default async function ComptePage() {
 
   const nomAffiche = profile?.display_name?.trim() || user.email?.split("@")[0] || "";
   const prenom = nomAffiche.split(/\s+/)[0] ?? "";
-  const pseudo = profile?.display_name?.trim() || null;
+  const pseudo = profile?.display_name?.trim() || user.email?.split("@")[0] || null;
 
   const itemsParEvenement = new Map<string, typeof giftItems>();
   (giftItems ?? []).forEach((item) => {
