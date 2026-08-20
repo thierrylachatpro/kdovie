@@ -106,14 +106,14 @@ export default async function ListePubliquePage({
         <span className="flex-[1] bg-sauge" />
       </div>
 
-      <header className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-5 px-6 py-5 sm:px-10">
+      <header className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-2.5 px-5 py-3.5 sm:gap-5 sm:px-10 sm:py-5">
         <Link href="/" className="inline-flex items-center gap-2.5">
           <svg
             viewBox="0 0 56 56"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
             aria-hidden="true"
-            className="block h-[38px] w-[38px]"
+            className="block h-[30px] w-[30px] sm:h-[38px] sm:w-[38px]"
           >
             <rect x="10" y="24" width="36" height="22" rx="2" fill="#E8734A" />
             <rect x="7" y="16" width="42" height="10" rx="2" fill="#F5B942" />
@@ -128,10 +128,12 @@ export default async function ListePubliquePage({
             />
           </svg>
           <span className="flex flex-col leading-tight">
-            <span className="font-heading text-2xl font-bold tracking-tight text-corail">
+            <span className="font-heading text-[21px] font-bold tracking-tight text-corail sm:text-2xl">
               kdovie
             </span>
-            <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
+            <span className="hidden text-[13px] text-[#8A7263] sm:block">
+              Un seul compte, toute une vie de cadeaux
+            </span>
           </span>
         </Link>
         <NavConnecte
@@ -140,7 +142,7 @@ export default async function ListePubliquePage({
         />
       </header>
 
-      <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-6 pt-5 pb-20 sm:px-10">
+      <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-4 pt-1.5 pb-10 sm:px-10 sm:pt-5 sm:pb-20">
         {estOuverte && !estVide ? (
           <ListePubliqueClient
             eventId={event.id}

@@ -131,6 +131,18 @@ export default function ListePubliqueClient({
   const modalItem = items.find((item) => item.id === modalItemId) ?? null;
   const contributionItem = items.find((item) => item.id === contributionItemId) ?? null;
 
+  // Mobile uniquement (voir mockup "Liste publique mobile v2") : ligne meta
+  // à plat plutôt que la ligne "La liste de X" séparée du desktop —
+  // aucune fuite si organizerPseudo est vide, même règle que partout
+  // ailleurs.
+  const metaTextMobile = [metaText, organizerPseudo ? `liste de ${organizerPseudo}` : null]
+    .filter(Boolean)
+    .join(" · ");
+  // eventTypeIcon(null) retombe sur 🎁, jamais utilisé par un vrai type
+  // (voir lib/event-types.ts) — sert de repère fiable pour la pastille
+  // corail/jaune du mockup mobile, sans prop dédiée.
+  const aUnTypePrecis = typeIcon !== "🎁";
+
   function openModal(itemId: string) {
     setModalItemId(itemId);
     setModalDone(false);
@@ -163,7 +175,8 @@ export default function ListePubliqueClient({
         </section>
       )}
 
-      <section className="mb-7 rounded-[32px] bg-[#F7E7D6] p-9">
+      {/* Desktop (voir mockup "Liste publique.dc.html") — inchangé, visible à partir de sm */}
+      <section className="mb-7 hidden rounded-[32px] bg-[#F7E7D6] p-9 sm:block">
         <div className="flex flex-wrap items-center gap-5.5">
           <span className="flex h-19 w-19 flex-none items-center justify-center rounded-[26px] bg-corail text-[34px]">
             {typeIcon}
@@ -192,7 +205,35 @@ export default function ListePubliqueClient({
         </p>
       </section>
 
-      <section className="flex flex-col gap-4">
+      {/* Mobile (voir mockup "Liste publique mobile v2.dc.html") — masqué à partir de sm */}
+      <section className="mb-5 rounded-[26px] bg-[#F7E7D6] p-5.5 sm:hidden">
+        <div className="mb-4 flex items-center gap-3.5">
+          <span
+            className={`flex h-14 w-14 flex-none items-center justify-center rounded-[20px] text-[26px] ${
+              aUnTypePrecis ? "bg-corail" : "bg-jaune"
+            }`}
+          >
+            {typeIcon}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h1 className="font-heading text-[26px] leading-[1.15] font-bold text-[#C0512A]">
+              {eventName}
+            </h1>
+            <div className="text-[15px] leading-snug text-[#7A6354]">{metaTextMobile}</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 rounded-[18px] bg-creme px-4 py-3.5">
+          <span className="font-heading flex-none text-2xl font-bold text-[#2F4A2C]">
+            {availableCount}
+          </span>
+          <span className="text-[15px] leading-snug text-[#5C4436]">
+            cadeaux encore libres. Réservez sans créer de compte, juste votre prénom.
+          </span>
+        </div>
+      </section>
+
+      {/* Desktop — cartes en ligne, inchangé */}
+      <section className="hidden flex-col gap-4 sm:flex">
         {sorted.map((item, index) => {
           const shop = item.source_url ? hostnameFromUrl(item.source_url) : null;
           const lienArticle = item.affiliate_url;
@@ -336,6 +377,149 @@ export default function ListePubliqueClient({
         })}
       </section>
 
+      {/* Mobile (voir mockup "Liste publique mobile v2.dc.html") — cartes
+          plein format avec photo/teinte en fond, texte en clair sur
+          dégradé. Mêmes états fonctionnels que la version desktop
+          (canReserve/canContribute/isTaken/rienDisponible), juste une autre
+          présentation. */}
+      <section className="flex flex-col gap-4 sm:hidden">
+        {sorted.map((item, index) => {
+          const shop = item.source_url ? hostnameFromUrl(item.source_url) : null;
+          const lienArticle = item.affiliate_url;
+          const estAffilie = item.is_affiliate;
+          const isTaken = item.status === "reserve";
+          const isPot = item.status === "cagnotte";
+          const canReserve = item.status === "disponible" && item.mode !== "cotisation_obligatoire";
+          const canContribute =
+            organizerStripeStatus !== "aucun" &&
+            item.status !== "reserve" &&
+            item.mode !== "cotisation_impossible";
+          const rienDisponible = !canReserve && !canContribute && !isTaken;
+          const percent =
+            isPot && item.price_cents
+              ? Math.round((item.funded_amount_cents / item.price_cents) * 100)
+              : 0;
+          const attenue = estAttenue(item);
+          const tone = TONES[index % TONES.length];
+
+          return (
+            <article
+              key={item.id}
+              className="relative flex flex-col overflow-hidden rounded-[24px]"
+              style={{ minHeight: isPot ? 420 : 380, background: tone, opacity: attenue ? 0.8 : 1 }}
+            >
+              {item.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={item.image_url}
+                  alt=""
+                  className="absolute top-0 right-0 left-0 h-[62%] w-full object-cover"
+                />
+              )}
+              <div className="absolute inset-0" style={{ background: tone, opacity: 0.18 }} />
+              <div
+                className="absolute inset-0"
+                style={{
+                  background:
+                    "linear-gradient(to top, rgba(52,33,22,.9) 0%, rgba(52,33,22,.78) 30%, rgba(52,33,22,.3) 52%, rgba(52,33,22,0) 68%)",
+                }}
+              />
+              <span
+                className={`absolute top-3.5 left-3.5 z-10 rounded-full px-3 py-1.5 text-[13px] font-semibold ${
+                  isTaken
+                    ? "bg-[#F7E7D6] text-[#7A6354]"
+                    : isPot
+                      ? "bg-[#F5E3C9] text-[#7A5A16]"
+                      : "bg-[#DCE7DA] text-[#2F4A2C]"
+                }`}
+              >
+                {isTaken ? "Réservé" : isPot ? "En cagnotte" : "Disponible"}
+              </span>
+
+              <div className="relative z-10 mt-auto flex flex-col gap-2.5 p-4.5">
+                <h3 className="contents">
+                  <TitreArticle
+                    title={item.title}
+                    originalTitle={item.original_title}
+                    sourceUrl={lienArticle}
+                    sponsored={estAffilie}
+                    className="font-heading text-[22px] leading-tight font-bold text-creme [text-shadow:0_1px_2px_rgba(52,33,22,.4)]"
+                  />
+                </h3>
+                <div className="flex flex-wrap items-baseline gap-2.5">
+                  <span className="font-heading text-[19px] font-bold text-creme">
+                    {formatPriceCents(item.price_cents)}
+                  </span>
+                  {shop && (
+                    <span className="truncate text-sm text-[#E8D6C6]">
+                      {shop}
+                      {estAffilie && " · lien affilié"}
+                    </span>
+                  )}
+                </div>
+
+                {isPot && (
+                  <div>
+                    <div className="mb-1.5 h-2 overflow-hidden rounded-full bg-creme/30">
+                      <div
+                        className="h-2 rounded-full bg-jaune"
+                        style={{ width: `${Math.min(100, percent)}%` }}
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-[#F0E2D4]">
+                      <span>
+                        {formatPriceCents(item.funded_amount_cents)}
+                        {item.price_cents !== null
+                          ? ` sur ${formatPriceCents(item.price_cents)}`
+                          : " réunis"}
+                      </span>
+                      {organizerStripeStatus === "en_attente" && (
+                        <span className="rounded-full bg-creme/90 px-2.5 py-0.5 text-[13px] font-semibold text-[#7A5A16]">
+                          Cagnotte en validation
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {canReserve && (
+                  <button
+                    type="button"
+                    onClick={() => openModal(item.id)}
+                    className="mt-0.5 min-h-12 w-full rounded-2xl bg-corail py-3.5 font-heading text-base font-bold text-creme hover:bg-[#D45F37]"
+                  >
+                    Je réserve
+                  </button>
+                )}
+                {canContribute && (
+                  <button
+                    type="button"
+                    onClick={() => setContributionItemId(item.id)}
+                    className={`mt-0.5 min-h-12 w-full rounded-2xl py-3.5 font-heading text-base font-bold ${
+                      canReserve
+                        ? "bg-creme/95 text-[#5C4436] hover:bg-creme"
+                        : "bg-corail text-creme hover:bg-[#D45F37]"
+                    }`}
+                  >
+                    Je cotise
+                  </button>
+                )}
+                {isTaken && (
+                  <div className="mt-0.5 rounded-2xl bg-[#DCE7DA] py-3.5 text-center text-[15px] font-semibold text-[#2F4A2C]">
+                    Déjà réservé
+                  </div>
+                )}
+                {rienDisponible && (
+                  <div className="mt-0.5 rounded-2xl bg-creme/95 py-3.5 text-center text-[15px] text-[#7A6354]">
+                    Cagnotte bientôt disponible
+                  </div>
+                )}
+              </div>
+            </article>
+          );
+        })}
+      </section>
+
       {modalItem && (
         <ReservationModal
           item={modalItem}
@@ -399,13 +583,14 @@ function ReservationModal({
 
   return (
     <div
-      className="fixed inset-0 z-20 flex items-center justify-center bg-[#4A3529]/45 p-6"
+      className="fixed inset-0 z-20 flex items-end justify-center bg-[#4A3529]/45 sm:items-center sm:p-6"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[480px] rounded-[32px] bg-creme p-8.5"
+        className="w-full max-w-[480px] rounded-t-[28px] bg-creme p-6 pb-8 sm:rounded-[32px] sm:p-8.5"
         onClick={(event) => event.stopPropagation()}
       >
+        <div className="mx-auto mb-4 h-1.25 w-11 rounded-full bg-[#F2DFC9] sm:hidden" />
         {!done ? (
           <div>
             <div className="mb-1.5 flex items-start justify-between gap-4">

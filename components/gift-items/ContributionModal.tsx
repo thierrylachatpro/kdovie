@@ -77,13 +77,14 @@ export default function ContributionModal({
 
   return (
     <div
-      className="fixed inset-0 z-20 flex items-center justify-center bg-[#4A3529]/45 p-6"
+      className="fixed inset-0 z-20 flex items-end justify-center bg-[#4A3529]/45 sm:items-center sm:p-6"
       onClick={onClose}
     >
       <div
-        className="w-full max-w-[480px] rounded-[32px] bg-creme p-8.5"
+        className="w-full max-w-[480px] rounded-t-[28px] bg-creme p-6 pb-8 sm:rounded-[32px] sm:p-8.5"
         onClick={(event) => event.stopPropagation()}
       >
+        <div className="mx-auto mb-4 h-1.25 w-11 rounded-full bg-[#F2DFC9] sm:hidden" />
         <div>
           <div className="mb-1.5 flex items-start justify-between gap-4">
             <h2 className="font-heading text-2xl font-bold text-[#C0512A]">
