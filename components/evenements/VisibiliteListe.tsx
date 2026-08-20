@@ -111,23 +111,25 @@ export default function VisibiliteListe({
             className={`block h-3.5 w-3.5 flex-none rounded-[5px] ${shared ? "bg-sauge" : "bg-jaune"}`}
           />
           <span className="font-heading text-xl font-bold text-[#4A3529]">
-            {shared ? "Vos invités peuvent voir cette liste" : "Vous seul voyez cette liste"}
+            {shared ? "Vos proches peuvent voir cette liste" : "Vous seul voyez cette liste"}
           </span>
         </div>
         <p className="mb-3 max-w-115 text-[15px] leading-relaxed text-[#7A6354]">
           {shared
-            ? "Toute personne à qui vous donnez le lien peut consulter les cadeaux et en réserver. Rien n'apparaît dans les moteurs de recherche."
+            ? "Toute personne à qui vous donnez le lien peut consulter les cadeaux et en réserver."
             : "Personne d'autre que vous n'y a accès, même avec le lien. Ouvrez-la quand vous serez prêt à recevoir des réservations."}
         </p>
-        <div className="flex flex-wrap items-center gap-2.5">
-          <span className={`text-sm ${shared ? "text-[#8A7263]" : "text-[#A08D7E]"}`}>
+        <div className="flex flex-nowrap items-center gap-2.5">
+          <span
+            className={`min-w-0 truncate text-sm ${shared ? "text-[#8A7263]" : "text-[#A08D7E]"}`}
+          >
             {lienPublic}
           </span>
           <button
             type="button"
             onClick={handleCopy}
             disabled={!shared}
-            className={`text-sm font-semibold underline ${
+            className={`flex-none text-sm font-semibold underline ${
               shared ? "cursor-pointer text-[#C0512A]" : "cursor-default text-[#A08D7E]"
             }`}
           >
@@ -160,7 +162,7 @@ export default function VisibiliteListe({
           {isPending && (
             <KdovieSpinner className="h-4 w-4" variant={shared ? "light" : "dark"} />
           )}
-          {!isPending && (shared ? "Refermer la liste" : "Ouvrir ma liste aux invités")}
+          {!isPending && (shared ? "Fermer la liste" : "Ouvrir ma liste aux invités")}
         </button>
       </div>
 
