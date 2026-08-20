@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import { eventStatusClassName, eventStatusLabel } from "@/lib/event-status";
 import { formatPriceCents } from "@/lib/gift-item";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
-import CopierLienButton from "@/components/evenements/CopierLienButton";
 import FilActivite, { type ActiviteItem } from "@/components/compte/FilActivite";
 import LiensLegaux from "@/components/layout/LiensLegaux";
 import NavConnecte from "@/components/layout/NavConnecte";
@@ -55,9 +53,6 @@ export default async function ComptePage() {
       .limit(5),
   ]);
 
-  const host = (await headers()).get("host");
-  const protocol = host?.startsWith("localhost") ? "http" : "https";
-
   const nomAffiche = profile?.display_name?.trim() || user.email?.split("@")[0] || "";
   const prenom = nomAffiche.split(/\s+/)[0] ?? "";
 
@@ -89,7 +84,6 @@ export default async function ComptePage() {
       termines,
       percent,
       dateFormatee,
-      lienPublic: `${protocol}://${host}/liste/${event.slug}`,
     };
   });
 
@@ -252,9 +246,13 @@ export default async function ComptePage() {
                         {event.name}
                       </h3>
                       <div className="text-sm text-[#8A7263]">
-                        {eventTypeLabel(event.type)}
-                        {event.dateFormatee ? ` · ${event.dateFormatee}` : ""} ·{" "}
-                        {event.total} cadeau{event.total > 1 ? "x" : ""}
+                        {[
+                          event.type ? eventTypeLabel(event.type) : null,
+                          event.dateFormatee,
+                          `${event.total} cadeau${event.total > 1 ? "x" : ""}`,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                       </div>
                     </div>
                     <span
@@ -288,7 +286,6 @@ export default async function ComptePage() {
                     >
                       Ouvrir la liste
                     </Link>
-                    <CopierLienButton lien={event.lienPublic} />
                   </div>
                 </article>
               ))}
