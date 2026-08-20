@@ -354,7 +354,7 @@ export default function ListePubliqueClient({
                     onClick={() => setContributionItemId(item.id)}
                     className={`font-heading rounded-2xl px-5 py-3.5 text-base font-bold ${
                       canReserve
-                        ? "bg-creme text-[#5C4436] hover:bg-white"
+                        ? "border-2 border-corail bg-creme text-corail hover:bg-[#FDEDE6]"
                         : "bg-corail text-creme hover:bg-[#D45F37]"
                     }`}
                   >
@@ -489,7 +489,7 @@ export default function ListePubliqueClient({
                     onClick={() => setContributionItemId(item.id)}
                     className={`mt-0.5 min-h-12 w-full rounded-2xl py-3.5 font-heading text-base font-bold ${
                       canReserve
-                        ? "bg-creme text-[#5C4436] hover:bg-[#F7E7D6]"
+                        ? "border-2 border-corail bg-creme text-corail hover:bg-[#FDEDE6]"
                         : "bg-corail text-creme hover:bg-[#D45F37]"
                     }`}
                   >
