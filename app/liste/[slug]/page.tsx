@@ -7,6 +7,7 @@ import type { FeeMode } from "@/lib/fee-calculation";
 import type { OrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 import { getAffiliateLink } from "@/lib/affiliate-link";
 import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavConnecte from "@/components/layout/NavConnecte";
 
 export default async function ListePubliquePage({
   params,
@@ -28,6 +29,16 @@ export default async function ListePubliquePage({
     // "Suppression d'une liste par l'organisateur".
     notFound();
   }
+
+  // En-tête connecté (Mes listes/Mon compte) uniquement quand l'organisateur
+  // consulte sa propre liste — voir CLAUDE.md > "En-tête unifié pour les
+  // organisateurs connectés + page Contact". Un simple invité connecté par
+  // ailleurs (compte Kdovie sur un autre navigateur/onglet) ne le voit pas,
+  // cette page reste pensée pour des invités sans compte.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const estProprietaire = user?.id === event.organizer_id;
 
   const { data: organizerProfile } = await supabase
     .from("profiles")
@@ -129,6 +140,7 @@ export default async function ListePubliquePage({
             <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
           </span>
         </Link>
+        <NavConnecte estConnecte={estProprietaire} />
       </header>
 
       <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 pt-5 pb-20 sm:px-10">
