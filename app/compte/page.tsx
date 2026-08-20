@@ -50,20 +50,26 @@ export default async function ComptePage() {
       : { data: [] };
 
   // Bandeau d'incitation à activer la cagnotte Stripe — voir CLAUDE.md >
-  // "Bandeau d'incitation à activer sa cagnotte Stripe sur /compte". Ne
-  // compte que les articles encore susceptibles de recevoir une cotisation
-  // (status != 'reserve' : une fois verrouillé en réservation directe,
-  // l'option cotiser est masquée pour les invités, aucun risque de rupture
-  // sur cet article précis même si le mode dit encore 'auto').
+  // "Bandeau d'incitation à activer sa cagnotte Stripe sur /compte".
+  // - cotisation_obligatoire : seule action possible pour l'invité, le
+  //   risque existe dès que l'article existe (ne peut jamais devenir
+  //   'reserve', voir reserve_gift_item).
+  // - auto ("Cotisation et Réservation") : tant qu'aucun invité n'a agi,
+  //   il pourrait tout aussi bien réserver directement — pas de risque
+  //   avéré. Ne compte que si un invité a déjà choisi de cotiser
+  //   (status = 'cagnotte'), pas juste parce que l'article existe dans ce
+  //   mode. Une fois verrouillé en réservation directe (status = 'reserve'),
+  //   l'option cotiser est masquée pour les invités suivants, plus aucun
+  //   risque non plus.
   const openEventIds = new Set(
     (events ?? []).filter((e) => e.status === "ouverte").map((e) => e.id),
   );
-  const risqueCotisationSansCagnotte = (giftItems ?? []).some(
-    (item) =>
-      openEventIds.has(item.event_id) &&
-      item.status !== "reserve" &&
-      (item.mode === "auto" || item.mode === "cotisation_obligatoire"),
-  );
+  const risqueCotisationSansCagnotte = (giftItems ?? []).some((item) => {
+    if (!openEventIds.has(item.event_id)) return false;
+    if (item.mode === "cotisation_obligatoire") return true;
+    if (item.mode === "auto") return item.status === "cagnotte";
+    return false;
+  });
   const afficherBandeauCagnotte =
     risqueCotisationSansCagnotte && organizerStripeStatus !== "actif";
 
