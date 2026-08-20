@@ -477,6 +477,14 @@ Déclenché par l'obligation Amazon Partenaires de mentionner "En tant que Parte
 
 Constaté en vérifiant la cohérence de la page d'accueil : le pied de page (`components/accueil/AccueilClient.tsx`) contient des liens "À propos" et "Aide" qui ne mènent nulle part (`href="#"`), en plus des trois pages légales déjà construites (mentions légales, CGU, CGV) et du lien "Confidentialité" — celui-ci restera un lien mort tant que la politique de confidentialité RGPD elle-même n'est pas rédigée (déjà noté comme hors périmètre dans "Pages légales" ci-dessus). Décision du 19 août 2026 : reporté, à recadrer plus tard (contenu à définir : une vraie page "À propos", une FAQ/aide dédiée ou un renvoi vers `contact@kdovie.com`) — ne pas construire ces pages sans en rediscuter d'abord.
 
+## Backlog produit : QR code imprimable et personnalisé (20 août 2026)
+
+Reporté, à ne pas commencer maintenant — noté suite à une discussion sur la meilleure façon pour un organisateur de diffuser le lien de sa liste. Conclusion de cette discussion : l'email d'invitation et le lien copié restent le canal principal (déjà construits), le QR code (`VisibiliteListe.tsx`, généré aujourd'hui via `api.qrserver.com`, affiché en HTML uniquement) prend surtout sa valeur comme pont vers le support physique — faire-part, affichette posée sur une table le jour J. Trois pistes identifiées pour mieux servir cet usage, à recadrer plus précisément le moment venu :
+
+- **QR code imprimable** : aujourd'hui juste affiché à l'écran, pas d'export en bonne résolution. Ajouter un moyen de le télécharger (PNG/SVG) en qualité suffisante pour une impression sur un faire-part ou une affichette, pas seulement pour un écran.
+- **Logo Kdovie au centre du QR code** : `api.qrserver.com` ne le permet pas nativement — nécessiterait soit un autre service, soit une génération maison (ex. librairie `qrcode` + overlay du logo canonique en niveau de correction d'erreur élevé pour rester scannable).
+- **Mockup marketing du QR code glissé entre la coque et le téléphone** : pas une fonctionnalité du produit lui-même, mais un visuel illustrant un usage concret (le QR imprimé en petit format, glissé derrière la coque, toujours à portée de main pour le montrer/le faire scanner sans ouvrir l'app) — utile pour une image de communication (ex. post LinkedIn/Instagram via le skill `community-manager`) plutôt que pour le code du produit.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
