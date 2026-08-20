@@ -443,7 +443,8 @@ function ReservationModal({
                   className="w-full rounded-[18px] border-2 border-[#F2DFC9] bg-white px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:ring-2 focus:ring-jaune"
                 />
                 <span className="text-sm text-[#8A7263]">
-                  Uniquement pour recevoir la confirmation de votre réservation.
+                  Surtout utile pour pouvoir annuler votre réservation si besoin — ce sera le
+                  seul moyen d&apos;y parvenir.
                 </span>
               </label>
               {erreur && <p className="text-sm text-corail-dark">{erreur}</p>}
