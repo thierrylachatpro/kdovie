@@ -11,6 +11,7 @@ export default async function ConnexionPage({
   const nextParam = params.next;
   const next = typeof nextParam === "string" ? nextParam : "/compte";
   const lienInvalide = params.erreur === "lien_invalide";
+  const compteDesactive = params.erreur === "compte_desactive";
 
   const supabase = await createClient();
   const {
@@ -128,7 +129,7 @@ export default async function ConnexionPage({
             Aucun mot de passe à retenir.
           </p>
 
-          <ConnexionForm next={next} lienInvalide={lienInvalide} />
+          <ConnexionForm next={next} lienInvalide={lienInvalide} compteDesactive={compteDesactive} />
 
           <p className="mt-6 text-sm leading-relaxed text-[#8A7263]">
             En vous connectant, vous acceptez nos{" "}

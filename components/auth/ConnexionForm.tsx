@@ -11,9 +11,11 @@ function estEmailValide(email: string) {
 export default function ConnexionForm({
   next,
   lienInvalide,
+  compteDesactive,
 }: {
   next: string;
   lienInvalide: boolean;
+  compteDesactive?: boolean;
 }) {
   const [email, setEmail] = useState("");
   const [touched, setTouched] = useState(false);
@@ -84,6 +86,12 @@ export default function ConnexionForm({
         <p className="rounded-2xl bg-[#F7E7D6] px-4.5 py-3.5 text-sm text-[#C0512A]">
           Ce lien de connexion n&apos;est plus valable, demandez-en un
           nouveau.
+        </p>
+      )}
+      {compteDesactive && (
+        <p className="rounded-2xl bg-[#F7E7D6] px-4.5 py-3.5 text-sm text-[#C0512A]">
+          Ce compte a été désactivé, contactez-nous à contact@kdovie.com si
+          vous pensez qu&apos;il s&apos;agit d&apos;une erreur.
         </p>
       )}
 

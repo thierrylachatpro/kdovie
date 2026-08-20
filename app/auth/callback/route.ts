@@ -13,6 +13,14 @@ export async function GET(request: Request) {
     const supabase = await createClient();
     const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      const desactive = await compteDesactive(data.user.id);
+      if (desactive) {
+        await supabase.auth.signOut();
+        const redirectUrl = new URL("/connexion", origin);
+        redirectUrl.searchParams.set("erreur", "compte_desactive");
+        return NextResponse.redirect(redirectUrl);
+      }
+
       await envoyerBienvenueSiPremiereConnexion(data.user.id, data.user.email);
       return NextResponse.redirect(`${origin}${next}`);
     }
@@ -21,6 +29,25 @@ export async function GET(request: Request) {
   const redirectUrl = new URL("/connexion", origin);
   redirectUrl.searchParams.set("erreur", "lien_invalide");
   return NextResponse.redirect(redirectUrl);
+}
+
+// Bloque la connexion d'un organisateur désactivé par un super-administrateur
+// (profiles.disabled, migration 0019) — voir CLAUDE.md > "Dashboard
+// super-administrateur — CRUD organisateurs". Vérifié ici, juste après
+// l'échange de session : c'est le seul point de passage obligé pour
+// obtenir une session, contrairement au Send Email Hook qui n'intercepte
+// que l'envoi du lien et ne bloquerait pas un lien déjà reçu avant la
+// désactivation. Une session déjà active au moment de la désactivation
+// n'est pas coupée en cours de route par ce mécanisme (limite connue,
+// acceptable pour cette première version).
+async function compteDesactive(userId: string): Promise<boolean> {
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("disabled")
+    .eq("id", userId)
+    .single();
+  return profile?.disabled === true;
 }
 
 // Email de bienvenue à la toute première connexion réussie d'un
