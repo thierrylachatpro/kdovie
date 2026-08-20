@@ -3,28 +3,27 @@
 import { useFormStatus } from "react-dom";
 import { startStripeOnboarding } from "@/app/compte/profil/stripe-actions";
 import KdovieSpinner from "@/components/ui/KdovieSpinner";
+import type { OrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 
-export type StripeStatus = "non_connecte" | "en_attente" | "actif";
-
-const STATUS_LABEL: Record<StripeStatus, string> = {
-  non_connecte: "Non connecté",
+const STATUS_LABEL: Record<OrganizerStripeStatus, string> = {
+  aucun: "Non connecté",
   en_attente: "En attente de vérification",
   actif: "Actif",
 };
 
-const STATUS_CLASS: Record<StripeStatus, string> = {
-  non_connecte: "bg-[#F2DFC9] text-[#8A7263]",
+const STATUS_CLASS: Record<OrganizerStripeStatus, string> = {
+  aucun: "bg-[#F2DFC9] text-[#8A7263]",
   en_attente: "bg-[#F5E3C9] text-[#7A5A16]",
   actif: "bg-[#DCE7DA] text-[#2F4A2C]",
 };
 
-const BUTTON_LABEL: Record<StripeStatus, string> = {
-  non_connecte: "Activer les cagnottes",
+const BUTTON_LABEL: Record<OrganizerStripeStatus, string> = {
+  aucun: "Activer les cagnottes",
   en_attente: "Continuer la vérification",
   actif: "Gérer mon compte Stripe",
 };
 
-function SubmitButton({ status }: { status: StripeStatus }) {
+function SubmitButton({ status }: { status: OrganizerStripeStatus }) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -38,7 +37,7 @@ function SubmitButton({ status }: { status: StripeStatus }) {
   );
 }
 
-export default function StripeStatusCard({ status }: { status: StripeStatus }) {
+export default function StripeStatusCard({ status }: { status: OrganizerStripeStatus }) {
   return (
     <section className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-[28px] bg-[#F7E7D6] p-6.5">
       <div className="max-w-105">
@@ -51,7 +50,7 @@ export default function StripeStatusCard({ status }: { status: StripeStatus }) {
           </span>
         </div>
         <p className="text-[15px] leading-relaxed text-[#7A6354]">
-          {status === "non_connecte" &&
+          {status === "aucun" &&
             "Pour recevoir l'argent de vos cagnottes directement et en toute sécurité, il vous faut un compte chez Stripe, notre partenaire de paiement. C'est rapide et gratuit."}
           {status === "en_attente" &&
             "Votre compte Stripe est créé, il ne reste qu'à confirmer votre identité — une formalité de sécurité de quelques minutes. En attendant, vos invités peuvent déjà cotiser normalement."}

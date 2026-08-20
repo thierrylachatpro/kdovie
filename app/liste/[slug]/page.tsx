@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import ListePubliqueClient from "@/components/gift-items/ListePubliqueClient";
 import type { FeeMode } from "@/lib/fee-calculation";
-import type { OrganizerStripeStatus } from "@/lib/organizer-stripe-status";
+import { deriveOrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 import { getAffiliateLink } from "@/lib/affiliate-link";
 import LiensLegaux from "@/components/layout/LiensLegaux";
 import NavConnecte from "@/components/layout/NavConnecte";
@@ -55,11 +55,7 @@ export default async function ListePubliquePage({
     .eq("organizer_id", event.organizer_id)
     .maybeSingle();
 
-  const organizerStripeStatus: OrganizerStripeStatus = !stripeAccount
-    ? "aucun"
-    : stripeAccount.payouts_enabled
-      ? "actif"
-      : "en_attente";
+  const organizerStripeStatus = deriveOrganizerStripeStatus(stripeAccount);
 
   const estOuverte = event.status === "ouverte";
 

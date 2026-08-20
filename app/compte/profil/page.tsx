@@ -5,9 +5,13 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
 import PseudoCard from "@/components/compte/PseudoCard";
-import StripeStatusCard, { type StripeStatus } from "@/components/compte/StripeStatusCard";
+import StripeStatusCard from "@/components/compte/StripeStatusCard";
 import LiensLegaux from "@/components/layout/LiensLegaux";
 import NavConnecte from "@/components/layout/NavConnecte";
+import {
+  deriveOrganizerStripeStatus,
+  type OrganizerStripeStatus,
+} from "@/lib/organizer-stripe-status";
 
 export default async function ProfilPage() {
   const supabase = await createClient();
@@ -31,7 +35,7 @@ export default async function ProfilPage() {
     .eq("organizer_id", user.id)
     .maybeSingle();
 
-  let stripeStatus: StripeStatus = "non_connecte";
+  let stripeStatus: OrganizerStripeStatus = "aucun";
   if (stripeAccount) {
     let payoutsEnabled = stripeAccount.payouts_enabled;
     // L'onboarding Stripe se termine hors de l'app (formulaire hébergé) —
@@ -56,7 +60,7 @@ export default async function ProfilPage() {
         // voir startStripeOnboarding.
       }
     }
-    stripeStatus = payoutsEnabled ? "actif" : "en_attente";
+    stripeStatus = deriveOrganizerStripeStatus({ payouts_enabled: payoutsEnabled });
   }
 
   const dateCreation = profile?.created_at

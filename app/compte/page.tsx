@@ -8,6 +8,7 @@ import DeconnexionButton from "@/components/auth/DeconnexionButton";
 import FilActivite, { type ActiviteItem } from "@/components/compte/FilActivite";
 import LiensLegaux from "@/components/layout/LiensLegaux";
 import NavConnecte from "@/components/layout/NavConnecte";
+import { deriveOrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 
 export default async function ComptePage() {
   const supabase = await createClient();
@@ -19,7 +20,7 @@ export default async function ComptePage() {
     redirect("/connexion");
   }
 
-  const [{ data: profile }, { data: events }] = await Promise.all([
+  const [{ data: profile }, { data: events }, { data: stripeAccount }] = await Promise.all([
     supabase.from("profiles").select("display_name").eq("id", user.id).single(),
     supabase
       .from("events")
@@ -27,7 +28,14 @@ export default async function ComptePage() {
       .eq("organizer_id", user.id)
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("organizer_stripe_accounts")
+      .select("payouts_enabled")
+      .eq("organizer_id", user.id)
+      .maybeSingle(),
   ]);
+
+  const organizerStripeStatus = deriveOrganizerStripeStatus(stripeAccount);
 
   const eventIds = (events ?? []).map((e) => e.id);
 
@@ -35,9 +43,29 @@ export default async function ComptePage() {
     eventIds.length > 0
       ? await supabase
           .from("gift_items")
-          .select("id, event_id, title, status, price_cents, funded_amount_cents, created_at")
+          .select(
+            "id, event_id, title, status, price_cents, funded_amount_cents, created_at, mode",
+          )
           .in("event_id", eventIds)
       : { data: [] };
+
+  // Bandeau d'incitation à activer la cagnotte Stripe — voir CLAUDE.md >
+  // "Bandeau d'incitation à activer sa cagnotte Stripe sur /compte". Ne
+  // compte que les articles encore susceptibles de recevoir une cotisation
+  // (status != 'reserve' : une fois verrouillé en réservation directe,
+  // l'option cotiser est masquée pour les invités, aucun risque de rupture
+  // sur cet article précis même si le mode dit encore 'auto').
+  const openEventIds = new Set(
+    (events ?? []).filter((e) => e.status === "ouverte").map((e) => e.id),
+  );
+  const risqueCotisationSansCagnotte = (giftItems ?? []).some(
+    (item) =>
+      openEventIds.has(item.event_id) &&
+      item.status !== "reserve" &&
+      (item.mode === "auto" || item.mode === "cotisation_obligatoire"),
+  );
+  const afficherBandeauCagnotte =
+    risqueCotisationSansCagnotte && organizerStripeStatus !== "actif";
 
   const [{ data: reservations }, { data: contributions }] = await Promise.all([
     supabase
@@ -168,6 +196,29 @@ export default async function ComptePage() {
             + Nouvelle liste
           </Link>
         </section>
+
+        {afficherBandeauCagnotte && (
+          <section className="mb-8 flex flex-wrap items-center justify-between gap-5 rounded-[28px] bg-[#F5E3C9] p-6.5">
+            <div className="max-w-130">
+              <h2 className="font-heading mb-1.5 text-lg font-bold text-[#7A5A16]">
+                {organizerStripeStatus === "aucun"
+                  ? "Activez votre cagnotte"
+                  : "Terminez la vérification de votre cagnotte"}
+              </h2>
+              <p className="text-[15px] leading-relaxed text-[#6B5426]">
+                {organizerStripeStatus === "aucun"
+                  ? "Certains de vos cadeaux acceptent les cotisations, mais vous n'avez pas encore connecté votre cagnotte pour recevoir l'argent."
+                  : "Votre cagnotte est en cours de vérification : terminez sa configuration pour pouvoir recevoir l'argent de vos cotisations."}
+              </p>
+            </div>
+            <Link
+              href="/compte/profil"
+              className="font-heading flex-none rounded-2xl bg-corail px-5 py-3.5 text-[15px] font-bold text-creme hover:bg-[#D45F37]"
+            >
+              {organizerStripeStatus === "aucun" ? "Activer ma cagnotte" : "Terminer la vérification"}
+            </Link>
+          </section>
+        )}
 
         <section className="mb-8 flex flex-wrap items-center gap-x-5.5 gap-y-2.5 text-[15px] text-[#7A6354]">
           <span className="inline-flex items-center gap-2">
