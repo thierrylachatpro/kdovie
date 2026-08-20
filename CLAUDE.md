@@ -501,6 +501,20 @@ Extension du dashboard admin existant (`/admin`, listes supprimées) avec un CRU
 
 **Testé** : `tsc`/`lint`/`build` propres. Rendu vérifié par capture d'écran avec des données bouchon (liste, édition de pseudo, confirmation de désactivation) — conforme. **Statut migration (20 août 2026)** : `0019_profiles_disabled.sql` appliquée sur les deux bases, `profiles.disabled` confirmée présente par requête REST directe sur la base de dev (`hvyinuoebkzghrbcbnqa`, historique de migration réparé via `supabase migration repair` après une première application manuelle par l'utilisateur via le SQL Editor) et sur la base de prod (`ppsaiaesnvwnkzjisvdr`). **Pas encore testé en conditions réelles** : le dashboard `/admin/organisateurs` lui-même (liste, édition de pseudo, désactivation) et le blocage de connexion dans le callback n'ont pas été exercés contre de vraies données/un vrai compte — la colonne existe, mais le flux complet reste à vérifier.
 
+## Bandeau d'incitation à activer sa cagnotte Stripe sur /compte (20 août 2026)
+
+Ajustement produit demandé par l'utilisateur, à traiter (pas un report backlog comme les sections précédentes) : un organisateur peut créer des articles en mode cotisation (`automatique` ou `cotisation_obligatoire`, voir "Règle de gestion : réservation vs cotisation par article") sans jamais être passé par la connexion de son compte Stripe (`/compte/profil`, bloc "Ma cagnotte"). Un invité qui tente de cotiser sur une liste ouverte dans ce cas tombe potentiellement dans un cas non prévu si aucun compte Stripe n'existe (`OrganizerStripeStatus` "aucun" — pas de `stripe_account_id` à fournir en `transfer_data.destination`, la création de la Checkout Session échouerait probablement). Le statut "en_attente" (compte créé, vérification en cours) reste géré correctement aujourd'hui côté invité (cotisation possible, reversement différé, voir tâche #18) — pas le même risque de rupture, mais l'organisateur a quand même intérêt à finaliser rapidement pour recevoir l'argent déjà cotisé.
+
+Objectif : rendre ce manque visible à l'organisateur avant qu'un invité ne s'y heurte, directement sur son tableau de bord plutôt que de le découvrir a posteriori.
+
+- **Déclencheur** : sur `/compte`, si l'organisateur a au moins un `gift_item` en mode `automatique` ou `cotisation_obligatoire` sur l'une de ses listes **ouvertes** (`events.status = 'ouverte'`, `deleted_at is null` — les brouillons ne sont pas concernés, aucun invité n'y a accès tant qu'elles ne sont pas ouvertes) **et** que son statut Stripe (`OrganizerStripeStatus`, `lib/organizer-stripe-status.ts`) n'est pas `"actif"`.
+- **Contenu du bandeau**, wording différent selon le cas (ton chaleureux, sans jargon technique — cohérent avec la réécriture du bloc "Ma cagnotte" du 18 août) :
+  - `"aucun"` : inviter à **créer** sa cagnotte — ex. "Certains de vos cadeaux acceptent les cotisations, mais vous n'avez pas encore connecté votre cagnotte pour recevoir l'argent."
+  - `"en_attente"` : inviter à **finaliser** — ex. "Votre cagnotte est en cours de vérification : terminez sa configuration pour pouvoir recevoir l'argent de vos cotisations."
+  - Bouton d'action vers `/compte/profil` dans les deux cas (pas de formulaire/onboarding inline sur le dashboard).
+- **Bien visible** : en haut du dashboard, au-dessus de la liste des listes — pas un encart discret perdu au milieu d'autre chose.
+- **Logique de statut à réutiliser, pas dupliquer une troisième fois** : le calcul (compte `organizer_stripe_accounts` existant ? `payouts_enabled` ?) existe déjà en deux endroits (`app/liste/[slug]/page.tsx` lignes ~52-62, et `/compte/profil`) — bonne occasion d'en extraire une fonction partagée (ex. dans `lib/organizer-stripe-status.ts`, qui ne contient aujourd'hui que le type) plutôt que de recopier la requête Supabase une troisième fois sur `/compte`.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
