@@ -4,6 +4,7 @@ import { useState, type ChangeEvent } from "react";
 import { updateEvent } from "@/app/compte/evenements/[slug]/event-actions";
 import { EVENT_TYPES, eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import KdovieSpinner from "@/components/ui/KdovieSpinner";
+import SupprimerListeButton from "@/components/evenements/SupprimerListeButton";
 
 export default function EnTeteListe({
   eventId,
@@ -178,6 +179,10 @@ export default function EnTeteListe({
         >
           Annuler
         </button>
+      </div>
+
+      <div className="mt-7 border-t border-[#F2DFC9] pt-6">
+        <SupprimerListeButton eventId={eventId} slug={slug} />
       </div>
     </section>
   );
