@@ -23,7 +23,7 @@ export default function PageLegale({
         <span className="flex-[1] bg-sauge" />
       </div>
 
-      <header className="mx-auto flex w-full max-w-[900px] flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10">
+      <header className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10">
         <Link href="/" className="inline-flex items-center gap-2.5">
           <svg
             viewBox="0 0 56 56"
@@ -51,7 +51,7 @@ export default function PageLegale({
         <NavConnecte estConnecte={estConnecte} />
       </header>
 
-      <main className="mx-auto w-full max-w-[820px] flex-1 px-6 pt-4 pb-20 sm:px-10">
+      <main className="mx-auto w-full max-w-[720px] flex-1 px-6 pt-4 pb-20 sm:px-10">
         <h1 className="font-heading mb-8 text-[36px] leading-[1.15] font-bold text-corail">
           {title}
         </h1>

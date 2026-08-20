@@ -38,7 +38,7 @@ export default async function AnnulerReservationPage({
         <span className="flex-1 bg-sauge" />
       </div>
 
-      <header className="mx-auto flex w-full max-w-[1100px] flex-wrap items-center justify-between gap-5 px-6 py-5 sm:px-10">
+      <header className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-5 px-6 py-5 sm:px-10">
         <Link href="/" className="inline-flex items-center gap-2.5">
           <svg
             viewBox="0 0 56 56"
@@ -113,7 +113,7 @@ export default async function AnnulerReservationPage({
       </main>
 
       <footer className="bg-[#F7E7D6] px-6 py-6.5 sm:px-10">
-        <div className="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
+        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
           <span>© 2026 kdovie</span>
           <nav className="flex flex-wrap items-center gap-6">
             <LiensLegaux className="hover:text-corail" />

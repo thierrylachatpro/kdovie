@@ -208,7 +208,7 @@ export default function AccueilClient({ estConnecte }: { estConnecte: boolean })
         <span className="flex-1 bg-sauge" />
       </div>
 
-      <header className="mx-auto flex w-full max-w-[1240px] flex-wrap items-center justify-between gap-6 px-6 py-5 sm:px-10">
+      <header className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-6 px-6 py-5 sm:px-10">
         <div className="flex items-center gap-2.5">
           <svg
             viewBox="0 0 56 56"
@@ -267,7 +267,7 @@ export default function AccueilClient({ estConnecte }: { estConnecte: boolean })
         )}
       </header>
 
-      <section className="mx-auto grid w-full max-w-[1240px] items-center gap-14 px-6 py-12 sm:px-10 sm:py-16 md:grid-cols-2">
+      <section className="mx-auto grid w-full max-w-[1180px] items-center gap-14 px-6 py-12 sm:px-10 sm:py-16 md:grid-cols-2">
         <div>
           <div className="mb-6 inline-flex items-center gap-2 rounded-full bg-[#F5E3C9] px-3.5 py-2 text-sm font-semibold text-[#7A5A16]">
             Un seul compte, toute une vie de cadeaux
@@ -367,7 +367,7 @@ export default function AccueilClient({ estConnecte }: { estConnecte: boolean })
       </section>
 
       <section id="comment" className="bg-[#F7E7D6] px-6 py-20 sm:px-10">
-        <div className="mx-auto max-w-[1240px]">
+        <div className="mx-auto max-w-[1180px]">
           <h2 className="font-heading text-center text-3xl font-bold text-[#C0512A] sm:text-4xl">
             Trois étapes, et c&apos;est parti
           </h2>
@@ -425,7 +425,7 @@ export default function AccueilClient({ estConnecte }: { estConnecte: boolean })
 
       <section
         id="evenements"
-        className="mx-auto max-w-[1240px] px-6 py-16 sm:px-10 sm:py-20"
+        className="mx-auto max-w-[1180px] px-6 py-16 sm:px-10 sm:py-20"
       >
         <div className="mb-9 text-center">
           <h2 className="font-heading text-3xl font-bold text-[#C0512A] sm:text-4xl">
@@ -504,7 +504,7 @@ export default function AccueilClient({ estConnecte }: { estConnecte: boolean })
       </section>
 
       <section id="cagnotte" className="bg-[#F7E7D6] px-6 py-20 sm:px-10">
-        <div className="mx-auto grid max-w-[1240px] items-center gap-14 md:grid-cols-2">
+        <div className="mx-auto grid max-w-[1180px] items-center gap-14 md:grid-cols-2">
           <div>
             <div className="mb-5 inline-flex rounded-full bg-corail px-3.5 py-2 text-sm font-semibold text-creme">
               Cagnotte fractionnée
@@ -586,7 +586,7 @@ export default function AccueilClient({ estConnecte }: { estConnecte: boolean })
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1240px] px-6 py-16 sm:px-10 sm:py-20">
+      <section className="mx-auto max-w-[1180px] px-6 py-16 sm:px-10 sm:py-20">
         <h2 className="font-heading mb-10 text-center text-3xl font-bold text-[#C0512A] sm:text-4xl">
           Pensé pour toute la famille
         </h2>
@@ -671,7 +671,7 @@ export default function AccueilClient({ estConnecte }: { estConnecte: boolean })
         </div>
       </section>
 
-      <section className="mx-auto max-w-[1240px] px-6 pb-20 sm:px-10">
+      <section className="mx-auto max-w-[1180px] px-6 pb-20 sm:px-10">
         <div className="rounded-[36px] bg-corail px-8 py-16 text-center sm:px-12">
           <h2 className="font-heading text-3xl leading-tight font-bold text-creme sm:text-4xl lg:text-[44px]">
             La prochaine occasion arrive vite
@@ -690,7 +690,7 @@ export default function AccueilClient({ estConnecte }: { estConnecte: boolean })
       </section>
 
       <footer className="bg-[#F7E7D6] px-6 py-11 sm:px-10">
-        <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-5">
+        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-5">
           <div className="flex items-center gap-2.5">
             <svg
               viewBox="0 0 56 56"

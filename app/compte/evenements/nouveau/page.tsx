@@ -66,7 +66,7 @@ export default async function NouvelEvenementPage({
         <NavConnecte estConnecte={true} />
       </header>
 
-      <main className="mx-auto flex w-full max-w-[680px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">
+      <main className="mx-auto flex w-full max-w-[720px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">
         <h1 className="font-heading text-[40px] leading-[1.1] font-bold text-corail">
           Nouvelle liste
         </h1>

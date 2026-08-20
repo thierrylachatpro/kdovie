@@ -9,7 +9,7 @@ export default function ListeNotFound() {
         <span className="flex-[1] bg-sauge" />
       </div>
 
-      <header className="mx-auto flex w-full max-w-[1100px] flex-wrap items-center justify-between gap-5 px-6 py-5 sm:px-10">
+      <header className="mx-auto flex w-full max-w-[1180px] flex-wrap items-center justify-between gap-5 px-6 py-5 sm:px-10">
         <Link href="/" className="inline-flex items-center gap-2.5">
           <svg
             viewBox="0 0 56 56"
@@ -39,7 +39,7 @@ export default function ListeNotFound() {
         </Link>
       </header>
 
-      <main className="mx-auto flex w-full max-w-[1100px] flex-1 flex-col px-6 pt-6 pb-20 sm:px-10">
+      <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-6 pt-6 pb-20 sm:px-10">
         <section className="mt-6 rounded-[32px] border-2 border-[#F2DFC9] bg-white px-10 py-16 text-center">
           <div className="mx-auto mb-5.5 flex h-18 w-18 items-center justify-center rounded-[24px] bg-[#F7E7D6] text-3xl">
             🔗
@@ -61,7 +61,7 @@ export default function ListeNotFound() {
       </main>
 
       <footer className="bg-[#F7E7D6] px-6 py-6.5 sm:px-10">
-        <div className="mx-auto flex max-w-[1100px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
+        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
           <span>© 2026 kdovie</span>
           <nav className="flex flex-wrap items-center gap-6">
             <Link href="/aide" className="hover:text-corail">
