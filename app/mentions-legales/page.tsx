@@ -12,8 +12,18 @@ export default async function MentionsLegalesPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  let pseudo: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single();
+    pseudo = profile?.display_name?.trim() || null;
+  }
+
   return (
-    <PageLegale title="Mentions légales" estConnecte={Boolean(user)}>
+    <PageLegale title="Mentions légales" estConnecte={Boolean(user)} pseudo={pseudo}>
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">Éditeur du site</h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">

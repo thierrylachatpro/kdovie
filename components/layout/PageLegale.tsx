@@ -9,10 +9,12 @@ import NavConnecte from "@/components/layout/NavConnecte";
 export default function PageLegale({
   title,
   estConnecte = false,
+  pseudo = null,
   children,
 }: {
   title: string;
   estConnecte?: boolean;
+  pseudo?: string | null;
   children: ReactNode;
 }) {
   return (
@@ -48,7 +50,7 @@ export default function PageLegale({
             kdovie
           </span>
         </Link>
-        <NavConnecte estConnecte={estConnecte} />
+        <NavConnecte estConnecte={estConnecte} pseudo={pseudo} />
       </header>
 
       <main className="mx-auto w-full max-w-[720px] flex-1 px-6 pt-4 pb-20 sm:px-10">

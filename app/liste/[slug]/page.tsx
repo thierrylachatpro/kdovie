@@ -138,7 +138,7 @@ export default async function ListePubliquePage({
             <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
           </span>
         </Link>
-        <NavConnecte estConnecte={estProprietaire} />
+        <NavConnecte estConnecte={estProprietaire} pseudo={organizerPseudo} />
       </header>
 
       <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-6 pt-5 pb-20 sm:px-10">

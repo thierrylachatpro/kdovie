@@ -27,6 +27,13 @@ export default async function NouvelEvenementPage({
     redirect("/connexion");
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("display_name")
+    .eq("id", user.id)
+    .single();
+  const pseudo = profile?.display_name?.trim() || null;
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex h-2">
@@ -63,7 +70,7 @@ export default async function NouvelEvenementPage({
             <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
           </span>
         </Link>
-        <NavConnecte estConnecte={true} />
+        <NavConnecte estConnecte={true} pseudo={pseudo} />
       </header>
 
       <main className="mx-auto flex w-full max-w-[720px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">

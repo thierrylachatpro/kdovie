@@ -178,7 +178,13 @@ function formatEuros(montant: number) {
   return `${montant.toLocaleString("fr-FR")} €`;
 }
 
-export default function AccueilClient({ estConnecte }: { estConnecte: boolean }) {
+export default function AccueilClient({
+  estConnecte,
+  pseudo,
+}: {
+  estConnecte: boolean;
+  pseudo: string | null;
+}) {
   const [occasionIndex, setOccasionIndex] = useState(0);
   const [pot, setPot] = useState(780);
   const [backers, setBackers] = useState(5);
@@ -248,7 +254,7 @@ export default function AccueilClient({ estConnecte }: { estConnecte: boolean })
           </a>
         </nav>
         {estConnecte ? (
-          <NavConnecte estConnecte={estConnecte} />
+          <NavConnecte estConnecte={estConnecte} pseudo={pseudo} />
         ) : (
           <div className="flex items-center gap-3">
             <Link

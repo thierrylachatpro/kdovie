@@ -55,6 +55,7 @@ export default async function ComptePage() {
 
   const nomAffiche = profile?.display_name?.trim() || user.email?.split("@")[0] || "";
   const prenom = nomAffiche.split(/\s+/)[0] ?? "";
+  const pseudo = profile?.display_name?.trim() || null;
 
   const itemsParEvenement = new Map<string, typeof giftItems>();
   (giftItems ?? []).forEach((item) => {
@@ -145,7 +146,7 @@ export default async function ComptePage() {
             <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
           </span>
         </Link>
-        <NavConnecte estConnecte={true} />
+        <NavConnecte estConnecte={true} pseudo={pseudo} />
       </header>
 
       <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">

@@ -7,5 +7,15 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  return <AccueilClient estConnecte={Boolean(user)} />;
+  let pseudo: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single();
+    pseudo = profile?.display_name?.trim() || null;
+  }
+
+  return <AccueilClient estConnecte={Boolean(user)} pseudo={pseudo} />;
 }

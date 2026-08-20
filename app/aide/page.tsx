@@ -27,8 +27,18 @@ export default async function AidePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  let pseudo: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single();
+    pseudo = profile?.display_name?.trim() || null;
+  }
+
   return (
-    <PageLegale title="Aide" estConnecte={Boolean(user)}>
+    <PageLegale title="Aide" estConnecte={Boolean(user)} pseudo={pseudo}>
       <p className="text-[16px] leading-relaxed text-[#5C4436]">
         Les réponses aux questions les plus fréquentes, organisateurs comme invités. Vous ne
         trouvez pas la vôtre ? Écrivez-nous à{" "}

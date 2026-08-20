@@ -6,8 +6,16 @@ import Link from "next/link";
 // jamais masqués même sur la page qu'ils désignent. Rendu null si
 // déconnecté : chaque page garde son en-tête actuel dans ce cas (hors
 // périmètre de cette unification).
-export default function NavConnecte({ estConnecte }: { estConnecte: boolean }) {
+export default function NavConnecte({
+  estConnecte,
+  pseudo,
+}: {
+  estConnecte: boolean;
+  pseudo?: string | null;
+}) {
   if (!estConnecte) return null;
+
+  const initiales = pseudo ? pseudo.slice(0, 2).toUpperCase() : null;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -19,9 +27,14 @@ export default function NavConnecte({ estConnecte }: { estConnecte: boolean }) {
       </Link>
       <Link
         href="/compte/profil"
-        className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
+        className="inline-flex items-center gap-2.5 rounded-2xl bg-corail py-[7px] pr-4 pl-[7px] hover:bg-[#D45F37]"
       >
-        Mon compte
+        <span className="font-heading flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[11px] bg-creme text-[15px] font-bold text-corail">
+          {initiales}
+        </span>
+        <span className="font-heading text-[15px] font-bold text-creme">
+          {pseudo || "Mon compte"}
+        </span>
       </Link>
     </div>
   );

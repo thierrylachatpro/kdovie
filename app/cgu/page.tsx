@@ -12,8 +12,18 @@ export default async function CguPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  let pseudo: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single();
+    pseudo = profile?.display_name?.trim() || null;
+  }
+
   return (
-    <PageLegale title="Conditions générales d'utilisation" estConnecte={Boolean(user)}>
+    <PageLegale title="Conditions générales d'utilisation" estConnecte={Boolean(user)} pseudo={pseudo}>
       <p className="text-[15px] text-[#8A7263] italic">Dernière mise à jour : 18 août 2026</p>
 
       <section className="flex flex-col gap-3">

@@ -18,6 +18,16 @@ export default async function ConnexionPage({
   } = await supabase.auth.getUser();
   const estConnecte = Boolean(user);
 
+  let pseudo: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("display_name")
+      .eq("id", user.id)
+      .single();
+    pseudo = profile?.display_name?.trim() || null;
+  }
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex h-2">
@@ -57,7 +67,7 @@ export default async function ConnexionPage({
           </span>
         </Link>
         {estConnecte ? (
-          <NavConnecte estConnecte={estConnecte} />
+          <NavConnecte estConnecte={estConnecte} pseudo={pseudo} />
         ) : (
           <Link
             href="/aide"
