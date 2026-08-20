@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
 import PageLegale from "@/components/layout/PageLegale";
 
 export const metadata: Metadata = {
   title: "Conditions générales de vente | Kdovie",
 };
 
-export default function CgvPage() {
+export default async function CgvPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
-    <PageLegale title="Conditions générales de vente">
+    <PageLegale title="Conditions générales de vente" estConnecte={Boolean(user)}>
       <p className="font-heading text-lg font-bold text-[#4A3529]">
         Cette page est en cours de rédaction.
       </p>

@@ -67,9 +67,9 @@ export default function ListeNotFound() {
             <Link href="/aide" className="hover:text-corail">
               Aide
             </Link>
-            <a href="#" className="hover:text-corail">
+            <Link href="/contact" className="hover:text-corail">
               Contact
-            </a>
+            </Link>
             <Link href="/" className="hover:text-corail">
               Créer ma propre liste
             </Link>

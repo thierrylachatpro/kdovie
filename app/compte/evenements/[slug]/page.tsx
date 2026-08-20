@@ -3,7 +3,6 @@ import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import type { EventStatus } from "@/lib/event-status";
-import { initiales } from "@/lib/initials";
 import { sortGiftItems } from "@/lib/gift-item-sort";
 import EnTeteListe from "@/components/evenements/EnTeteListe";
 import VisibiliteListe from "@/components/evenements/VisibiliteListe";
@@ -11,6 +10,7 @@ import SupprimerListeButton from "@/components/evenements/SupprimerListeButton";
 import AjouterArticleForm from "@/components/gift-items/AjouterArticleForm";
 import GiftItemCard from "@/components/gift-items/GiftItemCard";
 import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavConnecte from "@/components/layout/NavConnecte";
 
 const MESSAGES_ERREUR: Record<string, string> = {
   champs_invalides: "Merci de renseigner au moins le lien et le titre de l'article.",
@@ -35,16 +35,13 @@ export default async function EvenementPage({
     redirect("/connexion");
   }
 
-  const [{ data: profile }, { data: event }] = await Promise.all([
-    supabase.from("profiles").select("display_name").eq("id", user.id).single(),
-    supabase
-      .from("events")
-      .select("id, type, name, slug, event_date, status")
-      .eq("slug", slug)
-      .eq("organizer_id", user.id)
-      .is("deleted_at", null)
-      .single(),
-  ]);
+  const { data: event } = await supabase
+    .from("events")
+    .select("id, type, name, slug, event_date, status")
+    .eq("slug", slug)
+    .eq("organizer_id", user.id)
+    .is("deleted_at", null)
+    .single();
 
   if (!event) {
     notFound();
@@ -95,8 +92,6 @@ export default async function EvenementPage({
       ? "Aucun cadeau verrouillé"
       : `${lockedCount} cadeau${lockedCount > 1 ? "x" : ""} verrouillé${lockedCount > 1 ? "s" : ""} par vos invités`;
 
-  const nomAffiche = profile?.display_name?.trim() || user.email?.split("@")[0] || "";
-
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex h-2">
@@ -133,28 +128,7 @@ export default async function EvenementPage({
             <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
           </span>
         </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/compte"
-            className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
-          >
-            Voir toutes mes listes
-          </Link>
-          <Link
-            href="/compte/profil"
-            className="flex items-center gap-2.5 rounded-[18px] bg-[#F7E7D6] py-2 pr-4 pl-2 hover:bg-[#F2DFC9]"
-          >
-            <span className="font-heading flex h-9 w-9 items-center justify-center rounded-xl bg-corail text-[16px] font-bold text-creme">
-              {initiales(nomAffiche)}
-            </span>
-            <span className="flex flex-col text-left leading-tight">
-              <span className="text-[15px] font-semibold text-[#4A3529]">
-                {nomAffiche || "Mon compte"}
-              </span>
-              <span className="text-[13px] text-[#8A7263]">Mon compte</span>
-            </span>
-          </Link>
-        </div>
+        <NavConnecte estConnecte={true} />
       </header>
 
       <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">
@@ -218,9 +192,9 @@ export default async function EvenementPage({
             <Link href="/aide" className="hover:text-corail">
               Aide
             </Link>
-            <a href="#" className="hover:text-corail">
+            <Link href="/contact" className="hover:text-corail">
               Contact
-            </a>
+            </Link>
             <LiensLegaux className="hover:text-corail" />
             <Link href="/compte" className="hover:text-corail">
               Mes listes

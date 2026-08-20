@@ -1,6 +1,8 @@
 import Link from "next/link";
 import ConnexionForm from "@/components/auth/ConnexionForm";
 import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavConnecte from "@/components/layout/NavConnecte";
+import { createClient } from "@/lib/supabase/server";
 
 export default async function ConnexionPage({
   searchParams,
@@ -9,6 +11,12 @@ export default async function ConnexionPage({
   const nextParam = params.next;
   const next = typeof nextParam === "string" ? nextParam : "/compte";
   const lienInvalide = params.erreur === "lien_invalide";
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const estConnecte = Boolean(user);
 
   return (
     <div className="flex flex-1 flex-col">
@@ -48,12 +56,16 @@ export default async function ConnexionPage({
             </span>
           </span>
         </Link>
-        <Link
-          href="/aide"
-          className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
-        >
-          Aide
-        </Link>
+        {estConnecte ? (
+          <NavConnecte estConnecte={estConnecte} />
+        ) : (
+          <Link
+            href="/aide"
+            className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
+          >
+            Aide
+          </Link>
+        )}
       </header>
 
       <main className="mx-auto grid w-full max-w-[1180px] flex-1 items-center gap-16 px-6 py-6 sm:px-10 sm:py-10 md:grid-cols-2">
@@ -129,9 +141,9 @@ export default async function ConnexionPage({
             <Link href="/aide" className="hover:text-corail">
               Aide
             </Link>
-            <a href="#" className="hover:text-corail">
+            <Link href="/contact" className="hover:text-corail">
               Contact
-            </a>
+            </Link>
             <LiensLegaux className="hover:text-corail" />
             <Link href="/" className="hover:text-corail">
               Retour à l&apos;accueil

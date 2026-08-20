@@ -199,9 +199,9 @@ export default async function ListePubliquePage({
             <Link href="/aide" className="hover:text-corail">
               Aide
             </Link>
-            <a href="#" className="hover:text-corail">
+            <Link href="/contact" className="hover:text-corail">
               Contact
-            </a>
+            </Link>
             <LiensLegaux className="hover:text-corail" />
             <Link href="/" className="hover:text-corail">
               Créer ma propre liste

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
 import PageLegale from "@/components/layout/PageLegale";
 
 export const metadata: Metadata = {
@@ -20,9 +21,14 @@ function Question({ question, children }: { question: string; children: React.Re
   );
 }
 
-export default function AidePage() {
+export default async function AidePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
-    <PageLegale title="Aide">
+    <PageLegale title="Aide" estConnecte={Boolean(user)}>
       <p className="text-[16px] leading-relaxed text-[#5C4436]">
         Les réponses aux questions les plus fréquentes, organisateurs comme invités. Vous ne
         trouvez pas la vôtre ? Écrivez-nous à{" "}

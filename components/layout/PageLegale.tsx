@@ -1,10 +1,20 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavConnecte from "@/components/layout/NavConnecte";
 
-// Ossature commune aux trois pages légales — voir CLAUDE.md > "Pages
-// légales : mentions légales, CGU, CGV".
-export default function PageLegale({ title, children }: { title: string; children: ReactNode }) {
+// Ossature commune aux pages "sobres" (mentions légales, CGU, CGV, Aide,
+// Contact) — voir CLAUDE.md > "Pages légales : mentions légales, CGU, CGV"
+// et "En-tête unifié pour les organisateurs connectés + page Contact".
+export default function PageLegale({
+  title,
+  estConnecte = false,
+  children,
+}: {
+  title: string;
+  estConnecte?: boolean;
+  children: ReactNode;
+}) {
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex h-2">
@@ -13,7 +23,7 @@ export default function PageLegale({ title, children }: { title: string; childre
         <span className="flex-[1] bg-sauge" />
       </div>
 
-      <header className="mx-auto flex w-full max-w-[900px] items-center px-6 py-5 sm:px-10">
+      <header className="mx-auto flex w-full max-w-[900px] flex-wrap items-center justify-between gap-4 px-6 py-5 sm:px-10">
         <Link href="/" className="inline-flex items-center gap-2.5">
           <svg
             viewBox="0 0 56 56"
@@ -38,6 +48,7 @@ export default function PageLegale({ title, children }: { title: string; childre
             kdovie
           </span>
         </Link>
+        <NavConnecte estConnecte={estConnecte} />
       </header>
 
       <main className="mx-auto w-full max-w-[820px] flex-1 px-6 pt-4 pb-20 sm:px-10">
@@ -54,9 +65,9 @@ export default function PageLegale({ title, children }: { title: string; childre
             <Link href="/aide" className="hover:text-corail">
               Aide
             </Link>
-            <a href="#" className="hover:text-corail">
+            <Link href="/contact" className="hover:text-corail">
               Contact
-            </a>
+            </Link>
             <LiensLegaux className="hover:text-corail" />
             <Link href="/" className="hover:text-corail">
               Retour à l&apos;accueil

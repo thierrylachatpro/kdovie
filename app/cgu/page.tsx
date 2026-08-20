@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
 import PageLegale from "@/components/layout/PageLegale";
 
 export const metadata: Metadata = {
   title: "Conditions générales d'utilisation | Kdovie",
 };
 
-export default function CguPage() {
+export default async function CguPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
-    <PageLegale title="Conditions générales d'utilisation">
+    <PageLegale title="Conditions générales d'utilisation" estConnecte={Boolean(user)}>
       <p className="text-[15px] text-[#8A7263] italic">Dernière mise à jour : 18 août 2026</p>
 
       <section className="flex flex-col gap-3">

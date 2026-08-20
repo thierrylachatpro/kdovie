@@ -7,6 +7,7 @@ import DeconnexionButton from "@/components/auth/DeconnexionButton";
 import PseudoCard from "@/components/compte/PseudoCard";
 import StripeStatusCard, { type StripeStatus } from "@/components/compte/StripeStatusCard";
 import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavConnecte from "@/components/layout/NavConnecte";
 
 export default async function ProfilPage() {
   const supabase = await createClient();
@@ -103,20 +104,7 @@ export default async function ProfilPage() {
             <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
           </span>
         </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/aide"
-            className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
-          >
-            Aide
-          </Link>
-          <Link
-            href="/compte"
-            className="rounded-2xl bg-[#F7E7D6] px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F2DFC9]"
-          >
-            Mes listes
-          </Link>
-        </div>
+        <NavConnecte estConnecte={true} />
       </header>
 
       <main className="mx-auto flex w-full max-w-[720px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">
@@ -156,9 +144,9 @@ export default async function ProfilPage() {
             <Link href="/aide" className="hover:text-corail">
               Aide
             </Link>
-            <a href="#" className="hover:text-corail">
+            <Link href="/contact" className="hover:text-corail">
               Contact
-            </a>
+            </Link>
             <LiensLegaux className="hover:text-corail" />
             <Link href="/compte" className="hover:text-corail">
               Mes listes

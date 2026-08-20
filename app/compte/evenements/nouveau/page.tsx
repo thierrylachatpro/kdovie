@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { initiales } from "@/lib/initials";
 import NouvelEvenementForm from "@/components/evenements/NouvelEvenementForm";
 import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavConnecte from "@/components/layout/NavConnecte";
 
 const MESSAGES_ERREUR: Record<string, string> = {
   champs_invalides: "Merci de remplir le type et le nom de la liste.",
@@ -26,14 +26,6 @@ export default async function NouvelEvenementPage({
   if (!user) {
     redirect("/connexion");
   }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("display_name")
-    .eq("id", user.id)
-    .single();
-
-  const nomAffiche = profile?.display_name?.trim() || user.email?.split("@")[0] || "";
 
   return (
     <div className="flex flex-1 flex-col">
@@ -71,28 +63,7 @@ export default async function NouvelEvenementPage({
             <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
           </span>
         </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href="/compte"
-            className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
-          >
-            Voir toutes mes listes
-          </Link>
-          <Link
-            href="/compte/profil"
-            className="flex items-center gap-2.5 rounded-[18px] bg-[#F7E7D6] py-2 pr-4 pl-2 hover:bg-[#F2DFC9]"
-          >
-            <span className="font-heading flex h-9 w-9 items-center justify-center rounded-xl bg-corail text-[16px] font-bold text-creme">
-              {initiales(nomAffiche)}
-            </span>
-            <span className="flex flex-col text-left leading-tight">
-              <span className="text-[15px] font-semibold text-[#4A3529]">
-                {nomAffiche || "Mon compte"}
-              </span>
-              <span className="text-[13px] text-[#8A7263]">Mon compte</span>
-            </span>
-          </Link>
-        </div>
+        <NavConnecte estConnecte={true} />
       </header>
 
       <main className="mx-auto flex w-full max-w-[680px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">
@@ -118,9 +89,9 @@ export default async function NouvelEvenementPage({
             <Link href="/aide" className="hover:text-corail">
               Aide
             </Link>
-            <a href="#" className="hover:text-corail">
+            <Link href="/contact" className="hover:text-corail">
               Contact
-            </a>
+            </Link>
             <LiensLegaux className="hover:text-corail" />
             <Link href="/compte" className="hover:text-corail">
               Mes listes

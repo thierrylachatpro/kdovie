@@ -5,11 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import { eventStatusClassName, eventStatusLabel } from "@/lib/event-status";
 import { formatPriceCents } from "@/lib/gift-item";
-import { initiales } from "@/lib/initials";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
 import CopierLienButton from "@/components/evenements/CopierLienButton";
 import FilActivite, { type ActiviteItem } from "@/components/compte/FilActivite";
 import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavConnecte from "@/components/layout/NavConnecte";
 
 export default async function ComptePage() {
   const supabase = await createClient();
@@ -151,25 +151,7 @@ export default async function ComptePage() {
             <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
           </span>
         </Link>
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436]">
-            {user.email}
-          </span>
-          <Link
-            href="/compte/profil"
-            className="flex items-center gap-2.5 rounded-[18px] bg-[#F7E7D6] py-2 pr-4 pl-2 hover:bg-[#F2DFC9]"
-          >
-            <span className="font-heading flex h-9 w-9 items-center justify-center rounded-xl bg-corail text-[16px] font-bold text-creme">
-              {initiales(nomAffiche)}
-            </span>
-            <span className="flex flex-col text-left leading-tight">
-              <span className="text-[15px] font-semibold text-[#4A3529]">
-                {nomAffiche || "Mon compte"}
-              </span>
-              <span className="text-[13px] text-[#8A7263]">Mon compte</span>
-            </span>
-          </Link>
-        </div>
+        <NavConnecte estConnecte={true} />
       </header>
 
       <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-6 pt-4 pb-20 sm:px-10">
@@ -341,9 +323,9 @@ export default async function ComptePage() {
             <Link href="/aide" className="hover:text-corail">
               Aide
             </Link>
-            <a href="#" className="hover:text-corail">
+            <Link href="/contact" className="hover:text-corail">
               Contact
-            </a>
+            </Link>
             <LiensLegaux className="hover:text-corail" />
             <DeconnexionButton className="text-sm text-[#8A7263] hover:text-corail" />
           </nav>

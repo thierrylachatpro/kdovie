@@ -1,13 +1,19 @@
 import type { Metadata } from "next";
+import { createClient } from "@/lib/supabase/server";
 import PageLegale from "@/components/layout/PageLegale";
 
 export const metadata: Metadata = {
   title: "Mentions légales | Kdovie",
 };
 
-export default function MentionsLegalesPage() {
+export default async function MentionsLegalesPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
   return (
-    <PageLegale title="Mentions légales">
+    <PageLegale title="Mentions légales" estConnecte={Boolean(user)}>
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">Éditeur du site</h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
