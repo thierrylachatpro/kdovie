@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import RestaurerButton from "@/components/admin/RestaurerButton";
+import MaintenanceToggle from "@/components/admin/MaintenanceToggle";
 
 // Réservé aux comptes profiles.is_admin = true — 404 plutôt que redirection
 // pour ne rien laisser deviner de cette route à un compte non-admin. Voir
@@ -22,10 +23,16 @@ export default async function AdminPage() {
     .not("deleted_at", "is", null)
     .order("deleted_at", { ascending: false });
 
+  const { data: settings } = await admin
+    .from("app_settings")
+    .select("maintenance_mode")
+    .eq("id", 1)
+    .single();
+
   return (
     <div className="mx-auto max-w-[900px] px-6 py-10">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-3xl font-bold text-corail">Listes supprimées</h1>
+        <h1 className="font-heading text-3xl font-bold text-corail">Administration</h1>
         <Link
           href="/admin/organisateurs"
           className="text-sm font-semibold text-[#8A7263] underline hover:text-corail-dark"
@@ -33,6 +40,10 @@ export default async function AdminPage() {
           Organisateurs
         </Link>
       </div>
+
+      <MaintenanceToggle initialEnabled={settings?.maintenance_mode ?? false} />
+
+      <h2 className="mb-2 font-heading text-2xl font-bold text-corail">Listes supprimées</h2>
       <p className="mb-7 text-[15px] text-[#7A6354]">
         Restaurer une liste la rend à nouveau visible dans le tableau de bord de son
         organisateur d&apos;origine.

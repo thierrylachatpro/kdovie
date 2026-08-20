@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          id: number
+          maintenance_mode: boolean
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          maintenance_mode?: boolean
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          maintenance_mode?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       contributions: {
         Row: {
           amount_cents: number

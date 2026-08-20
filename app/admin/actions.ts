@@ -25,3 +25,26 @@ export async function restoreEvent(eventId: string): Promise<{ error: string | n
 
   return { error: error?.message ?? null };
 }
+
+// Bascule le site en/hors mode maintenance (app_settings.maintenance_mode,
+// migration 0020) — lu par proxy.ts à chaque requête, effet instantané sans
+// redéploiement. Voir CLAUDE.md > "Bouton admin pour basculer le mode
+// maintenance".
+export async function setMaintenanceMode(enabled: boolean): Promise<{ error: string | null }> {
+  const estAdmin = await isCurrentUserAdmin();
+  if (!estAdmin) {
+    return { error: "Accès refusé." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("app_settings")
+    .update({ maintenance_mode: enabled })
+    .eq("id", 1);
+
+  if (!error) {
+    revalidatePath("/admin");
+  }
+
+  return { error: error?.message ?? null };
+}

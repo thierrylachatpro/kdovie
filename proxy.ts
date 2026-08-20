@@ -2,22 +2,47 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 // Page d'attente en prod avant la bêta publique, voir CLAUDE.md > "Page
-// d'attente en production". Activée uniquement via MAINTENANCE_MODE=true,
-// une variable posée sur Vercel dans le scope "Production" uniquement —
-// jamais sur Preview, donc l'environnement de dev (kdovie-git-dev-...)
-// n'est jamais concerné, même sans logique conditionnelle ici.
+// d'attente en production". L'interrupteur lui-même vit en base
+// (app_settings.maintenance_mode, migration 0020) plutôt que dans une
+// variable d'environnement Vercel — bascule instantanée depuis le bouton du
+// dashboard admin (/admin), sans redéploiement. Comme app_settings vit dans
+// la base Supabase de chaque environnement (prod et dev sont deux bases
+// distinctes, voir CLAUDE.md > "Environnements dev/prod séparés"), basculer
+// le mode maintenance en prod n'affecte jamais l'environnement de dev, et
+// inversement — sans logique conditionnelle supplémentaire ici.
 //
-// Contournement : un lien avec ?acces=<jeton> (MAINTENANCE_BYPASS_TOKEN) pose
-// un cookie qui laisse passer ce navigateur — pratique pour que Thierry
+// Contournement : un lien avec ?acces=<jeton> (MAINTENANCE_BYPASS_TOKEN,
+// resté une variable d'environnement — c'est un secret, pas un interrupteur)
+// pose un cookie qui laisse passer ce navigateur — pratique pour que Thierry
 // puisse quand même vérifier la vraie prod sans désactiver la page d'attente
 // pour tout le monde.
 const COOKIE_ACCES = "kdovie_acces";
 
-function reponseMaintenance(request: NextRequest): NextResponse | null {
-  if (process.env.MAINTENANCE_MODE !== "true") {
-    return null;
-  }
+async function estEnMaintenance(): Promise<boolean> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return false;
 
+  try {
+    const response = await fetch(
+      `${url}/rest/v1/app_settings?select=maintenance_mode&id=eq.1`,
+      {
+        headers: { apikey: key, Authorization: `Bearer ${key}` },
+        cache: "no-store",
+      },
+    );
+    if (!response.ok) return false;
+    const rows = (await response.json()) as { maintenance_mode: boolean }[];
+    return rows[0]?.maintenance_mode === true;
+  } catch {
+    // Ne jamais bloquer les visiteurs si Supabase est injoignable — on
+    // repasse alors sur le comportement "site en ligne", plus sûr qu'une
+    // page d'attente qui resterait bloquée par erreur.
+    return false;
+  }
+}
+
+async function reponseMaintenance(request: NextRequest): Promise<NextResponse | null> {
   const { pathname, searchParams } = request.nextUrl;
 
   // Les routes API (webhooks Stripe, Send Email Hook Supabase...) doivent
@@ -47,6 +72,11 @@ function reponseMaintenance(request: NextRequest): NextResponse | null {
 
   const cookieAcces = request.cookies.get(COOKIE_ACCES)?.value;
   if (bypassToken && cookieAcces === bypassToken) {
+    // Contournement actif pour ce navigateur : inutile d'interroger la base.
+    return null;
+  }
+
+  if (!(await estEnMaintenance())) {
     return null;
   }
 
@@ -57,7 +87,7 @@ function reponseMaintenance(request: NextRequest): NextResponse | null {
 }
 
 export async function proxy(request: NextRequest) {
-  const maintenance = reponseMaintenance(request);
+  const maintenance = await reponseMaintenance(request);
   if (maintenance) return maintenance;
 
   return updateSession(request);
