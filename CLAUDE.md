@@ -625,7 +625,7 @@ Décision avec l'utilisateur : masquer la version actuelle (encore une bêta) au
 - **Contournement** : un lien `kdovie.com/?acces=<jeton>` (comparé à `MAINTENANCE_BYPASS_TOKEN`) pose un cookie `kdovie_acces` (30 jours, httpOnly) qui laisse passer ce navigateur — permet à l'utilisateur de continuer à vérifier la vraie prod sans désactiver la page d'attente pour tout le monde.
 - **Activation limitée à la prod par construction** : `MAINTENANCE_MODE`/`MAINTENANCE_BYPASS_TOKEN` doivent être posées sur Vercel dans le scope **Production uniquement** (jamais Preview) — l'environnement de dev (alias `kdovie-git-dev-...`) n'est donc jamais concerné, sans logique conditionnelle supplémentaire dans le code, cohérent avec le montage de la section "Environnements dev/prod séparés" ci-dessus.
 - **Pour désactiver la page d'attente au vrai lancement** : repasser `MAINTENANCE_MODE` à `false` (ou supprimer la variable) côté Vercel, puis redéployer `main` — aucun changement de code nécessaire.
-- **Reste à faire côté utilisateur** : poser `MAINTENANCE_MODE=true` et `MAINTENANCE_BYPASS_TOKEN` (valeur générée : voir message de Claude au moment de cette tâche, à conserver précieusement, jamais consignée ici) dans Vercel, scope Production uniquement.
+- **Statut (19 août 2026) : `MAINTENANCE_MODE=true` et `MAINTENANCE_BYPASS_TOKEN` posées par l'utilisateur sur Vercel, scope Production uniquement.** N'aura d'effet sur `kdovie.com` qu'une fois `dev` mergée dans `main` (décision de l'utilisateur, voir "Workflow git").
 
 ## Workflow git
 
