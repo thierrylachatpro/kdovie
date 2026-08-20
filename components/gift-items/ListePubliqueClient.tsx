@@ -479,7 +479,7 @@ function ReservationModal({
                     href={lienAchat}
                     target="_blank"
                     rel={achatAffilie ? "sponsored noopener noreferrer" : "noopener noreferrer"}
-                    className="font-heading rounded-2xl bg-creme px-6.5 py-4 text-base font-bold text-[#5C4436] hover:bg-white"
+                    className="font-heading rounded-2xl bg-corail px-6.5 py-4 text-base font-bold text-creme hover:bg-[#D45F37]"
                   >
                     Aller l&apos;acheter
                   </a>
@@ -494,7 +494,7 @@ function ReservationModal({
               <button
                 type="button"
                 onClick={onClose}
-                className="font-heading rounded-2xl bg-corail px-6.5 py-4 text-base font-bold text-creme"
+                className="font-heading rounded-2xl bg-creme px-6.5 py-4 text-base font-bold text-[#5C4436] hover:bg-white"
               >
                 Revenir à la liste
               </button>
