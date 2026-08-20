@@ -625,7 +625,24 @@ Décision avec l'utilisateur : masquer la version actuelle (encore une bêta) au
 - **Contournement** : un lien `kdovie.com/?acces=<jeton>` (comparé à `MAINTENANCE_BYPASS_TOKEN`) pose un cookie `kdovie_acces` (30 jours, httpOnly) qui laisse passer ce navigateur — permet à l'utilisateur de continuer à vérifier la vraie prod sans désactiver la page d'attente pour tout le monde.
 - **Activation limitée à la prod par construction** : `MAINTENANCE_MODE`/`MAINTENANCE_BYPASS_TOKEN` doivent être posées sur Vercel dans le scope **Production uniquement** (jamais Preview) — l'environnement de dev (alias `kdovie-git-dev-...`) n'est donc jamais concerné, sans logique conditionnelle supplémentaire dans le code, cohérent avec le montage de la section "Environnements dev/prod séparés" ci-dessus.
 - **Pour désactiver la page d'attente au vrai lancement** : repasser `MAINTENANCE_MODE` à `false` (ou supprimer la variable) côté Vercel, puis redéployer `main` — aucun changement de code nécessaire.
-- **Statut (19 août 2026) : `MAINTENANCE_MODE=true` et `MAINTENANCE_BYPASS_TOKEN` posées par l'utilisateur sur Vercel, scope Production uniquement.** N'aura d'effet sur `kdovie.com` qu'une fois `dev` mergée dans `main` (décision de l'utilisateur, voir "Workflow git").
+- **Statut (19 août 2026) : `MAINTENANCE_MODE=true` et `MAINTENANCE_BYPASS_TOKEN` posées sur Vercel, scope Production uniquement.** `dev` mergée dans `main` (commit `37bb51f`, fast-forward), déployé et vérifié en conditions réelles par l'utilisateur sur les différents domaines : `kdovie.com` affiche bien la page d'attente aux visiteurs normaux, le contournement `?acces=<jeton>` fonctionne. Terminé.
+
+## En-tête unifié pour les organisateurs connectés + page Contact (19 août 2026)
+
+Constat de l'utilisateur : les pages "sobres" (mentions légales, CGU, CGV, Aide — toutes construites via `PageLegale`) n'affichent aujourd'hui que le logo dans leur en-tête, quel que soit l'état de connexion. À côté de ça, chaque page du compte organisateur a sa propre navigation d'en-tête, légèrement différente d'une page à l'autre (ex. "Voir toutes mes listes" + pill "Mon compte" avec le pseudo sur `/compte/evenements/[slug]` et `/compte/evenements/nouveau` ; juste une pill "Mon compte" sur `/compte` ; "Aide" + "Mes listes" sur `/compte/profil`, sans "Mon compte" puisqu'on y est déjà).
+
+Décision : uniformiser en un seul comportement, pour un organisateur **connecté**, sur absolument toutes les pages du site (y compris les 5 pages sobres, l'accueil, `/connexion`, tout le compte, et `/liste/[slug]` si l'organisateur consulte sa propre liste connecté) :
+
+- Logo toujours à gauche, inchangé partout.
+- En haut à droite, exactement deux éléments, toujours dans cet ordre, toujours les deux présents même sur la page qu'ils désignent (pas de logique "masquer le lien vers la page courante") :
+  1. **"Mes listes"** → `/compte`
+  2. **"Mon compte"** → `/compte/profil`
+- Étiquette du bouton "Mon compte" toujours le texte littéral "Mon compte" — simplification par rapport à la pill actuelle à deux lignes avec le pseudo affiché (`nomAffiche`), qui disparaît au profit de ce libellé unique et constant.
+- Rien d'autre dans cette zone : pas de bouton "+ Nouvelle liste" dans l'en-tête (il reste où il est déjà ailleurs sur `/compte`), pas de lien "Aide" dans l'en-tête (reste uniquement en pied de page comme aujourd'hui).
+- **État déconnecté : hors périmètre, ne pas toucher.** Chaque page garde son en-tête actuel pour un visiteur non connecté (nav marketing de l'accueil, logo seul sur les pages sobres, etc.).
+- **Implémentation suggérée** : un composant partagé (ex. `components/layout/NavConnecte.tsx`) rendu conditionnellement dans chaque en-tête de page, `estConnecte`/session déterminée côté serveur comme le fait déjà `app/page.tsx` pour l'accueil. Les pages sobres (`mentions-legales`, `cgu`, `cgv`, `aide`, `contact`) n'ont aujourd'hui aucune vérification de session — à ajouter, même schéma que l'accueil. Le composant partagé `PageLegale` (utilisé par ces pages) devra probablement accepter cette info en prop pour afficher la bonne chose dans son en-tête.
+
+**Nouvelle page `/contact`** : formulaire (nom, email, message) plutôt qu'un simple lien mailto — nouvelle Server Action + nouveau template email (même schéma `EmailLayout`/`emailStyles` que les 5 emails transactionnels existants), envoyé à `contact@kdovie.com`, avec le `reply-to` positionné sur l'email du visiteur pour pouvoir lui répondre directement (`sendTransactionalEmail`/`lib/send-email.ts` à étendre pour accepter ce paramètre, il ne le fait pas aujourd'hui). Un champ honeypot (input invisible que seul un bot remplirait) en protection anti-spam légère, pas de dépendance supplémentaire. Page dans le style des autres pages sobres (`PageLegale`). Tous les liens "Contact" actuellement morts (`href="#"`) dans les pieds de page du produit doivent pointer vers `/contact` — même traitement que "Aide" → `/aide` fait précédemment.
 
 ## Workflow git
 
