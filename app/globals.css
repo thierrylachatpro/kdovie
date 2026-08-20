@@ -32,3 +32,11 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
+
+/* Le Preflight de Tailwind laisse <button> au curseur navigateur par
+   défaut (flèche, "default"), contrairement à <a> qui a déjà "pointer" —
+   remis en pointeur main partout, sauf les boutons désactivés. */
+button:not(:disabled),
+[role="button"]:not(:disabled) {
+  cursor: pointer;
+}
