@@ -377,11 +377,13 @@ export default function ListePubliqueClient({
         })}
       </section>
 
-      {/* Mobile (voir mockup "Liste publique mobile v2.dc.html") — cartes
-          plein format avec photo/teinte en fond, texte en clair sur
-          dégradé. Mêmes états fonctionnels que la version desktop
-          (canReserve/canContribute/isTaken/rienDisponible), juste une autre
-          présentation. */}
+      {/* Mobile (voir mockup "Liste publique mobile v3.dc.html") — cartes
+          blanches classiques (photo en bandeau fixe au-dessus, contenu en
+          texte sombre en dessous), plus proche du langage visuel desktop
+          qu'un empilement vertical. Remplace la v2 (carte "poster" plein
+          format, texte clair sur dégradé sombre). Mêmes états fonctionnels
+          que la version desktop (canReserve/canContribute/isTaken/
+          rienDisponible), juste une autre présentation. */}
       <section className="flex flex-col gap-4 sm:hidden">
         {sorted.map((item, index) => {
           const shop = item.source_url ? hostnameFromUrl(item.source_url) : null;
@@ -405,53 +407,43 @@ export default function ListePubliqueClient({
           return (
             <article
               key={item.id}
-              className="relative flex flex-col overflow-hidden rounded-[24px]"
-              style={{ minHeight: isPot ? 420 : 380, background: tone, opacity: attenue ? 0.8 : 1 }}
+              className="overflow-hidden rounded-[24px] border-2 border-[#F2DFC9] bg-white"
+              style={{ opacity: attenue ? 0.8 : 1 }}
             >
-              {item.image_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.image_url}
-                  alt=""
-                  className="absolute top-0 right-0 left-0 h-[62%] w-full object-cover"
-                />
-              )}
-              <div className="absolute inset-0" style={{ background: tone, opacity: 0.18 }} />
-              <div
-                className="absolute inset-0"
-                style={{
-                  background:
-                    "linear-gradient(to top, rgba(52,33,22,.9) 0%, rgba(52,33,22,.78) 30%, rgba(52,33,22,.3) 52%, rgba(52,33,22,0) 68%)",
-                }}
-              />
-              <span
-                className={`absolute top-3.5 left-3.5 z-10 rounded-full px-3 py-1.5 text-[13px] font-semibold ${
-                  isTaken
-                    ? "bg-[#F7E7D6] text-[#7A6354]"
-                    : isPot
-                      ? "bg-[#F5E3C9] text-[#7A5A16]"
-                      : "bg-[#DCE7DA] text-[#2F4A2C]"
-                }`}
-              >
-                {isTaken ? "Réservé" : isPot ? "En cagnotte" : "Disponible"}
-              </span>
+              <div className="relative h-[230px]" style={{ background: tone }}>
+                {item.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={item.image_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                )}
+                <span
+                  className={`absolute top-3.5 left-3.5 z-10 rounded-full px-3 py-1.5 text-[13px] font-semibold ${
+                    isTaken
+                      ? "bg-creme text-[#7A6354]"
+                      : isPot
+                        ? "bg-[#F5E3C9] text-[#7A5A16]"
+                        : "bg-[#DCE7DA] text-[#2F4A2C]"
+                  }`}
+                >
+                  {isTaken ? "Réservé" : isPot ? "En cagnotte" : "Disponible"}
+                </span>
+              </div>
 
-              <div className="relative z-10 mt-auto flex flex-col gap-2.5 p-4.5">
+              <div className="flex flex-col gap-2.5 p-4.5 pt-4">
                 <h3 className="contents">
                   <TitreArticle
                     title={item.title}
                     originalTitle={item.original_title}
                     sourceUrl={lienArticle}
                     sponsored={estAffilie}
-                    className="font-heading text-[22px] leading-tight font-bold text-creme [text-shadow:0_1px_2px_rgba(52,33,22,.4)]"
+                    className="font-heading text-xl leading-snug font-bold text-[#4A3529]"
                   />
                 </h3>
                 <div className="flex flex-wrap items-baseline gap-2.5">
-                  <span className="font-heading text-[19px] font-bold text-creme">
+                  <span className="font-heading text-[19px] font-bold text-[#C0512A]">
                     {formatPriceCents(item.price_cents)}
                   </span>
                   {shop && (
-                    <span className="truncate text-sm text-[#E8D6C6]">
+                    <span className="truncate text-sm text-[#8A7263]">
                       {shop}
                       {estAffilie && " · lien affilié"}
                     </span>
@@ -460,13 +452,13 @@ export default function ListePubliqueClient({
 
                 {isPot && (
                   <div>
-                    <div className="mb-1.5 h-2 overflow-hidden rounded-full bg-creme/30">
+                    <div className="mb-1.5 h-2.5 overflow-hidden rounded-full bg-[#F7E7D6]">
                       <div
-                        className="h-2 rounded-full bg-jaune"
+                        className="h-2.5 rounded-full bg-sauge"
                         style={{ width: `${Math.min(100, percent)}%` }}
                       />
                     </div>
-                    <div className="flex flex-wrap items-center gap-2 text-sm text-[#F0E2D4]">
+                    <div className="flex flex-wrap items-center gap-2 text-sm text-[#7A6354]">
                       <span>
                         {formatPriceCents(item.funded_amount_cents)}
                         {item.price_cents !== null
@@ -474,7 +466,7 @@ export default function ListePubliqueClient({
                           : " réunis"}
                       </span>
                       {organizerStripeStatus === "en_attente" && (
-                        <span className="rounded-full bg-creme/90 px-2.5 py-0.5 text-[13px] font-semibold text-[#7A5A16]">
+                        <span className="rounded-full bg-[#F5E3C9] px-2.5 py-0.5 text-[13px] font-semibold text-[#7A5A16]">
                           Cagnotte en validation
                         </span>
                       )}
@@ -497,7 +489,7 @@ export default function ListePubliqueClient({
                     onClick={() => setContributionItemId(item.id)}
                     className={`mt-0.5 min-h-12 w-full rounded-2xl py-3.5 font-heading text-base font-bold ${
                       canReserve
-                        ? "bg-creme/95 text-[#5C4436] hover:bg-creme"
+                        ? "bg-creme text-[#5C4436] hover:bg-[#F7E7D6]"
                         : "bg-corail text-creme hover:bg-[#D45F37]"
                     }`}
                   >
@@ -510,7 +502,7 @@ export default function ListePubliqueClient({
                   </div>
                 )}
                 {rienDisponible && (
-                  <div className="mt-0.5 rounded-2xl bg-creme/95 py-3.5 text-center text-[15px] text-[#7A6354]">
+                  <div className="mt-0.5 rounded-2xl bg-creme py-3.5 text-center text-[15px] text-[#7A6354]">
                     Cagnotte bientôt disponible
                   </div>
                 )}
