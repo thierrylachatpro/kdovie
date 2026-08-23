@@ -8,8 +8,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 // restauration, l'organisateur n'en a aucun de son côté. Écriture via
 // service_role (RLS n'autoriserait pas un admin à modifier la liste d'un
 // autre organisateur), avec re-vérification is_admin ici, jamais confiée
-// au seul gate de app/admin/page.tsx. Voir CLAUDE.md > "Dashboard
-// super-administrateur".
+// au seul gate de app/admin/layout.tsx. Voir CLAUDE.md > "Dashboard
+// super-administrateur" / "Refonte du dashboard super-administrateur".
 export async function restoreEvent(eventId: string): Promise<{ error: string | null }> {
   const estAdmin = await isCurrentUserAdmin();
   if (!estAdmin) {
@@ -21,6 +21,7 @@ export async function restoreEvent(eventId: string): Promise<{ error: string | n
 
   if (!error) {
     revalidatePath("/admin");
+    revalidatePath("/admin/listes");
   }
 
   return { error: error?.message ?? null };
@@ -29,7 +30,9 @@ export async function restoreEvent(eventId: string): Promise<{ error: string | n
 // Bascule le site en/hors mode maintenance (app_settings.maintenance_mode,
 // migration 0020) — lu par proxy.ts à chaque requête, effet instantané sans
 // redéploiement. Voir CLAUDE.md > "Bouton admin pour basculer le mode
-// maintenance".
+// maintenance". Revalide le layout entier (pas juste la page /admin) pour
+// que la pastille d'état du bouton "Maintenance" dans la colonne de gauche
+// reste juste sur toutes les sous-pages /admin/* au prochain chargement.
 export async function setMaintenanceMode(enabled: boolean): Promise<{ error: string | null }> {
   const estAdmin = await isCurrentUserAdmin();
   if (!estAdmin) {
@@ -43,7 +46,7 @@ export async function setMaintenanceMode(enabled: boolean): Promise<{ error: str
     .eq("id", 1);
 
   if (!error) {
-    revalidatePath("/admin");
+    revalidatePath("/admin", "layout");
   }
 
   return { error: error?.message ?? null };

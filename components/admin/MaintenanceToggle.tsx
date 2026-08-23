@@ -9,7 +9,17 @@ import KdovieSpinner from "@/components/ui/KdovieSpinner";
 // maintenance". Confirmation en deux temps uniquement pour activer la
 // maintenance (masque le site à tous les visiteurs) ; la désactivation
 // n'a pas besoin de ce frein, elle ne fait que rendre le site visible.
-export default function MaintenanceToggle({ initialEnabled }: { initialEnabled: boolean }) {
+//
+// `onChange` optionnel : posé dans la colonne de gauche (AdminSidebar), qui
+// affiche sa propre pastille d'état sur le bouton "Maintenance" — permet à
+// ce parent de rester synchronisé sans dupliquer l'appel serveur.
+export default function MaintenanceToggle({
+  initialEnabled,
+  onChange,
+}: {
+  initialEnabled: boolean;
+  onChange?: (enabled: boolean) => void;
+}) {
   const [enabled, setEnabled] = useState(initialEnabled);
   const [confirming, setConfirming] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -25,12 +35,13 @@ export default function MaintenanceToggle({ initialEnabled }: { initialEnabled: 
       }
       setEnabled(next);
       setConfirming(false);
+      onChange?.(next);
     });
   }
 
   return (
     <div
-      className={`mb-7 flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 p-5 ${
+      className={`flex flex-wrap items-center justify-between gap-4 rounded-2xl border-2 p-5 ${
         enabled ? "border-[#F2C6AE] bg-[#F7D9C9]" : "border-[#F2DFC9] bg-white"
       }`}
     >

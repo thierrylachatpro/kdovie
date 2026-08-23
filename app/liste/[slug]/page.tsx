@@ -6,6 +6,7 @@ import ListePubliqueClient from "@/components/gift-items/ListePubliqueClient";
 import type { FeeMode } from "@/lib/fee-calculation";
 import { deriveOrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 import { getAffiliateLink } from "@/lib/affiliate-link";
+import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import LiensLegaux from "@/components/layout/LiensLegaux";
 import NavConnecte from "@/components/layout/NavConnecte";
 
@@ -15,20 +16,31 @@ export default async function ListePubliquePage({
   const { slug } = await params;
   const supabase = await createClient();
 
+  // Pas de filtre deleted_at ici : un admin doit pouvoir prévisualiser une
+  // liste supprimée (ou en brouillon) en lecture seule, voir plus bas
+  // estAdminViewer — CLAUDE.md > "Refonte du dashboard super-administrateur"
+  // > "Section Listes".
   const { data: event } = await supabase
     .from("events")
-    .select("id, type, name, event_date, slug, status, organizer_id, fee_mode")
+    .select("id, type, name, event_date, slug, status, organizer_id, fee_mode, deleted_at")
     .eq("slug", slug)
-    .is("deleted_at", null)
     .single();
 
-  if (!event) {
+  const estAdmin = await isCurrentUserAdmin();
+
+  if (!event || (event.deleted_at && !estAdmin)) {
     // Couvre aussi bien un slug qui n'a jamais existé qu'une liste
     // supprimée par son organisateur (deleted_at renseigné) — un invité ne
     // doit voir aucune différence entre les deux cas, voir CLAUDE.md >
-    // "Suppression d'une liste par l'organisateur".
+    // "Suppression d'une liste par l'organisateur". Un admin, lui, passe
+    // outre pour prévisualiser (branche estAdminViewer plus bas).
     notFound();
   }
+
+  // Un admin peut voir le contenu même si la liste est en brouillon ou
+  // supprimée — en lecture seule, comme un invité normal, avec juste un
+  // badge discret pour ne jamais confondre avec ce qu'un vrai invité voit.
+  const estAdminViewer = estAdmin && (event.deleted_at !== null || event.status !== "ouverte");
 
   // En-tête connecté (Mes listes/Mon compte) uniquement quand l'organisateur
   // consulte sa propre liste — voir CLAUDE.md > "En-tête unifié pour les
@@ -57,7 +69,7 @@ export default async function ListePubliquePage({
 
   const organizerStripeStatus = deriveOrganizerStripeStatus(stripeAccount);
 
-  const estOuverte = event.status === "ouverte";
+  const estOuverte = event.status === "ouverte" || estAdminViewer;
 
   const { data: giftItems } = estOuverte
     ? await supabase
@@ -143,6 +155,11 @@ export default async function ListePubliquePage({
       </header>
 
       <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-4 pt-1.5 pb-10 sm:px-10 sm:pt-5 sm:pb-20">
+        {estAdminViewer && (
+          <div className="mb-4 rounded-2xl bg-[#F5E3C9] px-4 py-2.5 text-center text-sm font-semibold text-[#7A5A16]">
+            Vue admin — liste {event.deleted_at ? "supprimée" : "non ouverte au public"}
+          </div>
+        )}
         {estOuverte && !estVide ? (
           <ListePubliqueClient
             eventId={event.id}

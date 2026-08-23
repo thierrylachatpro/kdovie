@@ -1,6 +1,3 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import OrganisateurCard from "@/components/admin/OrganisateurCard";
 
@@ -8,13 +5,9 @@ import OrganisateurCard from "@/components/admin/OrganisateurCard";
 // réversible) — voir CLAUDE.md > "Dashboard super-administrateur". Pas de
 // création de compte depuis ce dashboard (décision explicite) ni de
 // suppression réelle (cleanup-organizer.mjs reste le seul moyen, réservé à
-// un usage manuel en ligne de commande).
+// un usage manuel en ligne de commande). Le garde-fou is_admin vit dans
+// app/admin/layout.tsx, plus besoin de le répéter ici.
 export default async function AdminOrganisateursPage() {
-  const estAdmin = await isCurrentUserAdmin();
-  if (!estAdmin) {
-    notFound();
-  }
-
   const admin = createAdminClient();
 
   const [{ data: profiles }, { data: usersData }] = await Promise.all([
@@ -38,15 +31,7 @@ export default async function AdminOrganisateursPage() {
 
   return (
     <div className="mx-auto max-w-[1100px] px-6 py-10">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-3xl font-bold text-corail">Organisateurs</h1>
-        <Link
-          href="/admin"
-          className="text-sm font-semibold text-[#8A7263] underline hover:text-corail-dark"
-        >
-          Listes supprimées
-        </Link>
-      </div>
+      <h1 className="font-heading mb-2 text-3xl font-bold text-corail">Organisateurs</h1>
       <p className="mb-7 text-[15px] text-[#7A6354]">
         {organisateurs.length} compte{organisateurs.length > 1 ? "s" : ""} organisateur
         {organisateurs.length > 1 ? "s" : ""}.

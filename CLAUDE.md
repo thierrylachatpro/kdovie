@@ -517,6 +517,163 @@ Extension du dashboard admin existant (`/admin`, listes supprimées) avec un CRU
 
 **Testé** : `tsc`/`lint`/`build` propres. Rendu vérifié par capture d'écran avec des données bouchon (liste, édition de pseudo, confirmation de désactivation) — conforme. **Statut migration (20 août 2026)** : `0019_profiles_disabled.sql` appliquée sur les deux bases, `profiles.disabled` confirmée présente par requête REST directe sur la base de dev (`hvyinuoebkzghrbcbnqa`, historique de migration réparé via `supabase migration repair` après une première application manuelle par l'utilisateur via le SQL Editor) et sur la base de prod (`ppsaiaesnvwnkzjisvdr`). **Pas encore testé en conditions réelles** : le dashboard `/admin/organisateurs` lui-même (liste, édition de pseudo, désactivation) et le blocage de connexion dans le callback n'ont pas été exercés contre de vraies données/un vrai compte — la colonne existe, mais le flux complet reste à vérifier.
 
+## Refonte du dashboard super-administrateur (20 août 2026)
+
+Demande explicite de l'utilisateur : le dashboard `/admin` existant (listes supprimées + bascule
+maintenance) et `/admin/organisateurs` (CRUD organisateurs, voir "Dashboard super-administrateur —
+CRUD organisateurs" ci-dessus) restent la base, mais l'ensemble doit devenir une vraie interface
+avec navigation latérale, un écran de synthèse, et une nouvelle section cotisations. Toujours
+réservé à `profiles.is_admin = true`, même garde-fou qu'aujourd'hui (404 si non-admin, re-vérifié
+dans chaque action serveur — jamais confié au seul gate de la page).
+
+### Navigation
+
+Nouvelle mise en page partagée (`app/admin/layout.tsx`) avec une colonne de gauche fixe, 4
+entrées :
+- **Organisateurs** → `/admin/organisateurs` (existant, inchangé dans son contenu)
+- **Listes** → `/admin/listes` (nouvelle page, remplace le contenu actuel de `/admin` qui ne
+  montrait que les listes *supprimées* — voir "Section Listes" ci-dessous)
+- **Cotisations** → `/admin/cotisations` (nouvelle page, voir "Section Cotisations" ci-dessous)
+- **Bouton "Maintenance"** : pas un lien vers une page à part, un vrai bouton dans la colonne qui
+  ouvre `MaintenanceToggle` (déjà développé, `components/admin/MaintenanceToggle.tsx`) en place
+  (popover ou petite modale) — une pastille de couleur sur le bouton reflète l'état actuel
+  (en ligne / en maintenance) sans avoir à l'ouvrir.
+
+Le check `isCurrentUserAdmin()` (404 sinon) doit passer dans ce layout partagé plutôt que d'être
+répété dans chaque `page.tsx` comme aujourd'hui — simplifie chaque page, sans rien changer à la
+re-vérification systématique côté actions serveur (`app/admin/actions.ts`,
+`app/admin/organisateurs/actions.ts`, et les nouveaux fichiers d'actions ci-dessous).
+
+`/admin` (racine) devient l'écran de synthèse ci-dessous, plus une simple redirection vers les
+listes supprimées.
+
+### Écran de synthèse (nouvel `/admin`, avant de cliquer sur un item de la colonne)
+
+Proposition de contenu (à ajuster librement à l'implémentation, l'utilisateur n'avait pas figé la
+liste exacte) — des tuiles de stats groupées en 3 blocs, toutes calculables directement à partir
+du schéma existant :
+
+- **Organisateurs** : nombre total inscrits, nouveaux aujourd'hui, nouveaux sur les 7 derniers
+  jours (`profiles.created_at` ou `auth.users.created_at`).
+- **Listes** : nombre total, répartition ouvertes/brouillon, nouvelles sur les 7 derniers jours
+  (`events.created_at`, `deleted_at is null`).
+- **Réservations** : nombre total, sur les 7 derniers jours (`reservations.created_at`,
+  `cancelled_at is null`).
+- **Cotisations** : nombre de cotisations réussies (total et 7 derniers jours), montant total
+  cotisé en euros (`sum(amount_cents) where status = 'succeeded'`, total et 7 derniers jours), et
+  commission Kdovie cumulée (1 % théorique, via la même fonction pure que celle qui sert
+  aujourd'hui au détail des frais affiché à l'invité dans `lib/fee-calculation.ts` — à vérifier
+  précisément son nom exact à l'implémentation, pas relu dans le détail ici).
+- **Comptes Stripe organisateurs** : répartition actif / en attente / aucun
+  (`organizer_stripe_accounts.payouts_enabled`, cohérent avec `OrganizerStripeStatus` déjà utilisé
+  ailleurs) — utile pour anticiper combien de bandeaux "Bandeau d'incitation à activer sa cagnotte
+  Stripe" (voir section ci-dessous) sont actuellement affichés aux organisateurs.
+
+### Section Listes (`/admin/listes`)
+
+Remplace le contenu actuel de `/admin` (qui ne montrait que les listes supprimées) par une vue sur
+**toutes** les listes, tous organisateurs confondus :
+
+- **Filtre** en haut de la page, champ texte unique cherchant à la fois sur le nom de la liste et
+  l'email de l'organisateur (même embedding `profiles(display_name)` déjà utilisé dans l'actuel
+  `app/admin/page.tsx`, complété par un croisement avec `admin.auth.admin.listUsers()` pour
+  l'email, même pattern que `app/admin/organisateurs/page.tsx`).
+- **Lien pré-filtré depuis la page Organisateurs** : sur chaque `OrganisateurCard`
+  (`components/admin/OrganisateurCard.tsx`), ajouter un bouton/lien vers
+  `/admin/listes?q=<email de l'organisateur>` — arrive directement sur la vue Listes filtrée pour
+  cet organisateur précis.
+- **Désactiver** : bascule `events.status` entre `ouverte`/`brouillon` depuis l'admin — même
+  mécanisme que le bouton "Fermer la liste"/"Ouvrir ma liste aux invités" déjà côté organisateur
+  (`updateEventStatus`), juste actionnable aussi par un admin sur la liste de n'importe qui.
+- **Supprimer, définitivement** : **décision explicite de l'utilisateur (20 août 2026, tranchée
+  après clarification)** — contrairement à la suppression organisateur (`deleteEvent`, soft delete
+  via `deleted_at`, gardée pour sa traçabilité comptable sur les cotisations Stripe), la
+  suppression **depuis l'admin est un vrai `DELETE` en base**, irréversible, y compris pour les
+  `gift_items`/`reservations`/`contributions` liés (cascade déjà en place sur les FK, voir
+  migrations 0001/0002). Assumé en connaissance de cause : ça peut faire perdre la trace
+  comptable d'une cotisation Stripe réellement encaissée sur cette liste. Vu la gravité,
+  confirmation renforcée nécessaire — au minimum le nom de la liste à retaper pour confirmer (pas
+  un simple "Oui" comme les autres confirmations en deux temps du produit), et un avertissement
+  explicite si la liste a des cotisations `succeeded` liées (ex. "Cette liste a reçu 42,00 € de
+  cotisations réelles — la suppression effacera aussi cette trace comptable.").
+- **Prévisualiser le contenu, même si la liste n'est pas active** : depuis cette vue, un lien vers
+  `/liste/[slug]` doit fonctionner pour l'admin même si `status = 'brouillon'` ou même si
+  `deleted_at` est renseigné (aujourd'hui bloqué par `notFound()`/l'écran "pas encore ouverte" pour
+  tout le monde, voir `app/liste/[slug]/page.tsx`). Nécessite d'ajouter un contrôle
+  `estAdminViewer` (via `isCurrentUserAdmin()`) sur cette page, au même endroit que le
+  `estProprietaire` déjà calculé pour `NavConnecte` — bypass du gating `estOuverte`/`deleted_at`
+  uniquement pour un admin, en lecture seule comme un invité normal (pas d'injection de contrôles
+  d'admin sur cette page publique). Prévoir un petit badge visuel discret ("Vue admin — liste non
+  ouverte au public" ou équivalent) pour que ce ne soit jamais confondu avec ce qu'un vrai invité
+  voit.
+
+### Section Cotisations (`/admin/cotisations`)
+
+Nouvelle page, liste toutes les `contributions` (`status = 'succeeded'` par défaut, envisager un
+badge de statut si utile d'afficher aussi pending/failed — à l'appréciation de l'implémentation) :
+
+- **Colonnes** : montant cotisé, qui a cotisé (`guest_name`/`guest_email`, "Anonyme" si vide comme
+  partout ailleurs dans le produit), commission Kdovie réelle à 1 % (la part Kdovie pure, pas
+  `application_fee_amount` tel qu'envoyé à Stripe aujourd'hui — celui-ci inclut aussi les frais
+  Stripe reversés à la plateforme depuis le correctif du 19 août, voir "Bug frais Stripe absorbés
+  par Kdovie" — recalculer la part 1 % seule avec la même fonction pure que le détail affiché à
+  l'invité), liste/liste concernée, organisateur.
+- **Filtre** en haut, même principe que la section Listes : un champ texte cherchant à la fois côté
+  organisateur (nom/email) et côté invité cotisant (nom/email).
+- Requête : `contributions` avec embedding vers `gift_items(title, events(name, organizer_id))`
+  (même syntaxe d'embedding Supabase déjà utilisée dans `app/admin/page.tsx` pour
+  `profiles(display_name)`), puis croisement avec `admin.auth.admin.listUsers()` pour l'email de
+  chaque organisateur, même pattern que `app/admin/organisateurs/page.tsx`.
+
+**Statut : implémenté et testé dans la mesure du possible (20 août 2026).**
+
+- `app/admin/layout.tsx` porte désormais l'unique garde-fou `isCurrentUserAdmin()` (404 sinon) pour
+  tout `/admin/*` ; retiré des `page.tsx` individuels (`organisateurs`, nouvel `listes`, nouveau
+  `cotisations`, racine) — inchangé côté Server Actions, qui re-vérifient toutes indépendamment
+  (`app/admin/actions.ts`, `app/admin/organisateurs/actions.ts`, nouveau
+  `app/admin/listes/actions.ts`).
+- `components/admin/AdminSidebar.tsx` : colonne de gauche fixe (empilée en haut sur mobile),
+  3 liens (Organisateurs/Listes/Cotisations) + bouton "Maintenance" avec pastille d'état, qui ouvre
+  `MaintenanceToggle` dans un popover plutôt qu'une page à part — `MaintenanceToggle` a reçu un
+  prop `onChange` optionnel pour que la pastille de la colonne reste synchronisée sans dupliquer
+  l'appel serveur. `setMaintenanceMode` revalide désormais `/admin` en mode `"layout"` (pas juste
+  la page) pour que cette pastille reste juste sur toutes les sous-pages au prochain chargement.
+- `/admin` (racine) : entièrement réécrite en écran de synthèse (tuiles de stats organisées en
+  5 groupes — organisateurs, listes, réservations, cotisations, comptes Stripe — plutôt que 3, la
+  liste exacte n'ayant pas été figée dans le cadrage). L'ancien contenu (listes supprimées
+  uniquement) est remplacé, pas redirigé : il vit maintenant entièrement dans `/admin/listes`, qui
+  montre toutes les listes (pas seulement les supprimées). `components/admin/RestaurerButton.tsx`
+  devenu inutile a été supprimé (sa logique est réintégrée dans `ListeAdminCard`).
+- `/admin/listes` (`app/admin/listes/page.tsx` + `actions.ts` + `components/admin/ListeAdminCard.tsx`)
+  : filtre texte (nom de liste ou email organisateur) via `?q=`, lien pré-filtré ajouté sur chaque
+  `OrganisateurCard` ("Voir ses listes"). Bascule ouverte/brouillon (`updateEventStatusAdmin`),
+  restauration des listes supprimées (réutilise `restoreEvent`), et suppression **réelle et
+  irréversible** (`deleteEventPermanently`, vrai `DELETE`, pas `deleted_at`) avec confirmation
+  renforcée : le nom exact de la liste doit être retapé (vérifié aussi côté serveur, pas seulement
+  désactivé côté UI), et un avertissement dédié s'affiche si la liste a des cotisations
+  `succeeded` liées, avec le montant réel.
+- `/admin/cotisations` (`app/admin/cotisations/page.tsx`) : tableau de toutes les cotisations
+  réussies, filtre texte (organisateur ou invité) via `?q=`, commission Kdovie recalculée à la
+  vraie part 1 % (`computeApplicationFeeAmountCents` sur le montant prélevé reconstitué via
+  `computeMontantPreleveCents(amount_cents, fee_mode)` — pas `application_fee_amount` tel
+  qu'envoyé à Stripe, qui inclut aussi les frais Stripe depuis le correctif du 19 août).
+- `app/liste/[slug]/page.tsx` : nouveau contrôle `estAdminViewer` (via `isCurrentUserAdmin()`),
+  au même endroit que `estProprietaire` — bypass du gating `estOuverte`/`deleted_at` uniquement
+  pour un admin, avec un bandeau discret ("Vue admin — liste supprimée" / "non ouverte au public")
+  au-dessus du contenu. Toujours en lecture seule, comme un invité normal.
+- **Testé** : `tsc`/`lint`/`build` propres. Rendu vérifié par capture d'écran (page de
+  prévisualisation temporaire avec des données bouchon, supprimée ensuite) sur desktop et mobile —
+  a révélé un vrai bug de mise en page (la rangée de boutons d'action débordait du cadre de la
+  carte sur mobile, `flex-none` empêchant le conteneur de rétrécir malgré son propre `flex-wrap`)
+  sur `OrganisateurCard` **et** `ListeAdminCard` ; corrigé (`w-full sm:w-auto` à la place de
+  `flex-none`) et revérifié par capture d'écran. Popover Maintenance et panneau de confirmation de
+  suppression (avertissement + champ de retype) vérifiés visuellement aussi. **Pas testé en
+  conditions réelles** : pas de session admin active dans cet environnement pour exercer
+  `/admin/*` avec de vraies données (filtre, bascule de statut, suppression réelle, aperçu admin
+  d'une liste brouillon/supprimée) — la logique repose sur les mêmes patterns déjà éprouvés
+  ailleurs (CRUD organisateurs, `MaintenanceToggle`), mais le flux complet reste à vérifier par
+  l'utilisateur.
+
 ## Bandeau d'incitation à activer sa cagnotte Stripe sur /compte (20 août 2026)
 
 Ajustement produit demandé par l'utilisateur, à traiter (pas un report backlog comme les sections précédentes) : un organisateur peut créer des articles en mode cotisation (`automatique` ou `cotisation_obligatoire`, voir "Règle de gestion : réservation vs cotisation par article") sans jamais être passé par la connexion de son compte Stripe (`/compte/profil`, bloc "Ma cagnotte"). Un invité qui tente de cotiser sur une liste ouverte dans ce cas tombe potentiellement dans un cas non prévu si aucun compte Stripe n'existe (`OrganizerStripeStatus` "aucun" — pas de `stripe_account_id` à fournir en `transfer_data.destination`, la création de la Checkout Session échouerait probablement). Le statut "en_attente" (compte créé, vérification en cours) reste géré correctement aujourd'hui côté invité (cotisation possible, reversement différé, voir tâche #18) — pas le même risque de rupture, mais l'organisateur a quand même intérêt à finaliser rapidement pour recevoir l'argent déjà cotisé.

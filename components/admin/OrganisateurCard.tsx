@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { updateOrganizerPseudo, setOrganizerDisabled } from "@/app/admin/organisateurs/actions";
 import KdovieSpinner from "@/components/ui/KdovieSpinner";
 
@@ -92,7 +93,13 @@ export default function OrganisateurCard({
           </div>
         </div>
 
-        <div className="flex flex-none flex-wrap items-center gap-2.5">
+        <div className="flex w-full flex-wrap items-center gap-2.5 sm:w-auto">
+          <Link
+            href={`/admin/listes?q=${encodeURIComponent(email)}`}
+            className="rounded-2xl bg-[#F7E7D6] px-4 py-2.5 text-[14px] font-semibold text-[#5C4436] hover:bg-[#F2DFC9]"
+          >
+            Voir ses listes
+          </Link>
           {!editing && (
             <button
               type="button"
