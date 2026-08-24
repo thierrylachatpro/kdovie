@@ -983,8 +983,7 @@ curl -X POST \
 - Fnac/Darty via Awin — sujet séparé, déjà noté comme reporté (tâche #19).
 - Tout ce qui touche `lib/affiliate-link.ts` — déjà fonctionnel, sans rapport avec cette tâche.
 
-**Statut : implémenté, testé dans la limite du possible (24 août 2026) — validation en conditions
-réelles bloquée en l'absence de compte Bright Data.**
+**Statut : implémenté et validé par des appels réels (24 août 2026).**
 
 - `lib/scrape-amazon-brightdata.ts` : `fetchAmazonProductViaBrightData(url)`, appelle
   `POST https://api.brightdata.com/datasets/v3/scrape?dataset_id=gd_l7q7dkf244hwjntr0&format=json`
@@ -992,16 +991,18 @@ réelles bloquée en l'absence de compte Bright Data.**
   absente, sur toute erreur HTTP, timeout (40s), réponse de forme inattendue, bascule asynchrone
   (`snapshot_id`) ou produit sans aucune donnée exploitable — dans tous ces cas l'appelant retombe
   sur ScrapingAnt + cheerio, filet de secours intégralement conservé.
-- **Mapping des champs non vérifié par un appel réel** : aucun compte Bright Data n'existait au
-  moment de l'implémentation (`BRIGHTDATA_API_KEY` posée vide dans `.env.local`, même schéma que
-  `SCRAPINGANT_API_KEY`/`AMAZON_ASSOCIATE_TAG`). Le nom exact des champs (`title`, `price`,
-  `currency`, `main_image` — pas `image`/`images` comme envisagé dans le brief initial) vient de la
-  documentation publique Bright Data pour ce dataset précis (`docs.brightdata.com/datasets/scrapers/amazon/introduction`,
-  exemple de réponse JSON qui y est publié), pas d'un test contre l'API réelle — à confirmer/ajuster
-  dès qu'une clé sera disponible. Le code est défensif sur ce point : un champ manquant ou renommé
-  ne fait que renvoyer `null` pour ce champ précis (jamais planter), et si titre/prix/image sont
-  *tous* vides le résultat entier est traité comme un échec (repli ScrapingAnt) plutôt que retourné
-  tel quel.
+- **Mapping des champs corrigé après un premier test réel qui a contredit la doc publique** :
+  - **Pas de champ `price`** : la doc annonçait ce nom, la vraie réponse ne le contient jamais.
+    Deux champs coexistent, `initial_price` (prix barré/plein tarif) et `final_price` (prix
+    actuellement affiché, déjà remisé le cas échéant — identique à `initial_price` en l'absence de
+    remise). `final_price` est le bon champ à utiliser en priorité (code : essaie `final_price`
+    puis, à défaut, `initial_price`). Les deux sont **absents** (pas juste `null`) quand l'article
+    est indisponible — pas de prix à afficher dans ce cas, déjà géré correctement (`parsePriceCents`
+    renvoie `null` sur une valeur non finite).
+  - **Pas de champ `main_image`** : la doc annonçait ce nom, absent de toute réponse réelle
+    observée. Les vrais champs sont `image_url`/`image` (identiques dans les 5 cas testés) et
+    `images` (tableau) — code essaie `image_url`, puis `image`, puis le premier élément de `images`.
+  - `title` et `currency` (`"EUR"` confirmé sur amazon.fr) conformes à la doc, aucun changement.
 - **`app/compte/evenements/[slug]/scrape-action.ts`** : `scrapeArticleUrl` tente
   `fetchAmazonProductViaBrightData` en premier uniquement si `hostnameFromUrl(...) === "amazon.fr"`
   (réutilise `parsedUrl` déjà nettoyé de ses paramètres, pas de re-parsing), juste après le nettoyage
@@ -1009,16 +1010,29 @@ réelles bloquée en l'absence de compte Bright Data.**
   soit la source (Bright Data ou ScrapingAnt/cheerio) — Bright Data renvoie bien le titre brut,
   `originalTitle` toujours `null` en sortie de la fonction comme demandé. Comportement strictement
   inchangé pour tout domaine autre qu'amazon.fr.
-- **Testé réellement, dans la limite du possible sans clé** : `tsc`/`lint`/`build` propres. Vérifié
-  par un script isolé que `fetchAmazonProductViaBrightData` retourne bien `null` quasi instantanément
-  (0 ms, aucun appel réseau déclenché) tant que `BRIGHTDATA_API_KEY` est absente — confirme que le
-  chemin ScrapingAnt existant reste intact et non ralenti tant que la clé n'est pas posée.
-  `hostnameFromUrl` vérifié sur trois cas (amazon.fr avec `www.`, amazon.com, autre domaine) pour
-  confirmer le bon aiguillage. **Pas testé** : le vrai appel Bright Data sur de vraies URLs
-  amazon.fr (5 à 10 demandées par le Definition of done) — nécessite que l'utilisateur crée un
-  compte sur brightdata.com et pose `BRIGHTDATA_API_KEY` (Vercel + `.env.local`), après quoi un
-  nouveau test réel avec compte-rendu des champs effectivement observés sera nécessaire avant de
-  considérer cette tâche entièrement close.
+- **Testé réellement, avec la vraie clé Bright Data posée par l'utilisateur le 24 août 2026**, sur
+  5 URLs `amazon.fr` réelles et variées (2 enceintes Echo Dot remisées en bundle, 1 enceinte Echo Dot
+  indisponible, 1 aspirateur robot indisponible, 1 livre sans remise) :
+  - `fetchAmazonProductViaBrightData` appelé directement pour chacune : titre, image et prix (en
+    centimes, ex. 55,98 € → `5598`) corrects sur les 3 produits en stock ; sur les 2 produits
+    indisponibles, `priceCents: null` tout en conservant titre et image — comportement attendu, pas
+    un échec.
+  - Chaîne complète `scrapeArticleUrl` testée sur une URL avec paramètres de tracking
+    (`?ref=...&utm_source=...`) : nettoyage d'URL, détection amazon.fr, appel Bright Data,
+    `shortenTitle` appliqué en aval — titre correctement raccourci au séparateur `" | "` avec
+    `originalTitle` préservé, exactement le comportement attendu pour le bouton "voir plus".
+  - `tsc`/`lint`/`build` propres après correction du mapping.
+  - **Anecdote de diagnostic gardée pour référence** : les tout premiers appels (avant de trouver de
+    vraies URLs produit) sont tombés sur une réponse `[{"timestamp", "input"}]` sans aucune donnée —
+    confirmé via l'endpoint `/datasets/v3/progress/{snapshot_id}` (`records: 0, errors: 1`) qu'il
+    s'agissait d'un vrai échec de scraping Bright Data sur ces URLs précises (ASIN choisis au hasard,
+    probablement invalides), pas d'un problème de format de requête — résolu en testant avec des
+    URLs `amazon.fr` réellement en ligne (trouvées via recherche web plutôt que devinées).
+  - **Non testé** : le dépôt effectif sur `gift_items` via le vrai formulaire "Ajouter un cadeau"
+    (`AjouterArticleForm`/`createGiftItem`) — nécessiterait une session organisateur connectée,
+    indisponible dans cet environnement. La fonction de scraping elle-même est validée de bout en
+    bout ; son branchement au formulaire n'a pas changé (toujours `scrapeArticleUrl`, même
+    signature), risque de régression jugé faible.
 
 ## Points d'attention techniques
 

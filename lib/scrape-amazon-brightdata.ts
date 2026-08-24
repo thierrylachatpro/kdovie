@@ -7,11 +7,18 @@ import type { ScrapedArticle } from "@/lib/scrape-article";
 // fait qu'ajouter une première tentative pour amazon.fr, jamais de retrait
 // du filet.
 //
-// Mapping des champs (title/price/currency/main_image) basé sur la doc
-// publique Bright Data et un exemple de réponse qu'elle documente pour ce
-// dataset — PAS ENCORE VALIDÉ par un appel réel à ce jour (aucune clé
-// BRIGHTDATA_API_KEY posée au moment de l'implémentation, voir CLAUDE.md >
-// "Definition of done"). À confirmer/ajuster au premier vrai test.
+// Mapping des champs confirmé par un appel réel le 24 août 2026 (5 URLs
+// amazon.fr réelles et variées, voir CLAUDE.md > "Intégration Bright Data
+// pour la fiche produit Amazon" > statut) — corrige la doc publique
+// consultée en amont, qui annonçait à tort `price`/`main_image` :
+// - Pas de champ `price` : `final_price` (prix affiché actuellement, déjà
+//   remisé le cas échéant) et `initial_price` (prix barré) coexistent,
+//   identiques quand il n'y a pas de remise. `final_price` est le bon champ
+//   à utiliser. Les deux sont absents (pas juste `null`) quand l'article
+//   est indisponible — aucun prix à afficher dans ce cas, comportement
+//   déjà correct côté parsePriceCents (valeur non finite -> null).
+// - Pas de champ `main_image` : `image`/`image_url` (identiques dans tous
+//   les cas observés) et `images` (tableau) sont les vrais noms.
 const BRIGHTDATA_API_KEY = process.env.BRIGHTDATA_API_KEY;
 const DATASET_ID = "gd_l7q7dkf244hwjntr0";
 // Timeout Bright Data lui-même à 1 minute avant de basculer en asynchrone
@@ -84,8 +91,16 @@ export async function fetchAmazonProductViaBrightData(url: string): Promise<Scra
     }
 
     const title = typeof product.title === "string" ? product.title.trim() || null : null;
-    const imageUrl = typeof product.main_image === "string" ? product.main_image : null;
-    const priceCents = parsePriceCents(product.price, product.currency);
+    const imageCandidate =
+      product.image_url ??
+      product.image ??
+      (Array.isArray(product.images) ? product.images[0] : undefined);
+    const imageUrl = typeof imageCandidate === "string" ? imageCandidate : null;
+    // final_price (prix actuel, déjà remisé) préféré à initial_price (prix
+    // barré) — identiques hors remise, voir commentaire de mapping ci-dessus.
+    const priceCents =
+      parsePriceCents(product.final_price, product.currency) ??
+      parsePriceCents(product.initial_price, product.currency);
 
     if (!title && priceCents === null && !imageUrl) {
       console.log("[scrape] Bright Data : produit introuvable ou aucune donnée exploitable, repli sur ScrapingAnt");
