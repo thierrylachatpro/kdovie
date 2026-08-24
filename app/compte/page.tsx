@@ -334,6 +334,40 @@ export default async function ComptePage() {
           )}
         </section>
 
+        <section className="mb-10 grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <div className="rounded-[28px] bg-[#F5E3C9] p-6.5">
+            <h2 className="font-heading mb-2.5 text-xl font-bold text-[#7A5A16]">
+              Ajouter un cadeau en un lien
+            </h2>
+            <p className="mb-4 text-[15px] leading-relaxed text-[#6B5426]">
+              Collez l&apos;adresse d&apos;une page produit, de n&apos;importe quelle boutique.
+            </p>
+            <Link
+              href={lienAjoutRapide}
+              className="font-heading inline-block rounded-2xl bg-corail px-5 py-3.5 text-[15px] font-bold text-creme hover:bg-[#D45F37]"
+            >
+              Ajouter un cadeau
+              <StatutLien variant="dark" />
+            </Link>
+          </div>
+          <div className="rounded-[28px] bg-[#DCE7DA] p-6.5">
+            <h2 className="font-heading mb-2.5 text-xl font-bold text-[#2F4A2C]">
+              Une simple liste d&apos;envies
+            </h2>
+            <p className="mb-4 text-[15px] leading-relaxed text-[#3D5A39]">
+              Pas d&apos;occasion particulière, pas de date : créez une liste ouverte, et
+              ajoutez-y des idées au fil de l&apos;année.
+            </p>
+            <Link
+              href="/compte/evenements/nouveau"
+              className="font-heading inline-block rounded-2xl bg-creme px-5 py-3.5 text-[15px] font-bold text-[#2F4A2C] hover:bg-white"
+            >
+              Créer une liste simple
+              <StatutLien />
+            </Link>
+          </div>
+        </section>
+
         <section>
           <div className="rounded-[28px] border-2 border-[#F2DFC9] bg-white p-7">
             <h2 className="font-heading mb-5 text-[22px] font-bold text-[#4A3529]">
