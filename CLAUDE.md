@@ -181,7 +181,7 @@ Décision tranchée : le pseudo de l'organisateur (`profiles.display_name`) doit
   1. Données structurées JSON-LD de type `Product`/`Offer` (le plus fiable pour le prix)
   2. Balises Open Graph (`og:title`, `og:image`, `og:price:amount` / `product:price:amount`)
   3. Microdonnées schema.org (`itemprop="name"/"image"/"price"`)
-  4. Repli Amazon (17 août 2026, aucune page produit Amazon n'expose JSON-LD ni Open Graph) : `#productTitle` pour le titre, `#landingImage`/`#imgTagWrapperId img` (attribut `data-a-dynamic-image` ou `src`) pour l'image. **Pas de repli prix pour Amazon** : le prix y est affiché à de nombreux endroits de la page (produits sponsorisés, options d'achat) sans conteneur stable pour identifier le bon — un sélecteur générique renvoie parfois le prix d'un tout autre article, testé et confirmé en conditions réelles. Laisser le champ vide est plus sûr qu'un prix scrapé mais faux.
+  4. Repli Amazon (17 août 2026, aucune page produit Amazon n'expose JSON-LD ni Open Graph) : `#productTitle` pour le titre, `#landingImage`/`#imgTagWrapperId img` (attribut `data-a-dynamic-image` ou `src`) pour l'image. ~~Pas de repli prix pour Amazon~~ **Repli prix réactivé le 20 août 2026** (voir "Prix Amazon réactivé" plus bas) : liste de sélecteurs scopés au conteneur du prix principal ("buybox"), plutôt que le sélecteur générique non scopé qui causait le problème initial.
   5. `<title>` en tout dernier recours, pour le titre uniquement
   6. Si aucun prix trouvé : champ laissé vide, jamais de valeur inventée — l'organisateur le saisit à la main
 - User-Agent réaliste sur la requête de fetch (certains sites bloquent les requêtes sans UA de navigateur), en-têtes `Accept`/`Accept-Language` complets (certains sites varient leur réponse selon ces en-têtes), timeout raisonnable (~8s), et dans tous les cas le formulaire doit rester utilisable manuellement si le scraping échoue ou timeout — ne jamais bloquer l'ajout d'un article sur l'échec du scraping.
@@ -806,6 +806,36 @@ Aucune migration de schéma nécessaire, `organizer_stripe_accounts` reste ident
   à l'exception du dernier maillon (un vrai organisateur connecté qui termine réellement la
   vérification), qui nécessiterait une session authentifiée réelle non disponible dans cet
   environnement.
+
+## Prix Amazon réactivé (20 août 2026)
+
+Décision du 17 août ("pas de repli prix pour Amazon") inversée sur demande de l'utilisateur, après
+recherche sur les sélecteurs de scraping Amazon actuellement utilisés en pratique (20 août 2026) :
+le prix faux observé à l'époque ne
+venait pas d'une impossibilité générale de cibler le bon prix sur Amazon, mais d'un sélecteur non
+scopé (`.a-price .a-offscreen` seul) qui matche aussi bien le prix du produit principal que ceux des
+produits sponsorisés/"fréquemment achetés ensemble" ailleurs sur la même page — d'où des prix
+occasionnellement erronés. En scopant la recherche au conteneur du prix principal ("buybox"), le
+problème se résout sans rien perdre en fiabilité.
+
+**Implémenté dans `lib/scrape-article.ts`**, dans le même bloc "Repli Amazon" que titre/image,
+liste de sélecteurs essayés dans l'ordre (le premier qui matche un prix parsable gagne) :
+
+1. `#corePriceDisplay_desktop_feature_div .a-price .a-offscreen`
+2. `#corePrice_feature_div .a-price .a-offscreen`
+3. `.priceToPay .a-offscreen`
+4. `.apexPriceToPay .a-offscreen`
+5. `#priceblock_ourprice`
+6. `#priceblock_dealprice`
+
+Comme pour titre/image, si aucun de ces sélecteurs ne matche (page Amazon avec une structure
+différente, produit sans buybox classique...), le principe reste inchangé : champ laissé vide,
+jamais de prix inventé — l'organisateur le saisit à la main dans ce cas. Amazon fait évoluer sa
+structure de page régulièrement ; si des prix faux ou manquants réapparaissent sur des cas précis,
+revoir/étendre cette liste de sélecteurs plutôt que de redésactiver le repli en bloc.
+
+**Testé** : `tsc`/`lint` propres. Pas encore vérifié contre une vraie page produit Amazon en
+conditions réelles (à faire au prochain ajout d'article Amazon depuis l'app).
 
 ## Points d'attention techniques
 

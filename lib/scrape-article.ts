@@ -190,12 +190,38 @@ export function parseArticleMetadata(html: string, baseUrl: string): ScrapedArti
     if (raw) priceCents = parsePriceToCents(raw);
   }
 
-  // Repli Amazon : ni JSON-LD ni Open Graph sur ses pages produit. Le titre
-  // et l'image y sont à un emplacement stable — pas le prix (affiché à de
-  // multiples endroits sans conteneur fiable pour distinguer le bon : mieux
-  // vaut laisser l'organisateur le saisir que d'en afficher un faux).
+  // Repli Amazon : ni JSON-LD ni Open Graph sur ses pages produit. Titre,
+  // image et prix y sont à des emplacements stables tant qu'on cible
+  // précisément le conteneur du prix affiché ("buybox"), voir CLAUDE.md >
+  // "Prix Amazon réactivé (20 août 2026)". Décision initiale du 17 août
+  // (aucun repli prix) inversée : la cause du prix parfois faux n'était pas
+  // Amazon en général mais un sélecteur non scopé (`.a-price .a-offscreen`
+  // seul matche aussi les prix des produits sponsorisés/associés ailleurs
+  // sur la page) — en le scopant au conteneur du prix principal, le
+  // problème disparaît. Liste ordonnée par fiabilité décroissante, le
+  // premier sélecteur qui matche un prix parsable gagne ; comme pour
+  // titre/image, jamais de prix inventé si aucun ne matche (résultat null).
   if (!title) {
     title = $("#productTitle").first().text().trim() || null;
+  }
+  if (priceCents === null) {
+    const amazonPriceSelectors = [
+      "#corePriceDisplay_desktop_feature_div .a-price .a-offscreen",
+      "#corePrice_feature_div .a-price .a-offscreen",
+      ".priceToPay .a-offscreen",
+      ".apexPriceToPay .a-offscreen",
+      "#priceblock_ourprice",
+      "#priceblock_dealprice",
+    ];
+    for (const selector of amazonPriceSelectors) {
+      const raw = $(selector).first().text().trim();
+      if (!raw) continue;
+      const parsed = parsePriceToCents(raw);
+      if (parsed !== null) {
+        priceCents = parsed;
+        break;
+      }
+    }
   }
   if (!imageUrl) {
     const landing = $("#landingImage, #imgTagWrapperId img").first();
