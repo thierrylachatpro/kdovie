@@ -50,10 +50,22 @@ export async function POST(request: Request) {
       return Response.json({}, { status: 200 });
     }
 
-    const confirmationUrl = new URL(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/auth/v1/verify`);
-    confirmationUrl.searchParams.set("token", email_data.token_hash);
+    // Pointe vers une page Kdovie (/auth/confirmer) plutôt que directement
+    // vers l'endpoint Supabase /auth/v1/verify — un lien mail qui déclenche
+    // la vérification dès qu'il est visité (même par GET) risque d'être
+    // "pré-visité" automatiquement par un scanner de liens côté client mail
+    // (Gmail notamment, cas constaté en conditions réelles), ce qui grille
+    // le token_hash à usage unique avant même que l'organisateur ne clique
+    // lui-même. /auth/confirmer exige un vrai clic (Server Action, jamais
+    // déclenché par un simple GET de scanner) avant d'appeler verifyOtp —
+    // voir CLAUDE.md > "Bug lien magique grillé par un pré-scan automatique".
+    const redirectToUrl = new URL(email_data.redirect_to);
+    const next = redirectToUrl.searchParams.get("next") ?? "/compte";
+
+    const confirmationUrl = new URL("/auth/confirmer", redirectToUrl.origin);
+    confirmationUrl.searchParams.set("token_hash", email_data.token_hash);
     confirmationUrl.searchParams.set("type", email_data.email_action_type);
-    confirmationUrl.searchParams.set("redirect_to", email_data.redirect_to);
+    confirmationUrl.searchParams.set("next", next);
 
     await sendTransactionalEmail({
       to: user.email,

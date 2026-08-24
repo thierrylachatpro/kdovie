@@ -1131,6 +1131,68 @@ peer dependency avec Next 16.3/React 19.2), posé dans `app/layout.tsx` juste av
   pas testé explicitement sur un rechargement complet du navigateur mais la librairie ne s'y déclenche
   par construction que via les hooks de routage Next.js, pas sur un chargement de document.
 
+## Bug lien magique grillé par un pré-scan automatique (24 août 2026)
+
+Signalé par l'utilisateur en conditions réelles sur `kdovie.com` : e-mail de connexion bien reçu,
+mais coller le lien dans le même onglet du même navigateur ramène systématiquement sur `/connexion`
+au lieu de connecter.
+
+**Cause identifiée** (confirmée par test réel, pas une supposition) : le lien envoyé par e-mail
+pointait directement vers l'endpoint Supabase natif `<projet>.supabase.co/auth/v1/verify?token=...`
+(voir `app/api/auth/send-email/route.ts`) — un lien qui authentifie dès qu'il est visité, même par
+une simple requête GET automatique. Beaucoup de clients mail (Gmail en tête, cas documenté ailleurs
+que dans ce projet) "pré-visitent" automatiquement les liens reçus pour les scanner (anti-phishing),
+avant même que l'utilisateur ne clique. Le `token_hash` du lien magique étant à usage unique, ce
+pré-scan le grille silencieusement — le clic réel de l'utilisateur juste après tombe alors sur un
+lien déjà consommé, Supabase redirige vers `redirect_to` sans `code`/avec une erreur, et
+`app/auth/callback/route.ts` retombait sur `/connexion?erreur=lien_invalide` sans distinguer ce cas
+d'un vrai lien expiré.
+
+**Correctif** : le lien envoyé par e-mail pointe désormais vers une page Kdovie
+(`/auth/confirmer?token_hash=...&type=...&next=...`) qui affiche un bouton "Me connecter" — une
+simple visite GET de cette page (donc un pré-scan automatique) n'authentifie personne, seul un vrai
+clic déclenche la Server Action `confirmerConnexion` (`app/auth/confirmer/actions.ts`) qui appelle
+`supabase.auth.verifyOtp({ token_hash, type })` (crée la session directement, même mécanisme cookie
+que l'ancien `exchangeCodeForSession`) — reprend telle quelle la logique déjà en place
+(`compteDesactive`, `envoyerBienvenueSiPremiereConnexion`).
+
+- **`app/api/auth/send-email/route.ts`** : construit `confirmationUrl` à partir de
+  `email_data.redirect_to` (déjà présent dans la charge utile du hook, contient l'origine réelle et
+  le `next` d'origine — pas besoin d'une nouvelle variable d'environnement pour l'origine du site).
+- **`app/auth/confirmer/page.tsx`** (nouvelle page, réutilise `PageLegale` pour l'en-tête/pied de
+  page) + **`components/auth/ConfirmerConnexionButton.tsx`** (bouton avec état d'attente, même
+  patron que les autres boutons de formulaire du produit).
+- **`proxy.ts`** : exclusion de maintenance élargie de `/auth/callback` à tout `/auth` (couvre donc
+  aussi `/auth/confirmer`), même raison que `/connexion` — cette page a sa propre logique de
+  validation, l'exclure ne fuite rien.
+- **`app/auth/callback/route.ts` volontairement conservé, pas supprimé** : les liens déjà envoyés
+  avant ce correctif (valables 1h) pointent encore vers l'ancien mécanisme — le supprimer aurait
+  cassé toute connexion en cours pour quiconque a un e-mail non encore cliqué dans sa boîte au
+  moment du déploiement. Purement mort après la fenêtre de validité des liens déjà en circulation,
+  peut être nettoyé plus tard sans urgence. `components/auth/ConnexionForm.tsx` inchangé : son
+  `emailRedirectTo` (`/auth/callback?next=...`) n'est plus jamais visité dans le nouveau flux,
+  seulement utilisé comme porteur de données (origine + `next`) via `email_data.redirect_to` côté
+  hook — renommer n'apportait rien.
+- **Testé réellement, de bout en bout, avec de vrais comptes créés puis supprimés côté Supabase
+  prod** (`admin.generateLink` pour obtenir un vrai `token_hash`, navigateur réel via Playwright,
+  jamais de réimplémentation/mock) :
+  - Repéré au passage un piège dans le test lui-même, instructif : Supabase renvoie
+    `verification_type: "signup"` (pas `"magiclink"`) pour tout premier lien d'un e-mail inédit —
+    déjà documenté ailleurs dans ce fichier pour le hook d'envoi, désormais aussi vérifié pour
+    `verifyOtp` lui-même (`type` doit correspondre exactement à ce `verification_type`, pas à un
+    type générique supposé).
+  - Scénario "premier lien" (`verification_type: signup`) : clic sur "Me connecter" → redirection
+    vers `/compte`, cookie de session Supabase posé. Fonctionne.
+  - Scénario "compte existant, nouveau lien" (`verification_type: magiclink`, cas réel de
+    l'utilisateur) : même résultat, fonctionne.
+  - **Scénario du bug lui-même reproduit et corrigé** : une simple visite GET de
+    `/auth/confirmer?token_hash=...` (simulant le pré-scan d'un client mail) n'authentifie
+    personne et ne consomme rien ; le clic réel juste après réussit normalement.
+  - Protection à usage unique toujours effective : réutiliser le même lien après un clic réussi
+    échoue proprement (`/connexion?erreur=lien_invalide`), pas de faille de rejouabilité introduite
+    par le correctif.
+  - `tsc`/`lint`/`build` propres.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
