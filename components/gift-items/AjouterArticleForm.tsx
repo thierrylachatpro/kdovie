@@ -72,6 +72,20 @@ export default function AjouterArticleForm({
 
   return (
     <section className="rounded-[28px] border-2 border-[#F2DFC9] bg-white p-7.5">
+      {isPending && (
+        <div className="fixed inset-0 z-30 flex items-center justify-center bg-[#4A3529]/45 p-6">
+          <div className="flex max-w-100 flex-col items-center gap-4 rounded-[28px] bg-creme px-8 py-9 text-center">
+            <KdovieSpinner className="h-10 w-10" variant="light" />
+            <p className="font-heading text-lg font-bold text-[#4A3529]">
+              Récupération des informations du cadeau…
+            </p>
+            <p className="text-[15px] text-[#7A6354]">
+              Ça peut prendre quelques secondes, surtout sur Amazon.
+            </p>
+          </div>
+        </div>
+      )}
+
       <h2 className="font-heading mb-4.5 text-[22px] font-bold text-[#4A3529]">
         Ajouter un cadeau
       </h2>

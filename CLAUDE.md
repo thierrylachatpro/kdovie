@@ -1034,6 +1034,38 @@ curl -X POST \
     bout ; son branchement au formulaire n'a pas changé (toujours `scrapeArticleUrl`, même
     signature), risque de régression jugé faible.
 
+### Retour d'usage : lenteur perçue sur Amazon (24 août 2026)
+
+Une fois la clé posée, constat de l'utilisateur en usage réel : "ça marche mais c'est super long".
+Diagnostiqué par mesure directe (pas une supposition) : un appel Bright Data prend 6 à 12 secondes
+sur les produits testés, cohérent avec les "10 à 30s en général" annoncés par leur doc — Bright Data
+scrape la page en profondeur (avis clients, analyse de sentiment, badges...) même si Kdovie n'utilise
+que titre/prix/image. Rien côté code Kdovie n'ajoute de délai supplémentaire (`AjouterArticleForm`
+n'appelle `scrapeArticleUrl` qu'une fois, pas de double appel).
+
+Rapproché d'un précédent déjà tranché dans ce projet : le mode `browser=true` de ScrapingAnt avait
+été testé puis retiré en août pour une lenteur comparable (9-25s, jugées "beaucoup trop lentes").
+Question reposée à l'utilisateur plutôt que tranchée seul, vu ce précédent — trois options
+proposées (garder tel quel / réduire le timeout pour basculer plus vite sur ScrapingAnt / retirer
+Bright Data). **Décision : garder Bright Data tel quel** (contrairement au cas ScrapingAnt
+`browser=true`, la fiabilité gagnée sur Amazon — site le plus utilisé sur Kdovie, historiquement le
+plus sujet à échec — vaut mieux que la rapidité perdue), complétée d'une amélioration UX : overlay
+plein écran (fond assombri, spinner centré, message d'attente rassurant) pendant la récupération,
+plutôt que le seul petit spinner du bouton, pour que l'attente soit explicitement annoncée plutôt que
+simplement subie.
+
+- **`components/gift-items/AjouterArticleForm.tsx`** : overlay ajouté (`isPending` du
+  `useTransition` déjà existant, scopé à `handleAnalyser`/"Récupérer le cadeau" — n'affecte pas le
+  bouton "Ajouter à la liste", qui a son propre `pending` via `useFormStatus`), même langage visuel
+  que les modales existantes (`ReservationModal`/`ContributionModal` : fond `bg-[#4A3529]/45`, carte
+  crème `rounded-[28px]`). Texte : "Récupération des informations du cadeau… Ça peut prendre
+  quelques secondes, surtout sur Amazon." — mentionne Amazon sans détailler Bright Data
+  (implémentation interne, pas pertinente pour l'organisateur).
+- **Testé** : `tsc`/`lint`/`build` propres. Rendu vérifié par capture d'écran (page de
+  prévisualisation temporaire, supprimée ensuite) — overlay déclenché avec une URL volontairement
+  lente à répondre pour capturer l'état "pending", conforme à la maquette voulue (fond atténué,
+  spinner centré, message).
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
