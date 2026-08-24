@@ -1059,12 +1059,58 @@ simplement subie.
   bouton "Ajouter à la liste", qui a son propre `pending` via `useFormStatus`), même langage visuel
   que les modales existantes (`ReservationModal`/`ContributionModal` : fond `bg-[#4A3529]/45`, carte
   crème `rounded-[28px]`). Texte : "Récupération des informations du cadeau… Ça peut prendre
-  quelques secondes, surtout sur Amazon." — mentionne Amazon sans détailler Bright Data
+  quelques secondes..." — 
   (implémentation interne, pas pertinente pour l'organisateur).
 - **Testé** : `tsc`/`lint`/`build` propres. Rendu vérifié par capture d'écran (page de
   prévisualisation temporaire, supprimée ensuite) — overlay déclenché avec une URL volontairement
   lente à répondre pour capturer l'état "pending", conforme à la maquette voulue (fond atténué,
   spinner centré, message).
+
+## Barre de progression globale pendant la navigation (20 août 2026)
+
+Ajustement produit demandé par l'utilisateur : latence perceptible sur la plupart des changements
+de page (navigation côté client entre routes de l'App Router), sans indicateur visuel que le clic a
+bien été pris en compte pendant que la page suivante se prépare. Deux pistes comparées avec
+l'utilisateur (démo interactive) : un indicateur localisé à côté du lien cliqué (`useLinkStatus`,
+hook natif Next.js, mais à poser lien par lien) versus une fine barre de progression globale en haut
+de l'écran, visible sur toute navigation sans rien changer par ailleurs. **Décision : la barre
+globale**, pour couvrir "la plupart des pages" en un seul point d'intégration plutôt que de retoucher
+chaque lien de navigation individuellement.
+
+- **Librairie** : `nextjs-toploader` (wrapper autour de nprogress pour l'App Router,
+  `peerDependencies` `next >= 6.0.0` / `react >= 16.0.0` — pas de blocage de version avec Next
+  16.3/React 19.2 déjà en place, même si la description du package ne mentionne explicitement que
+  Next 14/15 comme testés : à vérifier visuellement après installation plutôt qu'à supposer un souci).
+- **Intégration** : un seul point, `app/layout.tsx` (Server Component racine) — importer
+  `NextTopLoader` (Client Component fourni par la librairie, s'importe normalement dans un Server
+  Component parent, aucun changement de structure nécessaire) et le poser juste avant
+  `<BandeauEnvironnement />` ou juste après, dans `<body>`.
+- **Réglages** à passer en props, cohérents avec l'identité visuelle déjà en place (voir "Identité
+  visuelle" en tête de ce fichier) :
+  - `color="#E8734A"` (corail, même valeur que partout ailleurs dans le produit)
+  - `showSpinner={false}` — pas de petit spinner en coin d'écran fourni par défaut par la librairie,
+    ça ferait doublon avec `KdovieSpinner` déjà posé sur les boutons à état d'attente du produit.
+  - `shadow={false}` — la librairie ajoute une lueur sous la barre par défaut, à désactiver pour
+    rester cohérent avec l'absence de gradient/ombre/glow dans le reste de l'identité Kdovie.
+  - `height={3}` (px) — fine et discrète, conforme à la demande initiale.
+- **Point d'attention non testé** : sur les déploiements où `BandeauEnvironnement` s'affiche (toute
+  branche différente de `main`, voir "Environnements dev/prod séparés"), la barre de progression
+  (`position: fixed`, tout en haut du viewport par défaut) et ce bandeau (en flux normal, juste sous
+  `<body>`) vont se superposer visuellement le temps d'une navigation — pas un blocage, juste à
+  vérifier à l'œil une fois posé sur l'environnement de dev, ajuster au besoin (ex. `zIndex` de
+  `NextTopLoader`) si le rendu gêne.
+- **Comportement attendu** : la barre ne doit apparaître que sur une navigation côté client
+  (changement de route via `<Link>`/`router.push`), pas sur un chargement de page complet
+  (rafraîchissement navigateur) — comportement natif de la librairie, à confirmer visuellement plutôt
+  qu'à supposer.
+- **Aucun changement page par page** : contrairement à `useLinkStatus`, rien à toucher dans les
+  composants de navigation existants (`NavConnecte`, liens du dashboard, etc.) — la barre s'applique
+  automatiquement à toute l'app une fois posée dans le layout racine.
+
+**Testé** : à vérifier par Claude Code — `tsc`/`lint`/`build` propres, puis contrôle visuel sur
+quelques navigations (dashboard → gestion de liste, `/compte` → `/compte/profil`) pour confirmer que
+la barre apparaît bien pendant le délai perçu et disparaît proprement à l'arrivée sur la nouvelle
+page.
 
 ## Points d'attention techniques
 
