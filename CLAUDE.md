@@ -1183,6 +1183,33 @@ lequel l'organisateur vient de cliquer, pendant que la page suivante se prépare
     moins fréquemment cliqués, à étendre plus tard si l'utilisateur le souhaite une fois le rendu
     validé sur les deux points ci-dessus.
 
+### Extension aux autres boutons de navigation (24 août 2026)
+
+Rendu validé sur les deux premiers points, l'utilisateur demande d'étendre `StatutLien` (déjà posé,
+voir ci-dessus) à tous les **boutons** de navigation stylés — pas les simples liens de texte de pied
+de page (Aide/Contact/mentions légales/CGU/CGV, "Retour à l'accueil", logo → accueil), qui restent
+hors périmètre : bien moins cliqués, et l'ajouter partout gonflerait inutilement une dizaine de
+fichiers pour un gain quasi nul. Si l'utilisateur veut aussi les couvrir un jour, l'ajouter au cas
+par cas plutôt qu'en masse.
+
+Boutons stylés (`bg-corail`/CTA) à couvrir, tous dans `app/compte/page.tsx` sauf le dernier :
+
+- Ligne ~199-204 : "+ Nouvelle liste" (bouton d'en-tête du dashboard).
+- Ligne ~221-226 : "Activer ma cagnotte"/"Terminer la vérification" (bandeau d'incitation Stripe,
+  voir "Bandeau d'incitation à activer sa cagnotte Stripe sur /compte") → `/compte/profil`.
+- Ligne ~257 et suivantes : "Ajouter un cadeau en un lien" (`lienAjoutRapide`, carte de raccourci).
+- Ligne ~272-273 : variante "+ Nouvelle liste" (carte "liste simple").
+- Ligne ~356-357 : variante "+ Nouvelle liste" (état vide, aucune liste créée).
+- `components/accueil/AccueilClient.tsx`, ligne ~260-261 : bouton principal vers `/connexion` sur la
+  page d'accueil — première action d'un nouvel organisateur, vaut la peine même si hors du compte.
+
+Même mécanique que les deux premiers points : `<StatutLien variant="dark" />` en enfant du `<Link>`
+(variante `"dark"` puisque ce sont tous des boutons pleins corail, cohérent avec `KdovieSpinner` —
+`variant="light"` reste réservé aux liens sur fond clair comme `NavConnecte`).
+
+**Testé** : à vérifier par Claude Code, même méthode que les deux premiers points (réseau ralenti,
+contrôle visuel par bouton).
+
 **Statut : implémenté et testé (24 août 2026).** `nextjs-toploader` entièrement retiré
 (désinstallé, `app/layout.tsx` revenu à son état d'avant la barre globale). `components/ui/StatutLien.tsx`
 posé sur les 3 liens prévus : "Mes listes" et "Mon compte" (`NavConnecte.tsx`), "Ouvrir la liste" sur
