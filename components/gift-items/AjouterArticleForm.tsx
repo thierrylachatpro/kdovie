@@ -80,7 +80,7 @@ export default function AjouterArticleForm({
               Récupération des informations du cadeau…
             </p>
             <p className="text-[15px] text-[#7A6354]">
-              Ça peut prendre quelques secondes, surtout sur Amazon.
+              Ça peut prendre quelques secondes. Soyez patient...
             </p>
           </div>
         </div>
