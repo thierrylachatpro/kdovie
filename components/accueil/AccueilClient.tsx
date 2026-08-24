@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import LiensLegaux from "@/components/layout/LiensLegaux";
 import NavConnecte from "@/components/layout/NavConnecte";
+import StatutLien from "@/components/ui/StatutLien";
 
 type Occasion = {
   label: string;
@@ -268,6 +269,7 @@ export default function AccueilClient({
               className="rounded-2xl bg-corail px-[22px] py-3 text-[15px] font-semibold text-creme hover:bg-[#D45F37]"
             >
               Créer ma liste
+              <StatutLien variant="dark" />
             </Link>
           </div>
         )}

@@ -1183,6 +1183,28 @@ lequel l'organisateur vient de cliquer, pendant que la page suivante se prépare
     moins fréquemment cliqués, à étendre plus tard si l'utilisateur le souhaite une fois le rendu
     validé sur les deux points ci-dessus.
 
+**Statut (première passe, avant l'extension aux autres boutons ci-dessous) : implémenté et testé
+(24 août 2026).** `nextjs-toploader` entièrement retiré (désinstallé, `app/layout.tsx` revenu à son
+état d'avant la barre globale). `components/ui/StatutLien.tsx` posé sur les 3 liens prévus : "Mes
+listes" et "Mon compte" (`NavConnecte.tsx`), "Ouvrir la liste" sur chaque carte du dashboard
+(`app/compte/page.tsx`).
+
+- Détail d'implémentation qui a nécessité un ajustement : `setVisible(false)` appelé directement
+  dans le corps synchrone du `useEffect` déclenchait l'erreur ESLint
+  `react-hooks/set-state-in-effect` (cascading renders). Corrigé en déplaçant ce `setVisible(false)`
+  dans la fonction de nettoyage de l'effet plutôt que dans son corps — React l'exécute
+  automatiquement juste avant que l'effet ne se rejoue quand `pending` repasse à `false`, résultat
+  identique (le spinner redisparaît immédiatement à l'arrivée sur la nouvelle page) sans déclencher
+  la règle.
+- **Testé réellement** (pas seulement `tsc`/`lint`/`build` propres) : page de prévisualisation
+  temporaire (supprimée ensuite) avec `NavConnecte` et un lien "Ouvrir la liste" identiques aux
+  vrais, réseau ralenti via CDP (Playwright) pour observer la fenêtre de pending. Confirmé par
+  capture d'écran que le spinner apparaît bien à côté de "Mes listes" pendant la navigation, sans
+  saut de mise en page (l'espace est déjà réservé au repos, seule l'opacité change). Confirmé aussi
+  par lecture directe de `getComputedStyle(...).opacity` dans le DOM : `0` à 50ms après le clic
+  (avant le délai), `1` à ~300ms (après) — le comportement anti-clignotement fonctionne exactement
+  comme prévu, pas seulement en apparence sur une capture d'écran.
+
 ### Extension aux autres boutons de navigation (24 août 2026)
 
 Rendu validé sur les deux premiers points, l'utilisateur demande d'étendre `StatutLien` (déjà posé,
@@ -1207,29 +1229,23 @@ Même mécanique que les deux premiers points : `<StatutLien variant="dark" />` 
 (variante `"dark"` puisque ce sont tous des boutons pleins corail, cohérent avec `KdovieSpinner` —
 `variant="light"` reste réservé aux liens sur fond clair comme `NavConnecte`).
 
-**Testé** : à vérifier par Claude Code, même méthode que les deux premiers points (réseau ralenti,
-contrôle visuel par bouton).
+**Statut : implémenté et testé (24 août 2026).** `StatutLien` posé sur les 6 boutons prévus dans
+`app/compte/page.tsx` (5) et `components/accueil/AccueilClient.tsx` (1, le bouton d'en-tête
+"Créer ma liste" — les deux autres occurrences de `lienNouvelleListe` plus bas sur la page d'accueil
+restent hors périmètre, non demandées).
 
-**Statut : implémenté et testé (24 août 2026).** `nextjs-toploader` entièrement retiré
-(désinstallé, `app/layout.tsx` revenu à son état d'avant la barre globale). `components/ui/StatutLien.tsx`
-posé sur les 3 liens prévus : "Mes listes" et "Mon compte" (`NavConnecte.tsx`), "Ouvrir la liste" sur
-chaque carte du dashboard (`app/compte/page.tsx`).
-
-- Détail d'implémentation qui a nécessité un ajustement : `setVisible(false)` appelé directement
-  dans le corps synchrone du `useEffect` déclenchait l'erreur ESLint
-  `react-hooks/set-state-in-effect` (cascading renders). Corrigé en déplaçant ce `setVisible(false)`
-  dans la fonction de nettoyage de l'effet plutôt que dans son corps — React l'exécute
-  automatiquement juste avant que l'effet ne se rejoue quand `pending` repasse à `false`, résultat
-  identique (le spinner redisparaît immédiatement à l'arrivée sur la nouvelle page) sans déclencher
-  la règle.
-- **Testé réellement** (pas seulement `tsc`/`lint`/`build` propres) : page de prévisualisation
-  temporaire (supprimée ensuite) avec `NavConnecte` et un lien "Ouvrir la liste" identiques aux
-  vrais, réseau ralenti via CDP (Playwright) pour observer la fenêtre de pending. Confirmé par
-  capture d'écran que le spinner apparaît bien à côté de "Mes listes" pendant la navigation, sans
-  saut de mise en page (l'espace est déjà réservé au repos, seule l'opacité change). Confirmé aussi
-  par lecture directe de `getComputedStyle(...).opacity` dans le DOM : `0` à 50ms après le clic
-  (avant le délai), `1` à ~300ms (après) — le comportement anti-clignotement fonctionne exactement
-  comme prévu, pas seulement en apparence sur une capture d'écran.
+- **Écart avec le brief corrigé après relecture du code réel** : contrairement à ce que supposait le
+  cadrage ("tous... `bg-corail`"), deux des boutons listés ne sont pas des boutons pleins corail —
+  "Créer une liste simple" est en fond `bg-creme` (bordure claire), et "Créer ma première liste" est
+  en fond `bg-jaune`. Posé `<StatutLien />` (variante `"light"` par défaut) sur ces deux-là plutôt
+  que `variant="dark"`, cohérent avec la règle déjà énoncée dans la section précédente ("`dark`
+  réservé aux boutons pleins corail, `light` pour tout fond clair") — vérifié visuellement que les
+  deux variantes restent lisibles sur leurs fonds respectifs. Les 4 autres boutons (tous
+  effectivement `bg-corail`) utilisent `variant="dark"` comme prévu.
+- **Testé réellement** : page de prévisualisation temporaire (supprimée ensuite) avec les 3 styles de
+  bouton réellement utilisés (corail, crème à bordure, jaune), réseau ralenti via CDP — capture
+  d'écran au repos (aucun spinner visible, pas de distorsion de mise en page) et en pending pour
+  chacun des trois (spinner visible et lisible dans les 3 cas). `tsc`/`lint`/`build` propres.
 
 ## Bug lien magique grillé par un pré-scan automatique (24 août 2026)
 

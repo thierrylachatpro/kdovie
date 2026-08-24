@@ -201,6 +201,7 @@ export default async function ComptePage() {
             className="font-heading rounded-[20px] bg-corail px-[26px] py-[17px] text-[17px] font-bold text-creme hover:bg-[#D45F37]"
           >
             + Nouvelle liste
+            <StatutLien variant="dark" />
           </Link>
         </section>
 
@@ -223,6 +224,7 @@ export default async function ComptePage() {
               className="font-heading flex-none rounded-2xl bg-corail px-5 py-3.5 text-[15px] font-bold text-creme hover:bg-[#D45F37]"
             >
               {organizerStripeStatus === "aucun" ? "Activer ma cagnotte" : "Terminer la vérification"}
+              <StatutLien variant="dark" />
             </Link>
           </section>
         )}
@@ -244,38 +246,6 @@ export default async function ComptePage() {
             <strong className="font-semibold text-[#4A3529]">{totalReserves}</strong> déjà
             réservés
           </span>
-        </section>
-
-        <section className="mb-10 grid grid-cols-1 gap-5 sm:grid-cols-2">
-          <div className="rounded-[28px] bg-[#F5E3C9] p-6.5">
-            <h2 className="font-heading mb-2.5 text-xl font-bold text-[#7A5A16]">
-              Ajouter un cadeau en un lien
-            </h2>
-            <p className="mb-4 text-[15px] leading-relaxed text-[#6B5426]">
-              Collez l&apos;adresse d&apos;une page produit, de n&apos;importe quelle boutique.
-            </p>
-            <Link
-              href={lienAjoutRapide}
-              className="font-heading inline-block rounded-2xl bg-corail px-5 py-3.5 text-[15px] font-bold text-creme hover:bg-[#D45F37]"
-            >
-              Ajouter un cadeau
-            </Link>
-          </div>
-          <div className="rounded-[28px] bg-[#DCE7DA] p-6.5">
-            <h2 className="font-heading mb-2.5 text-xl font-bold text-[#2F4A2C]">
-              Une simple liste d&apos;envies
-            </h2>
-            <p className="mb-4 text-[15px] leading-relaxed text-[#3D5A39]">
-              Pas d&apos;occasion particulière, pas de date : créez une liste ouverte, et
-              ajoutez-y des idées au fil de l&apos;année.
-            </p>
-            <Link
-              href="/compte/evenements/nouveau"
-              className="font-heading inline-block rounded-2xl bg-creme px-5 py-3.5 text-[15px] font-bold text-[#2F4A2C] hover:bg-white"
-            >
-              Créer une liste simple
-            </Link>
-          </div>
         </section>
 
         <section className="mb-11">
@@ -358,6 +328,7 @@ export default async function ComptePage() {
                 className="rounded-lg bg-jaune px-5 py-2.5 text-sm font-medium text-corail-dark"
               >
                 Créer ma première liste
+                <StatutLien />
               </Link>
             </div>
           )}
