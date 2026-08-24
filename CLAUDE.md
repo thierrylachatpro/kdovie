@@ -837,6 +837,152 @@ revoir/étendre cette liste de sélecteurs plutôt que de redésactiver le repli
 **Testé** : `tsc`/`lint` propres. Pas encore vérifié contre une vraie page produit Amazon en
 conditions réelles (à faire au prochain ajout d'article Amazon depuis l'app).
 
+## Intégration Bright Data pour la fiche produit Amazon (20 août 2026)
+
+Corrige et remplace un premier brief rédigé sans avoir ce `CLAUDE.md` sous les yeux (celui-là
+supposait à tort un backend PHP/MySQL sur Hostinger — sans rapport avec le vrai stack). Complète le
+pipeline de scraping déjà en place (`app/compte/evenements/[slug]/scrape-action.ts` +
+`lib/scrape-article.ts`, voir "Scraping des métadonnées d'article" et "Service de scraping tiers —
+ScrapingAnt" plus haut) sans le réexpliquer.
+
+**Problème résolu** : sur Amazon, ScrapingAnt tombe régulièrement sur la page de vérification
+"cliquez pour continuer vos achats" et échoue même sur le titre/l'image, pas seulement le prix
+(pourtant réactivé le jour même, voir "Prix Amazon réactivé" ci-dessus, avec des sélecteurs scopés
+qui fonctionnent quand la page arrive jusqu'à cheerio — le souci ici est en amont, ScrapingAnt ne
+récupère parfois aucune page utilisable). Amazon étant le site le plus utilisé sur Kdovie, ce trou
+pèse lourd sur l'ajout d'article.
+
+**Décision** : Bright Data (Amazon Scraper API, dataset structuré dédié) route toutes les URLs
+`amazon.fr` à la place de ScrapingAnt + cheerio, **avec ScrapingAnt + le repli Amazon existant
+gardés comme filet de secours** si Bright Data échoue ou n'est pas configuré — décision du
+20 août 2026, après discussion : le brief initial proposait de retirer purement et simplement le
+repli cheerio Amazon une fois Bright Data validé, mais ça aurait signifié plus aucun filet pour
+Amazon en cas de panne/quota dépassé côté Bright Data (un service tiers de plus, pas de garantie
+de disponibilité), alors que le pipeline ScrapingAnt vient justement d'être remis en état de marche
+pour le prix le jour même. Le pipeline ScrapingAnt + cheerio reste **strictement inchangé** pour
+tous les autres marchands.
+
+**Pourquoi ce périmètre reste limité à Amazon** (question étudiée en amont, ne pas rouvrir) :
+Bright Data n'a de dataset structuré dédié que pour un catalogue fermé de sites, où les gros
+retailers français (Fnac, Darty, Cdiscount, Conforama, But) ne figurent pas. Pour un site sans
+dataset dédié, l'équivalent générique Bright Data ("Web Unlocker") ne renvoie que du HTML brut à
+parser soi-même — aucun gain par rapport à ScrapingAnt, en plus d'être payant à l'usage (~3$/1000
+requêtes, pas de palier gratuit récurrent) contre le palier gratuit de 10 000 crédits/mois déjà en
+place et validé en prod pour ScrapingAnt. Si un autre marchand pose un jour le même genre de
+problème documenté (échecs répétés même via ScrapingAnt), réévaluer au cas par cas si Bright Data a
+un dataset dédié pour lui — jamais basculer tout le pipeline par défaut.
+
+### Ce qui ne change pas
+
+- Scraping toujours strictement côté serveur (Server Action), jamais côté navigateur.
+- Le formulaire d'ajout reste utilisable manuellement si tout échoue ou dépasse le timeout — jamais
+  de blocage, jamais de valeur inventée (champ vide plutôt qu'un prix approximatif).
+- Pas de cache : un article n'est scrapé qu'une fois, à l'ajout — `gift_items.title/price_cents/image_url`
+  stockent ensuite la valeur définitive, modifiable à la main via "Modifier" (déjà en place). Aucune
+  table de cache à créer.
+- Les liens d'affiliation (`lib/affiliate-link.ts`, tâche #19) sont un sujet totalement indépendant,
+  déjà résolu par simple ajout de `tag=<AMAZON_ASSOCIATE_TAG>` à l'URL — sans rapport avec cette
+  tâche, ne pas y toucher, pas de PA-API (le projet n'en a pas besoin).
+
+### Où intervenir — corrections apportées au brief initial après relecture du code réel
+
+- **`hostnameFromUrl`** vit dans `lib/url.ts` (pas dans `lib/affiliate-link.ts` comme écrit dans le
+  brief initial — ce fichier l'importe seulement). Réutiliser tel quel depuis `lib/url.ts`, ne pas en
+  écrire un second.
+- **`app/compte/evenements/[slug]/scrape-action.ts`, dans `scrapeArticleUrl`** : le point
+  d'aiguillage n'est pas "en tête du fichier" mais **après** le bloc existant qui parse l'URL et
+  nettoie ses paramètres (`parsedUrl.search = ""`, `parsedUrl.hash = ""`, déjà en place lignes
+  ~130-148) — réutiliser ce même `parsedUrl` déjà nettoyé pour l'appel Bright Data plutôt que de
+  reparser l'URL une seconde fois. Si `hostnameFromUrl(parsedUrl.toString()) === "amazon.fr"` :
+  tenter `fetchAmazonProductViaBrightData(parsedUrl.toString())` ; en cas de résultat vide/échec
+  (clé absente, timeout, erreur HTTP, produit introuvable), **retomber sur le chemin existant**
+  (`fetchViaScrapingAnt` puis `fetchDirect` puis `parseArticleMetadata`) exactement comme
+  aujourd'hui, au lieu de renvoyer `EMPTY_RESULT` directement. Pour tout autre domaine, comportement
+  strictement inchangé.
+- **Titre : ne pas passer par `truncateTitle`** (`lib/gift-item.ts`) comme suggéré dans le brief
+  initial — cette fonction est un filet de sécurité pour l'affichage dans les emails (titres saisis
+  à la main, non raccourcis au scraping), pas le mécanisme de raccourcissement lui-même. Le vrai
+  mécanisme est `shortenTitle` (`lib/scrape-article.ts`), qui produit `{ title, originalTitle }` et
+  alimente le bouton "voir plus"/titre complet dépliable déjà en place sur les cartes. `scrapeArticleUrl`
+  applique déjà `shortenTitle` une seule fois, de façon uniforme, juste après avoir obtenu un
+  résultat (lignes ~160-164) — la fonction Bright Data doit donc renvoyer le **titre brut, non
+  raccourci** (comme le fait déjà `parseArticleMetadata` pour les autres sources), pour continuer à
+  passer par ce même `shortenTitle` unique en aval plutôt que d'appliquer une troncature différente
+  et perdre le "voir plus" sur les articles Amazon via Bright Data.
+- **Nouveau fichier `lib/scrape-amazon-brightdata.ts`** : `fetchAmazonProductViaBrightData(url: string): Promise<ScrapedArticle | null>`
+  (type `ScrapedArticle` déjà défini dans `lib/scrape-article.ts` — `{ title, originalTitle, priceCents, imageUrl }`,
+  réutiliser tel quel, `originalTitle` toujours `null` en sortie de cette fonction pour la raison
+  ci-dessus). Retourne `null` (pas un objet à champs vides) sur tout échec, pour que l'appelant sache
+  distinguer "reponse Bright Data vide" de "Bright Data a échoué, il faut retomber sur ScrapingAnt".
+- **Ne pas retirer** le repli Amazon spécifique de `lib/scrape-article.ts` (sélecteurs
+  `#productTitle`, `#landingImage`/`#imgTagWrapperId`, et les sélecteurs de prix scopés ajoutés le
+  20 août — voir "Prix Amazon réactivé" ci-dessus) — contrairement à ce que demandait le brief
+  initial, ce repli reste le filet de secours pour Amazon quand Bright Data est indisponible, voir
+  décision ci-dessus.
+
+### Spécification technique Bright Data (Datasets API)
+
+À valider par un premier appel réel avant de figer le mapping des champs, en particulier le nom
+exact du champ image (non confirmé dans la doc publique consultée en amont) :
+
+- Authentification : `Bearer <clé API>` (générée dans les paramètres du compte Bright Data).
+- Endpoint : `POST https://api.brightdata.com/datasets/v3/scrape?dataset_id=gd_l7q7dkf244hwjntr0&format=json`
+- Corps : tableau JSON `[{"url": "..."}]` — un seul élément ici (l'API accepte jusqu'à 20 URLs par
+  appel synchrone, non utile pour un ajout d'article à la fois).
+- Délai : 10 à 30s en général, timeout Bright Data à 1 minute (au-delà, HTTP 202 avec un
+  `snapshot_id` à interroger en asynchrone — ne devrait pas arriver pour une seule URL produit).
+  Prévoir un timeout côté `fetch` d'environ 35-40s ; tout dépassement traité comme un échec propre
+  (retombe sur ScrapingAnt, voir ci-dessus), jamais un crash.
+- Réponse attendue (à confirmer au premier test réel) : tableau JSON, un objet par URL demandée,
+  a priori `title`, `price`, `currency`, `image` (ou `images`), `availability`, `asin`, `brand`.
+
+```bash
+curl -X POST \
+  "https://api.brightdata.com/datasets/v3/scrape?dataset_id=gd_l7q7dkf244hwjntr0&format=json" \
+  -H "Authorization: Bearer VOTRE_CLE_API" \
+  -H "Content-Type: application/json" \
+  -d '[{"url": "https://www.amazon.fr/dp/XXXXXXXXXX"}]'
+```
+
+### Points d'attention
+
+- **Prix en centimes** : convertir le `price` (probablement un float en euros) avec
+  `Math.round(price * 100)`, jamais une multiplication non arrondie (erreur de flottant). Vérifier
+  que `currency` vaut bien `EUR` pour une URL `amazon.fr` — sinon laisser `priceCents` à `null`
+  plutôt que stocker un prix dans la mauvaise devise.
+- **Zone grise CGU Amazon** : Bright Data scrape Amazon sans licence officielle. Service tiers
+  établi qui gère proprement l'anti-bot, mais hors du cadre strict des CGU Amazon — assumé
+  consciemment par l'utilisateur, pas un point bloquant technique.
+- **Palier gratuit** : de l'ordre de plusieurs milliers de requêtes/mois annoncé par Bright Data,
+  non vérifié en conditions réelles. Pas de suivi de quota custom à construire côté app — le
+  dashboard Bright Data suffit, même principe que pour ScrapingAnt aujourd'hui.
+- **Compte à créer par l'utilisateur** sur Bright Data (Claude ne peut pas créer de compte à sa
+  place), clé posée en variable d'environnement Vercel, ex. `BRIGHTDATA_API_KEY` — même schéma que
+  `SCRAPINGANT_API_KEY`/`AMAZON_ASSOCIATE_TAG`/`RESEND_API_KEY`. Tant qu'elle n'est pas définie :
+  repli automatique sur ScrapingAnt (voir ci-dessus), pas d'erreur.
+
+### Definition of done
+
+- Pour une URL `amazon.fr` valide, `scrapeArticleUrl` tente Bright Data en premier, avec repli
+  automatique et silencieux sur ScrapingAnt + cheerio en cas d'échec (clé absente, timeout, erreur,
+  produit introuvable) — jamais de formulaire totalement vide si le repli peut aboutir.
+- Titre (raccourci via `shortenTitle` en aval, comme toutes les sources), prix (centimes, arrondi
+  correct, devise vérifiée) et image correctement remontés et enregistrés sur `gift_items` pour au
+  moins 5 à 10 URLs `amazon.fr` réelles et variées, y compris si possible l'ASIN qui posait problème
+  avec ScrapingAnt pendant les tests précédents.
+- Échec Bright Data → repli ScrapingAnt → si ça échoue aussi, formulaire vide utilisable
+  manuellement, jamais de crash.
+- `npx tsc --noEmit`, `npm run lint`, `npm run build` propres.
+- Compte-rendu de ce qui a été réellement observé dans la réponse Bright Data (noms de champs
+  exacts, notamment image et devise) — pas garanti à 100 % par la doc publique consultée en amont.
+
+### Hors scope
+
+- Autres TLD Amazon que `.fr` — pas nécessaire, les liens d'affiliation (tâche #19) sont eux-mêmes
+  limités à `.fr` pour l'instant.
+- Fnac/Darty via Awin — sujet séparé, déjà noté comme reporté (tâche #19).
+- Tout ce qui touche `lib/affiliate-link.ts` — déjà fonctionnel, sans rapport avec cette tâche.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
