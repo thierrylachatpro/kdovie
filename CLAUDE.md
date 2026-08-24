@@ -695,6 +695,118 @@ Objectif : rendre ce manque visible à l'organisateur avant qu'un invité ne s'y
 - Bandeau placé juste sous le titre "Bonjour {prénom}", avant le reste du tableau de bord — mêmes couleurs que la carte "Ajouter un cadeau en un lien" déjà sur cette page (`bg-[#F5E3C9]`), cohérent avec le ton chaleureux demandé.
 - **Testé** : `tsc`/`lint`/`build` propres. Rendu des deux formulations (`"aucun"`/`"en_attente"`) vérifié par capture d'écran avec des données bouchon. **Pas testé en conditions réelles** : nécessiterait un compte organisateur avec un article en mode cotisation sur une liste ouverte et un statut Stripe non actif — pas de compte de test dans cet état actuellement (voir CRUD organisateurs, comptes de test précédents supprimés au fil de la session).
 
+## Onboarding Stripe Connect embarqué, sans quitter Kdovie (20 août 2026)
+
+Demande explicite de l'utilisateur, motivée par une crainte réelle : aujourd'hui `startStripeOnboarding`
+(`app/compte/profil/stripe-actions.ts`) crée un Account Link Stripe et fait un `redirect()` complet
+vers une page hébergée par Stripe (hors de kdovie.com) pour tout le parcours de vérification
+d'identité — l'organisateur quitte totalement l'app, ce qui est un vrai risque de décrochage pour un
+public non technique (artisans, particuliers) qui ne connaît pas Stripe. Stripe propose exactement la
+réponse à ce besoin : les **Connect embedded components**, en particulier le composant "Account
+onboarding", qui affiche le même formulaire de vérification (mêmes champs, même logique de
+validation, mêmes statuts) mais **intégré dans une page Kdovie** — l'organisateur ne quitte jamais
+`kdovie.com`, l'URL ne change pas. Vu la documentation officielle (`docs.stripe.com/connect/embedded-onboarding`,
+consultée le 20 août 2026) : c'est plus de travail d'intégration qu'une simple redirection, mais
+Stripe le présente comme l'option recommandée précisément pour ce cas — rien d'exotique ni de
+hors des sentiers battus.
+
+**Ce qui ne change pas** : le compte connecté reste un compte `type: "express"` avec
+`business_type: "individual"`, mêmes `business_profile`/`mcc` qu'aujourd'hui — l'onboarding embarqué
+est compatible avec les comptes Express (la doc Stripe distingue explicitement les scénarios "Full
+Dashboard" / "Express Dashboard" / "No Dashboard", Express est un cas de figure supporté nativement).
+Aucune migration de schéma nécessaire, `organizer_stripe_accounts` reste identique.
+
+### Ce qui change
+
+- **Nouvelles dépendances client** : `@stripe/connect-js` et `@stripe/react-connect-js` (packages
+  différents de `@stripe/stripe-js`/`@stripe/react-stripe-js`, retirés du projet le 18 août pour la
+  cotisation invité — pas de lien entre les deux, ne pas les réintroduire par erreur en pensant que
+  c'est la même famille).
+- **Extraire la création de compte dans un helper partagé** : le bloc de `startStripeOnboarding` qui
+  crée le compte Stripe Connect s'il n'existe pas encore (lignes ~47-111 aujourd'hui — vérification du
+  compte existant, création avec `business_type`/`business_profile`/`mcc`, upsert dans
+  `organizer_stripe_accounts`) doit devenir une fonction partagée (ex.
+  `lib/stripe-connect-account.ts`, `ensureOrganizerStripeAccount(userId, businessUrl)` qui retourne
+  le `stripe_account_id`), réutilisée à la fois par l'ancien mécanisme (s'il est gardé, voir plus bas)
+  et par le nouvel endpoint de session ci-dessous — éviter une troisième copie de cette logique de
+  création de compte.
+- **Nouvelle route serveur pour émettre une Account Session** (ex.
+  `app/api/stripe/account-session/route.ts`, `POST`, réservé à l'utilisateur connecté — même
+  vérification `auth.getUser()` que le reste de `/compte`) : appelle `ensureOrganizerStripeAccount`
+  puis `stripe.accountSessions.create({ account: stripeAccountId, components: { account_onboarding:
+  { enabled: true } } })`, renvoie `{ client_secret }`. Ces sessions sont éphémères et à usage
+  limité — c'est le composant embarqué lui-même qui rappelle cet endpoint automatiquement quand il a
+  besoin d'un nouveau secret (callback `fetchClientSecret`), pas à gérer manuellement côté Kdovie.
+- **Nouveau composant client** (ex. `components/compte/StripeEmbeddedOnboarding.tsx`), affiché à la
+  place de la redirection actuelle dans `StripeStatusCard.tsx` pour les statuts `"aucun"` et
+  `"en_attente"` : `loadConnectAndInitialize` (avec `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, déjà
+  présente en variable d'environnement, et `fetchClientSecret` pointant vers la nouvelle route) +
+  `<ConnectComponentsProvider>` + `<ConnectAccountOnboarding>` (composants de `@stripe/react-connect-js`).
+  Le bouton actuel ("Activer les cagnottes" / "Continuer la vérification") ouvre ce composant
+  directement dans la carte "Ma cagnotte", plutôt que de soumettre un formulaire vers une Server
+  Action qui redirige.
+- **Rafraîchir le statut sans rechargement de page** : aujourd'hui, `/compte/profil` (lignes ~38-64)
+  relit le statut Stripe à chaque chargement de page, ce qui fonctionnait naturellement puisque
+  l'organisateur revenait sur cette page après la redirection Stripe. Avec l'embarqué, il ne quitte
+  jamais la page — il faut déclencher ce rafraîchissement manuellement via le callback `onExit` du
+  composant `ConnectAccountOnboarding` (déclenché à la sortie du flux, complété ou non), par exemple
+  avec `router.refresh()` (Next.js) pour relancer le server component et sa logique existante de
+  poll `stripe.accounts.retrieve()`/mise à jour de `payouts_enabled` — cette logique de poll elle-même
+  ne change pas, seul le déclencheur change.
+- **Thème visuel** : `loadConnectAndInitialize` accepte une option `appearance` pour aligner les
+  couleurs du formulaire sur la charte Kdovie (corail `#E8734A`, jaune `#F5B942`, crème `#FFF8F0`) —
+  à explorer à l'implémentation, paramètres exacts non vérifiés ici, se référer à la doc Stripe du
+  moment plutôt qu'à ce texte.
+
+### Hors périmètre pour cette tâche
+
+- **Statut `"actif"`** : le bouton "Gérer mon compte Stripe" (lien vers le Dashboard Express externe)
+  reste inchangé pour l'instant. Stripe propose aussi un composant "Account management" embarqué pour
+  ce cas (gestion du compte déjà vérifié, coordonnées bancaires, etc.) — pas construit maintenant,
+  scope volontairement limité à l'onboarding initial (aucun / en attente), à reprendre plus tard si
+  utile.
+- **Pas de fallback vers l'ancienne redirection** : l'ancien mécanisme (Account Link + redirect) peut
+  être entièrement retiré plutôt que gardé en secours — la doc Stripe indique au contraire que
+  l'onboarding hébergé classique ne fonctionne pas dans certains contextes (webview mobile/desktop)
+  où l'embarqué, lui, fonctionne, donc pas de régression de compatibilité à craindre en le retirant.
+
+**Statut : implémenté et testé dans la mesure du possible (20 août 2026).**
+
+- `lib/stripe-connect-account.ts` : `ensureOrganizerStripeAccount(userId, userEmail, businessUrl)`,
+  logique de création de compte extraite de `startStripeOnboarding` (même `business_type:
+  "individual"`, `mcc: "7299"`, `business_profile` qu'avant — rien de changé sur ce plan). Réutilisée
+  à la fois par `startStripeOnboarding` (conservé, mais uniquement pour le statut `"actif"` → bouton
+  "Gérer mon compte Stripe", inchangé comme prévu dans le hors périmètre ci-dessus) et par la nouvelle
+  route `app/api/stripe/account-session/route.ts` (`POST`, réservée à l'utilisateur connecté) qui émet
+  l'Account Session (`stripe.accountSessions.create` avec `components.account_onboarding.enabled:
+  true`).
+- `components/compte/StripeEmbeddedOnboarding.tsx` : `loadConnectAndInitialize` (`@stripe/connect-js`)
+  + `ConnectComponentsProvider`/`ConnectAccountOnboarding` (`@stripe/react-connect-js`), thème
+  `appearance.variables` aligné sur la charte (`colorPrimary`/`buttonPrimaryColorBackground` corail,
+  `colorText` `#4A3529`) — noms de variables vérifiés sur la doc Stripe du jour
+  (`docs.stripe.com/connect/embedded-appearance-options`), pas devinés. `fetchClientSecret` appelle la
+  nouvelle route à chaque fois qu'un secret est nécessaire, comme documenté.
+- `components/compte/StripeStatusCard.tsx` : pour `"aucun"`/`"en_attente"`, le bouton n'est plus dans
+  un `<form action={startStripeOnboarding}>` — un simple `onClick` bascule un état local qui affiche
+  `StripeEmbeddedOnboarding` directement dans la carte, à la place du bouton. `onExit` referme le
+  panneau et appelle `router.refresh()` pour relancer la logique de poll `payouts_enabled` déjà en
+  place dans `app/compte/profil/page.tsx` (page.tsx lui-même inchangé, seul le déclencheur change,
+  comme prévu). Le statut `"actif"` garde son ancien `<form>`/Server Action, strictement inchangé.
+- Dépendances ajoutées : `@stripe/connect-js`, `@stripe/react-connect-js` — bien distinctes de
+  `@stripe/stripe-js`/`@stripe/react-stripe-js` (retirées le 18 août pour la cotisation invité, pas de
+  lien entre les deux familles).
+- **Testé** : `tsc`/`lint`/`build` propres. Vérifié réellement (pas mocké) via une page de
+  prévisualisation temporaire (supprimée ensuite) : les 3 états de `StripeStatusCard` rendus
+  correctement par capture d'écran ; clic sur "Activer les cagnottes" confirmé — le bouton disparaît
+  au profit du panneau embarqué, qui appelle pour de vrai `/api/stripe/account-session` (confirmé
+  401 sans session, comme attendu) puis affiche sa propre UI d'erreur Stripe native ("Something went
+  wrong — There was an error during authentication") plutôt que de planter, exactement le
+  comportement documenté pour un composant sans session valide. Chaîne complète exercée de bout en
+  bout (bouton → route → `ensureOrganizerStripeAccount` non atteint car 401 avant → composant Stripe)
+  à l'exception du dernier maillon (un vrai organisateur connecté qui termine réellement la
+  vérification), qui nécessiterait une session authentifiée réelle non disponible dans cet
+  environnement.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
