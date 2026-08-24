@@ -983,6 +983,43 @@ curl -X POST \
 - Fnac/Darty via Awin — sujet séparé, déjà noté comme reporté (tâche #19).
 - Tout ce qui touche `lib/affiliate-link.ts` — déjà fonctionnel, sans rapport avec cette tâche.
 
+**Statut : implémenté, testé dans la limite du possible (24 août 2026) — validation en conditions
+réelles bloquée en l'absence de compte Bright Data.**
+
+- `lib/scrape-amazon-brightdata.ts` : `fetchAmazonProductViaBrightData(url)`, appelle
+  `POST https://api.brightdata.com/datasets/v3/scrape?dataset_id=gd_l7q7dkf244hwjntr0&format=json`
+  avec `Authorization: Bearer BRIGHTDATA_API_KEY`. Retourne `null` (jamais d'exception) si la clé est
+  absente, sur toute erreur HTTP, timeout (40s), réponse de forme inattendue, bascule asynchrone
+  (`snapshot_id`) ou produit sans aucune donnée exploitable — dans tous ces cas l'appelant retombe
+  sur ScrapingAnt + cheerio, filet de secours intégralement conservé.
+- **Mapping des champs non vérifié par un appel réel** : aucun compte Bright Data n'existait au
+  moment de l'implémentation (`BRIGHTDATA_API_KEY` posée vide dans `.env.local`, même schéma que
+  `SCRAPINGANT_API_KEY`/`AMAZON_ASSOCIATE_TAG`). Le nom exact des champs (`title`, `price`,
+  `currency`, `main_image` — pas `image`/`images` comme envisagé dans le brief initial) vient de la
+  documentation publique Bright Data pour ce dataset précis (`docs.brightdata.com/datasets/scrapers/amazon/introduction`,
+  exemple de réponse JSON qui y est publié), pas d'un test contre l'API réelle — à confirmer/ajuster
+  dès qu'une clé sera disponible. Le code est défensif sur ce point : un champ manquant ou renommé
+  ne fait que renvoyer `null` pour ce champ précis (jamais planter), et si titre/prix/image sont
+  *tous* vides le résultat entier est traité comme un échec (repli ScrapingAnt) plutôt que retourné
+  tel quel.
+- **`app/compte/evenements/[slug]/scrape-action.ts`** : `scrapeArticleUrl` tente
+  `fetchAmazonProductViaBrightData` en premier uniquement si `hostnameFromUrl(...) === "amazon.fr"`
+  (réutilise `parsedUrl` déjà nettoyé de ses paramètres, pas de re-parsing), juste après le nettoyage
+  existant de l'URL. `shortenTitle` reste appliqué une seule fois en aval, sur le résultat quelle que
+  soit la source (Bright Data ou ScrapingAnt/cheerio) — Bright Data renvoie bien le titre brut,
+  `originalTitle` toujours `null` en sortie de la fonction comme demandé. Comportement strictement
+  inchangé pour tout domaine autre qu'amazon.fr.
+- **Testé réellement, dans la limite du possible sans clé** : `tsc`/`lint`/`build` propres. Vérifié
+  par un script isolé que `fetchAmazonProductViaBrightData` retourne bien `null` quasi instantanément
+  (0 ms, aucun appel réseau déclenché) tant que `BRIGHTDATA_API_KEY` est absente — confirme que le
+  chemin ScrapingAnt existant reste intact et non ralenti tant que la clé n'est pas posée.
+  `hostnameFromUrl` vérifié sur trois cas (amazon.fr avec `www.`, amazon.com, autre domaine) pour
+  confirmer le bon aiguillage. **Pas testé** : le vrai appel Bright Data sur de vraies URLs
+  amazon.fr (5 à 10 demandées par le Definition of done) — nécessite que l'utilisateur crée un
+  compte sur brightdata.com et pose `BRIGHTDATA_API_KEY` (Vercel + `.env.local`), après quoi un
+  nouveau test réel avec compte-rendu des champs effectivement observés sera nécessaire avant de
+  considérer cette tâche entièrement close.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".

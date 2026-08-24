@@ -1,6 +1,8 @@
 "use server";
 
 import { parseArticleMetadata, shortenTitle, type ScrapedArticle } from "@/lib/scrape-article";
+import { fetchAmazonProductViaBrightData } from "@/lib/scrape-amazon-brightdata";
+import { hostnameFromUrl } from "@/lib/url";
 
 const USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36";
@@ -147,36 +149,48 @@ export async function scrapeArticleUrl(url: string): Promise<ScrapedArticle> {
   parsedUrl.search = "";
   parsedUrl.hash = "";
 
-  const html =
-    (await fetchViaScrapingAnt(parsedUrl.toString())) ?? (await fetchDirect(parsedUrl));
+  // Amazon : Bright Data (dataset structuré dédié) en premier, avec repli
+  // automatique et silencieux sur ScrapingAnt + cheerio en cas d'échec —
+  // voir CLAUDE.md > "Intégration Bright Data pour la fiche produit Amazon".
+  // Comportement strictement inchangé pour tout autre domaine.
+  let result: ScrapedArticle | null = null;
+  if (hostnameFromUrl(parsedUrl.toString()) === "amazon.fr") {
+    result = await fetchAmazonProductViaBrightData(parsedUrl.toString());
+  }
 
-  if (!html) return EMPTY_RESULT;
+  if (!result) {
+    const html =
+      (await fetchViaScrapingAnt(parsedUrl.toString())) ?? (await fetchDirect(parsedUrl));
 
-  const result = parseArticleMetadata(html, parsedUrl.toString());
+    if (!html) return EMPTY_RESULT;
+
+    result = parseArticleMetadata(html, parsedUrl.toString());
+
+    if (!result.title && result.priceCents === null && !result.imageUrl) {
+      // Diagnostic (17 août 2026) : identifier si un site renvoie une page de
+      // vérification anti-bot (Cloudflare/PerimeterX/DataDome...) plutôt
+      // qu'un vrai échec de parsing — voir CLAUDE.md > Scraping.
+      const looksLikeBotChallenge =
+        /just a moment|checking your browser|cf-browser-verification|attention required|enable javascript and cookies|captcha|access denied|request blocked/i.test(
+          html,
+        );
+      console.log(
+        `[scrape] ${parsedUrl.hostname} : ${html.length} caractères reçus, aucune donnée extraite` +
+          (looksLikeBotChallenge
+            ? " — la page ressemble à une vérification anti-bot"
+            : ""),
+      );
+    }
+  }
 
   // Raccourcissement automatique (Amazon en particulier), voir CLAUDE.md >
-  // "Raccourcissement automatique du titre scrapé" — appliqué uniquement ici,
+  // "Raccourcissement automatique du titre scrapé" — appliqué uniformément
+  // ici, quelle que soit la source (Bright Data ou ScrapingAnt/cheerio),
   // avant que le titre ne préremplisse le formulaire.
   if (result.title) {
     const { title, originalTitle } = shortenTitle(result.title);
     result.title = title;
     result.originalTitle = originalTitle;
-  }
-
-  if (!result.title && result.priceCents === null && !result.imageUrl) {
-    // Diagnostic (17 août 2026) : identifier si un site renvoie une page de
-    // vérification anti-bot (Cloudflare/PerimeterX/DataDome...) plutôt
-    // qu'un vrai échec de parsing — voir CLAUDE.md > Scraping.
-    const looksLikeBotChallenge =
-      /just a moment|checking your browser|cf-browser-verification|attention required|enable javascript and cookies|captcha|access denied|request blocked/i.test(
-        html,
-      );
-    console.log(
-      `[scrape] ${parsedUrl.hostname} : ${html.length} caractères reçus, aucune donnée extraite` +
-        (looksLikeBotChallenge
-          ? " — la page ressemble à une vérification anti-bot"
-          : ""),
-    );
   }
 
   return result;
