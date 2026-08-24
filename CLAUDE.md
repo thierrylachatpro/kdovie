@@ -1131,6 +1131,57 @@ peer dependency avec Next 16.3/React 19.2), posé dans `app/layout.tsx` juste av
   pas testé explicitement sur un rechargement complet du navigateur mais la librairie ne s'y déclenche
   par construction que via les hooks de routage Next.js, pas sur un chargement de document.
 
+**Retour d'usage (24 août 2026) : rendu jugé insatisfaisant par l'utilisateur en conditions
+réelles** ("ne rend pas bien", sans plus de détail technique). Décision : abandonner la barre
+globale, revenir à la piste écartée initialement dans le cadrage du 20 août — l'indicateur localisé
+à côté du lien cliqué (`useLinkStatus`), voir la nouvelle section ci-dessous. `nextjs-toploader` à
+désinstaller entièrement plutôt que laissé inactif : retirer la dépendance du `package.json`, retirer
+`<NextTopLoader />` de `app/layout.tsx`. Ne pas réintroduire cette piste sans un nouveau retour
+d'usage positif.
+
+## Indicateur de navigation localisé au lien cliqué, avec `useLinkStatus` (24 août 2026)
+
+Remplace la barre de progression globale ci-dessus, écartée sur retour d'usage. Reprend la seconde
+piste déjà comparée dans le cadrage initial (démo interactive des deux options) : au lieu d'un
+indicateur unique couvrant toute la page, un petit spinner apparaît directement à côté du lien sur
+lequel l'organisateur vient de cliquer, pendant que la page suivante se prépare.
+
+- **Mécanisme** : `useLinkStatus`, hook natif Next.js (pas de nouvelle dépendance, contrairement à
+  `nextjs-toploader`) — doit être appelé depuis un composant **descendant** d'un `<Link>`, jamais sur
+  `Link` lui-même. Renvoie `{ pending: boolean }`, vrai entre le clic et l'arrivée sur la nouvelle
+  route.
+- **Nouveau composant** `components/ui/StatutLien.tsx` : un petit composant client qui appelle
+  `useLinkStatus()` et affiche `KdovieSpinner` (`components/ui/KdovieSpinner.tsx`, déjà le spinner
+  canonique du produit — à réutiliser tel quel, pas en réinventer un autre) quand `pending` est vrai.
+  Prend un prop `variant` (`"light" | "dark"`, même logique que `KdovieSpinner`) pour s'adapter au
+  fond du lien concerné (fond clair vs bouton plein corail).
+  - **Éviter le flash sur les navigations rapides** (recommandation officielle Next.js) : ne pas
+    monter/démonter le spinner conditionnellement (`{pending && <KdovieSpinner />}`, qui provoque un
+    saut de mise en page) — toujours le rendre, et faire varier son opacité avec un léger délai
+    d'apparition (~100-150ms) avant de le rendre visible, pour qu'il ne clignote pas sur les
+    navigations déjà quasi instantanées.
+- **Usage** : ajouté comme enfant supplémentaire à l'intérieur des `<Link>` concernés, ex.
+  `<Link href="/compte">Mes listes<StatutLien /></Link>` — aucun remplacement du composant `Link`
+  existant nécessaire, juste un enfant en plus dans les endroits ciblés.
+- **Portée volontairement limitée** aux points de navigation les plus cliqués plutôt qu'à tous les
+  `<Link>` du produit (contrairement à la barre globale, `useLinkStatus` se pose lien par lien — pas
+  de raison de l'ajouter partout, y compris sur des liens de pied de page rarement cliqués) :
+  - `components/layout/NavConnecte.tsx` : les deux liens "Mes listes" et "Mon compte", présents sur
+    toutes les pages pour un organisateur connecté — le point de navigation le plus fréquent du
+    produit.
+  - `app/compte/page.tsx`, bouton "Gérer"/lien de chaque carte de liste vers
+    `/compte/evenements/${event.slug}` (actuellement lignes ~341-344) — deuxième point le plus
+    cliqué, une carte par liste sur le tableau de bord.
+  - Hors périmètre pour cette première passe : liens de pied de page (Aide/Contact/mentions légales),
+    boutons "+ Nouvelle liste" (`/compte/evenements/nouveau`, plusieurs endroits sur `/compte`) —
+    moins fréquemment cliqués, à étendre plus tard si l'utilisateur le souhaite une fois le rendu
+    validé sur les deux points ci-dessus.
+
+**Testé** : à vérifier par Claude Code — `tsc`/`lint`/`build` propres, puis contrôle visuel sur les
+deux points de navigation ciblés (réseau ralenti pour rendre la fenêtre de pending observable, même
+méthode que pour la barre de progression testée plus haut) : le spinner apparaît bien à côté du bon
+lien pendant la navigation, sans saut de mise en page, et ne clignote pas sur une navigation rapide.
+
 ## Bug lien magique grillé par un pré-scan automatique (24 août 2026)
 
 Signalé par l'utilisateur en conditions réelles sur `kdovie.com` : e-mail de connexion bien reçu,
