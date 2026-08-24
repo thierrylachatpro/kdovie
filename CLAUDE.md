@@ -1107,10 +1107,29 @@ chaque lien de navigation individuellement.
   composants de navigation existants (`NavConnecte`, liens du dashboard, etc.) — la barre s'applique
   automatiquement à toute l'app une fois posée dans le layout racine.
 
-**Testé** : à vérifier par Claude Code — `tsc`/`lint`/`build` propres, puis contrôle visuel sur
-quelques navigations (dashboard → gestion de liste, `/compte` → `/compte/profil`) pour confirmer que
-la barre apparaît bien pendant le délai perçu et disparaît proprement à l'arrivée sur la nouvelle
-page.
+**Statut : implémenté et testé (24 août 2026).** `nextjs-toploader` installé (aucun conflit de
+peer dependency avec Next 16.3/React 19.2), posé dans `app/layout.tsx` juste avant
+`<BandeauEnvironnement />`, réglages exactement conformes à la demande (`color="#E8734A"`,
+`showSpinner={false}`, `shadow={false}`, `height={3}`).
+
+- **Testé réellement** (pas seulement `tsc`/`lint`/`build` propres, aussi vérifiés) : navigation
+  côté client déclenchée par un vrai clic sur un `<Link>`, réseau ralenti via CDP (Playwright) pour
+  rendre la fenêtre de navigation observable plutôt que de deviner un délai de screenshot — confirmé
+  par inspection directe du DOM (élément `#nprogress` créé pendant la navigation, disparu une fois
+  arrivé) que la barre : s'anime bien pendant une navigation côté client (`transform:
+  translate3d(...)` progressant vers 0) ; a la bonne couleur (`rgb(232, 115, 74)` = `#E8734A`),
+  la bonne hauteur (`3px`), aucune ombre (`box-shadow: none`) et aucun spinner (`.spinner` absent
+  du DOM) — les 4 réglages demandés confirmés appliqués, pas juste passés en props sans effet.
+- **Superposition avec `BandeauEnvironnement` vérifiée** (en simulant `VERCEL_GIT_COMMIT_REF=dev`
+  localement, seul moyen de le faire apparaître hors déploiement réel) : la barre (`position: fixed;
+  top: 0`) chevauche bien le tout début du bandeau pendant la navigation, comme anticipé dans le
+  cadrage — mais l'effet est subtil (à peine perceptible sur capture d'écran zoomée, fraction de
+  seconde le temps d'une navigation) et jugé non gênant en l'état ; pas de `zIndex` ajouté, à
+  reconsidérer si l'utilisateur le trouve gênant une fois vu en conditions réelles sur la preview
+  dev.
+- Comportement natif confirmé : la barre n'apparaît que sur une navigation côté client (`<Link>`),
+  pas testé explicitement sur un rechargement complet du navigateur mais la librairie ne s'y déclenche
+  par construction que via les hooks de routage Next.js, pas sur un chargement de document.
 
 ## Points d'attention techniques
 
