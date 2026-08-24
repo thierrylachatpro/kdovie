@@ -1107,7 +1107,13 @@ chaque lien de navigation individuellement.
   composants de navigation existants (`NavConnecte`, liens du dashboard, etc.) — la barre s'applique
   automatiquement à toute l'app une fois posée dans le layout racine.
 
-**Statut : implémenté et testé (24 août 2026).** `nextjs-toploader` installé (aucun conflit de
+**Statut : implémenté et testé le 24 août 2026, puis retiré le même jour sur retour d'usage** —
+voir "Indicateur de navigation localisé au lien cliqué, avec `useLinkStatus`" plus bas, qui la
+remplace entièrement (`nextjs-toploader` désinstallé, `app/layout.tsx` revenu à son état d'avant).
+Le paragraphe ci-dessous décrit l'implémentation telle qu'elle a existé un temps, gardé pour
+l'historique.
+
+`nextjs-toploader` installé (aucun conflit de
 peer dependency avec Next 16.3/React 19.2), posé dans `app/layout.tsx` juste avant
 `<BandeauEnvironnement />`, réglages exactement conformes à la demande (`color="#E8734A"`,
 `showSpinner={false}`, `shadow={false}`, `height={3}`).
@@ -1177,10 +1183,26 @@ lequel l'organisateur vient de cliquer, pendant que la page suivante se prépare
     moins fréquemment cliqués, à étendre plus tard si l'utilisateur le souhaite une fois le rendu
     validé sur les deux points ci-dessus.
 
-**Testé** : à vérifier par Claude Code — `tsc`/`lint`/`build` propres, puis contrôle visuel sur les
-deux points de navigation ciblés (réseau ralenti pour rendre la fenêtre de pending observable, même
-méthode que pour la barre de progression testée plus haut) : le spinner apparaît bien à côté du bon
-lien pendant la navigation, sans saut de mise en page, et ne clignote pas sur une navigation rapide.
+**Statut : implémenté et testé (24 août 2026).** `nextjs-toploader` entièrement retiré
+(désinstallé, `app/layout.tsx` revenu à son état d'avant la barre globale). `components/ui/StatutLien.tsx`
+posé sur les 3 liens prévus : "Mes listes" et "Mon compte" (`NavConnecte.tsx`), "Ouvrir la liste" sur
+chaque carte du dashboard (`app/compte/page.tsx`).
+
+- Détail d'implémentation qui a nécessité un ajustement : `setVisible(false)` appelé directement
+  dans le corps synchrone du `useEffect` déclenchait l'erreur ESLint
+  `react-hooks/set-state-in-effect` (cascading renders). Corrigé en déplaçant ce `setVisible(false)`
+  dans la fonction de nettoyage de l'effet plutôt que dans son corps — React l'exécute
+  automatiquement juste avant que l'effet ne se rejoue quand `pending` repasse à `false`, résultat
+  identique (le spinner redisparaît immédiatement à l'arrivée sur la nouvelle page) sans déclencher
+  la règle.
+- **Testé réellement** (pas seulement `tsc`/`lint`/`build` propres) : page de prévisualisation
+  temporaire (supprimée ensuite) avec `NavConnecte` et un lien "Ouvrir la liste" identiques aux
+  vrais, réseau ralenti via CDP (Playwright) pour observer la fenêtre de pending. Confirmé par
+  capture d'écran que le spinner apparaît bien à côté de "Mes listes" pendant la navigation, sans
+  saut de mise en page (l'espace est déjà réservé au repos, seule l'opacité change). Confirmé aussi
+  par lecture directe de `getComputedStyle(...).opacity` dans le DOM : `0` à 50ms après le clic
+  (avant le délai), `1` à ~300ms (après) — le comportement anti-clignotement fonctionne exactement
+  comme prévu, pas seulement en apparence sur une capture d'écran.
 
 ## Bug lien magique grillé par un pré-scan automatique (24 août 2026)
 

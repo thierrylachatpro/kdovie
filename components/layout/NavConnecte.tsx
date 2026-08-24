@@ -1,4 +1,5 @@
 import Link from "next/link";
+import StatutLien from "@/components/ui/StatutLien";
 
 // En-tête unifié pour un organisateur connecté, sur toutes les pages du
 // site — voir CLAUDE.md > "En-tête unifié pour les organisateurs connectés
@@ -24,6 +25,7 @@ export default function NavConnecte({
         className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
       >
         Mes listes
+        <StatutLien />
       </Link>
       <Link
         href="/compte/profil"
@@ -35,6 +37,7 @@ export default function NavConnecte({
         <span className="font-heading text-[15px] font-bold text-creme">
           {pseudo || "Mon compte"}
         </span>
+        <StatutLien variant="dark" />
       </Link>
     </div>
   );

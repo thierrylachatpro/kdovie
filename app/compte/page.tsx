@@ -8,6 +8,7 @@ import DeconnexionButton from "@/components/auth/DeconnexionButton";
 import FilActivite, { type ActiviteItem } from "@/components/compte/FilActivite";
 import LiensLegaux from "@/components/layout/LiensLegaux";
 import NavConnecte from "@/components/layout/NavConnecte";
+import StatutLien from "@/components/ui/StatutLien";
 import { deriveOrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 
 export default async function ComptePage() {
@@ -343,6 +344,7 @@ export default async function ComptePage() {
                       className="font-heading rounded-2xl bg-corail px-5 py-3 text-[15px] font-bold text-creme hover:bg-[#D45F37]"
                     >
                       Ouvrir la liste
+                      <StatutLien variant="dark" />
                     </Link>
                   </div>
                 </article>
