@@ -22,7 +22,7 @@ export default async function ComptePage() {
   }
 
   const [{ data: profile }, { data: events }, { data: stripeAccount }] = await Promise.all([
-    supabase.from("profiles").select("display_name").eq("id", user.id).single(),
+    supabase.from("profiles").select("first_name, searchable").eq("id", user.id).single(),
     supabase
       .from("events")
       .select("id, type, name, slug, event_date, status")
@@ -88,9 +88,8 @@ export default async function ComptePage() {
       .limit(5),
   ]);
 
-  const nomAffiche = profile?.display_name?.trim() || user.email?.split("@")[0] || "";
-  const prenom = nomAffiche.split(/\s+/)[0] ?? "";
-  const pseudo = profile?.display_name?.trim() || user.email?.split("@")[0] || null;
+  const prenom = profile?.first_name?.trim() || user.email?.split("@")[0] || "";
+  const pseudo = prenom || null;
 
   const itemsParEvenement = new Map<string, typeof giftItems>();
   (giftItems ?? []).forEach((item) => {
@@ -224,6 +223,27 @@ export default async function ComptePage() {
               className="font-heading flex-none rounded-2xl bg-corail px-5 py-3.5 text-[15px] font-bold text-creme hover:bg-[#D45F37]"
             >
               {organizerStripeStatus === "aucun" ? "Activer ma cagnotte" : "Terminer la vérification"}
+              <StatutLien variant="dark" />
+            </Link>
+          </section>
+        )}
+
+        {!profile?.searchable && (
+          <section className="mb-8 flex flex-wrap items-center justify-between gap-5 rounded-[28px] bg-[#F5E3C9] p-6.5">
+            <div className="max-w-130">
+              <h2 className="font-heading mb-1.5 text-lg font-bold text-[#7A5A16]">
+                Devenez trouvable
+              </h2>
+              <p className="text-[15px] leading-relaxed text-[#6B5426]">
+                Un proche pourrait chercher votre liste sans avoir le lien direct. Activez la
+                recherche publique pour qu&apos;on vous retrouve par prénom, nom et ville.
+              </p>
+            </div>
+            <Link
+              href="/compte/profil"
+              className="font-heading flex-none rounded-2xl bg-corail px-5 py-3.5 text-[15px] font-bold text-creme hover:bg-[#D45F37]"
+            >
+              Me rendre trouvable
               <StatutLien variant="dark" />
             </Link>
           </section>
@@ -389,6 +409,9 @@ export default async function ComptePage() {
               Contact
             </Link>
             <LiensLegaux className="hover:text-corail" />
+            <Link href="/recherche" className="hover:text-corail">
+              Retrouver une liste
+            </Link>
             <DeconnexionButton className="text-sm text-[#8A7263] hover:text-corail" />
           </nav>
         </div>

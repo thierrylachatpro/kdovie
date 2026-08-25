@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { stripe } from "@/lib/stripe";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
-import PseudoCard from "@/components/compte/PseudoCard";
+import IdentiteCard from "@/components/compte/IdentiteCard";
 import StripeStatusCard from "@/components/compte/StripeStatusCard";
 import LiensLegaux from "@/components/layout/LiensLegaux";
 import NavConnecte from "@/components/layout/NavConnecte";
@@ -25,7 +25,7 @@ export default async function ProfilPage() {
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name, created_at")
+    .select("first_name, last_name, postal_code, city, searchable, created_at")
     .eq("id", user.id)
     .single();
 
@@ -110,7 +110,7 @@ export default async function ProfilPage() {
         </Link>
         <NavConnecte
           estConnecte={true}
-          pseudo={profile?.display_name?.trim() || user.email?.split("@")[0] || null}
+          pseudo={profile?.first_name?.trim() || user.email?.split("@")[0] || null}
         />
       </header>
 
@@ -119,12 +119,16 @@ export default async function ProfilPage() {
           Mon compte
         </h1>
         <p className="mt-2.5 mb-8 text-lg text-[#7A6354]">
-          Votre pseudo est le nom que vos proches voient sur vos listes.
+          Votre prénom est le nom que vos proches voient sur vos listes.
         </p>
 
-        <PseudoCard
+        <IdentiteCard
           email={user.email ?? ""}
-          initialPseudo={profile?.display_name ?? ""}
+          initialFirstName={profile?.first_name ?? ""}
+          initialLastName={profile?.last_name ?? ""}
+          initialPostalCode={profile?.postal_code ?? ""}
+          initialCity={profile?.city ?? ""}
+          initialSearchable={profile?.searchable ?? false}
           fallbackDisplayName={fallbackDisplayName}
           dateCreation={dateCreation}
         />
@@ -155,6 +159,9 @@ export default async function ProfilPage() {
               Contact
             </Link>
             <LiensLegaux className="hover:text-corail" />
+            <Link href="/recherche" className="hover:text-corail">
+              Retrouver une liste
+            </Link>
             <Link href="/compte" className="hover:text-corail">
               Mes listes
             </Link>

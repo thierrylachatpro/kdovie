@@ -225,29 +225,44 @@ export type Database = {
       }
       profiles: {
         Row: {
+          city: string | null
           created_at: string
           disabled: boolean
           display_name: string | null
+          first_name: string | null
           id: string
           is_admin: boolean
+          last_name: string | null
+          postal_code: string | null
+          searchable: boolean
           updated_at: string
           welcome_email_sent_at: string | null
         }
         Insert: {
+          city?: string | null
           created_at?: string
           disabled?: boolean
           display_name?: string | null
+          first_name?: string | null
           id: string
           is_admin?: boolean
+          last_name?: string | null
+          postal_code?: string | null
+          searchable?: boolean
           updated_at?: string
           welcome_email_sent_at?: string | null
         }
         Update: {
+          city?: string | null
           created_at?: string
           disabled?: boolean
           display_name?: string | null
+          first_name?: string | null
           id?: string
           is_admin?: boolean
+          last_name?: string | null
+          postal_code?: string | null
+          searchable?: boolean
           updated_at?: string
           welcome_email_sent_at?: string | null
         }
@@ -367,6 +382,20 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      search_organizers: {
+        Args: {
+          p_city: string
+          p_query: string
+        }
+        Returns: {
+          event_id: string
+          event_name: string
+          event_slug: string
+          event_type: string | null
+          first_name: string | null
+          last_name: string | null
+        }[]
       }
     }
     Enums: {

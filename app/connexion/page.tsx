@@ -23,10 +23,10 @@ export default async function ConnexionPage({
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("display_name")
+      .select("first_name")
       .eq("id", user.id)
       .single();
-    pseudo = profile?.display_name?.trim() || user.email?.split("@")[0] || null;
+    pseudo = profile?.first_name?.trim() || user.email?.split("@")[0] || null;
   }
 
   return (
@@ -156,6 +156,9 @@ export default async function ConnexionPage({
               Contact
             </Link>
             <LiensLegaux className="hover:text-corail" />
+            <Link href="/recherche" className="hover:text-corail">
+              Retrouver une liste
+            </Link>
             <Link href="/" className="hover:text-corail">
               Retour à l&apos;accueil
             </Link>

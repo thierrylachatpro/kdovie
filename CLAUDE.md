@@ -1399,9 +1399,8 @@ ouvert) :
 - **Résultats** : uniquement les listes ouvertes de l'organisateur trouvé (`status = 'ouverte'`,
   `deleted_at is null`) — jamais un brouillon, cohérent avec le principe déjà en place qu'un
   brouillon n'est visible à personne d'autre que l'organisateur.
-- **Affichage en résultat de recherche** : prénom en entier + initiale du nom suivie d'un point
-  (ex. "Thierry L."), jamais le nom complet — cohérent avec la sobriété de données déjà pratiquée
-  ailleurs dans le produit (noms d'invités floutés par défaut, aucun email exposé côté public).
+- **Affichage en résultat de recherche** : prénom en entier + nom en entier
+  (ex. "Thierry Lachat") (aucun email exposé côté public).
 - **Emplacement du lien vers `/recherche`** : pied de page + page d'accueil uniquement — pas un
   troisième lien dans `NavConnecte`, qui reste à exactement deux éléments ("Mes listes"/"Mon
   compte") conformément à la règle déjà actée dans "En-tête unifié pour les organisateurs
@@ -1421,6 +1420,64 @@ l'affichage des résultats (`first_name`, `last_name`, `city`) et restreinte aux
 
 **Hors périmètre pour cette tâche** : suggestion de villes par géolocalisation, recherche par
 rayon de distance, tri des résultats par pertinence au-delà d'une correspondance simple.
+
+**Statut : implémenté (25 août 2026), testé dans la limite du possible sans migration appliquée.**
+
+- **Écart assumé par rapport au cadrage, pour une vraie raison de sécurité** : le cadrage proposait
+  "une nouvelle policy RLS publique... restreinte aux lignes `searchable = true` — même schéma
+  restrictif que la policy déjà en place pour `display_name`". En pratique, cette approche ne
+  fonctionne pas : les policies SELECT permissives se combinent par OR au niveau de la ligne, et la
+  policy déjà en place `profiles_select_public_display_name` (migration 0008) a `using (true)` —
+  une fois `first_name`/`last_name`/`city` accordés en colonne à `anon`, cette policy existante les
+  rendrait visibles pour **toutes** les lignes, pas seulement `searchable = true` (un grant de
+  colonne n'est jamais lié à une policy précise, seulement à la ligne résultante). Implémenté à la
+  place via une fonction `security definer` (`search_organizers`, même patron que
+  `reserve_gift_item`/`confirm_contribution`/`cancel_reservation` déjà en place) qui applique le
+  filtre elle-même, indépendamment de toute policy RLS — aucune nouvelle colonne accordée à `anon`
+  sur `profiles`, le risque de fuite est structurellement écarté plutôt que dépendant d'une
+  combinaison de policies correcte.
+- **Migration `0021_profiles_search_fields.sql`** (écrite, pas encore appliquée à aucune des deux
+  bases) : `profiles.first_name`/`last_name`/`postal_code`/`city`/`searchable` (`searchable` défaut
+  `false`), fonction `search_organizers(p_query, p_city)`.
+- **`components/ui/RechercheVille.tsx`** : composant partagé code postal + ville, réutilisé sur
+  `/compte/profil` (`IdentiteCard`) et `/recherche`. Champs cachés pour un `<form>` natif (comme
+  `/recherche`) **et** un callback `onChange` optionnel pour un parent qui pilote sa soumission en
+  JS (comme `IdentiteCard`, `useTransition` + appel direct — convention déjà en place dans ce
+  produit, voir `ContactForm`) — les deux mécanismes cohabitent sans dupliquer la logique
+  d'autocomplétion. Champs `properties.postcode`/`properties.city` de l'API Adresse
+  (`api-adresse.data.gouv.fr`) confirmés par appel réel, pas devinés depuis la doc.
+- **`components/compte/IdentiteCard.tsx`** remplace `components/compte/PseudoCard.tsx` (supprimé) ;
+  **`app/compte/profil/actions.ts`** : `updateIdentite` remplace `updateDisplayName`, revalide
+  côté serveur la même règle que côté client (nom + ville obligatoires si `searchable`).
+- **Pseudo → prénom, remplacé dans toutes les surfaces déjà identifiées** : `app/page.tsx`,
+  `app/connexion/page.tsx`, `app/liste/[slug]/page.tsx`, `app/compte/page.tsx` (et sa nouvelle
+  logique de prénom simplifiée — `nomAffiche`/`split` devenus inutiles, `first_name` est déjà le
+  prénom), `app/compte/profil/page.tsx`, `app/compte/evenements/nouveau/page.tsx`,
+  `app/compte/evenements/[slug]/page.tsx`, `app/compte/evenements/[slug]/invite-actions.ts`, et les
+  5 pages sobres via `PageLegale` (`aide`/`contact`/`cgu`/`cgv`/`mentions-legales`).
+  **Volontairement laissé de côté** : les vues admin (`/admin/listes`, `/admin/cotisations`,
+  `/admin/organisateurs`, `OrganisateurCard`) continuent d'utiliser `display_name` — outil interne
+  non public/non organisateur-facing, hors du "partout où le pseudo apparaissait" au sens visé par
+  le cadrage ; `profiles.display_name` reste en base de toute façon, rien ne casse. À revisiter si
+  l'utilisateur veut la cohérence complète.
+- **Lien `/recherche`** posé dans les 10 pieds de page du produit (via `LiensLegaux`/`PageLegale`
+  pour la plupart, plus les 2 footers qui n'utilisaient pas ce composant partagé) **et** dans la nav
+  principale de la page d'accueil (pas seulement son pied de page) — correspond à "pied de page +
+  page d'accueil" du cadrage, lu comme deux emplacements distincts plutôt qu'un seul. Toujours
+  absent de `NavConnecte`, comme demandé.
+- **Bandeau d'incitation sur `/compte`** : même famille visuelle que le bandeau Stripe existant,
+  affiché quand `!profile?.searchable`.
+- **Testé réellement** : `tsc`/`lint`/`build` propres à chaque étape (un ajustement nécessaire dans
+  `RechercheVille.tsx`, même piège `react-hooks/set-state-in-effect` que `StatutLien.tsx` — corrigé
+  en déplaçant le `setState` synchrone dans le `onChange` de l'input plutôt que le corps de
+  l'effet). Autocomplétion testée avec de vrais appels à l'API Adresse (pas mockés) : `01000`
+  renvoie bien "Bourg-en-Bresse" et "Saint-Denis-lès-Bourg" en options du `<select>` ; `/recherche`
+  ne plante pas quand on soumet une recherche avant que la migration soit appliquée (la fonction RPC
+  inexistante renvoie une erreur avalée proprement, résultats vides plutôt qu'un 500). `IdentiteCard`
+  vérifié par capture d'écran (état par défaut + validation cliente quand "trouvable" est coché sans
+  nom/ville). **Pas testé** : la vraie recherche de bout en bout (`search_organizers` contre de
+  vraies données) et le dépôt réel des nouveaux champs sur `/compte/profil` — bloqués tant que la
+  migration `0021` n'est pas appliquée sur au moins une des deux bases.
 
 ## Points d'attention techniques
 

@@ -253,6 +253,9 @@ export default function AccueilClient({
           <a href="#questions" className="hover:text-corail">
             Questions
           </a>
+          <Link href="/recherche" className="hover:text-corail">
+            Retrouver une liste
+          </Link>
         </nav>
         {estConnecte ? (
           <NavConnecte estConnecte={estConnecte} pseudo={pseudo} />
@@ -732,6 +735,9 @@ export default function AccueilClient({
             </a>
             <Link href="/contact" className="hover:text-corail">
               Contact
+            </Link>
+            <Link href="/recherche" className="hover:text-corail">
+              Retrouver une liste
             </Link>
             <LiensLegaux className="hover:text-corail" />
           </nav>

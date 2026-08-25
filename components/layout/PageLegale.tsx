@@ -71,6 +71,9 @@ export default function PageLegale({
               Contact
             </Link>
             <LiensLegaux className="hover:text-corail" />
+            <Link href="/recherche" className="hover:text-corail">
+              Retrouver une liste
+            </Link>
             <Link href="/" className="hover:text-corail">
               Retour à l&apos;accueil
             </Link>

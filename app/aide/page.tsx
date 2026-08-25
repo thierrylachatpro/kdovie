@@ -31,10 +31,10 @@ export default async function AidePage() {
   if (user) {
     const { data: profile } = await supabase
       .from("profiles")
-      .select("display_name")
+      .select("first_name")
       .eq("id", user.id)
       .single();
-    pseudo = profile?.display_name?.trim() || user.email?.split("@")[0] || null;
+    pseudo = profile?.first_name?.trim() || user.email?.split("@")[0] || null;
   }
 
   return (

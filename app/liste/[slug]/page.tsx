@@ -54,10 +54,10 @@ export default async function ListePubliquePage({
 
   const { data: organizerProfile } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("first_name")
     .eq("id", event.organizer_id)
     .single();
-  const organizerPseudo = organizerProfile?.display_name?.trim() || null;
+  const organizerPseudo = organizerProfile?.first_name?.trim() || null;
 
   // Colonne payouts_enabled ouverte à anon (migration 0010) uniquement,
   // stripe_account_id/organizer_id restent privés — voir CLAUDE.md > tâche #18.
@@ -237,6 +237,9 @@ export default async function ListePubliquePage({
               Contact
             </Link>
             <LiensLegaux className="hover:text-corail" />
+            <Link href="/recherche" className="hover:text-corail">
+              Retrouver une liste
+            </Link>
             <Link href="/" className="hover:text-corail">
               Créer ma propre liste
             </Link>

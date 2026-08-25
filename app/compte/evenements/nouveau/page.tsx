@@ -29,10 +29,10 @@ export default async function NouvelEvenementPage({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("first_name")
     .eq("id", user.id)
     .single();
-  const pseudo = profile?.display_name?.trim() || user.email?.split("@")[0] || null;
+  const pseudo = profile?.first_name?.trim() || user.email?.split("@")[0] || null;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -100,6 +100,9 @@ export default async function NouvelEvenementPage({
               Contact
             </Link>
             <LiensLegaux className="hover:text-corail" />
+            <Link href="/recherche" className="hover:text-corail">
+              Retrouver une liste
+            </Link>
             <Link href="/compte" className="hover:text-corail">
               Mes listes
             </Link>

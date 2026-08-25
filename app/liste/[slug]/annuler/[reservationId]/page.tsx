@@ -116,6 +116,9 @@ export default async function AnnulerReservationPage({
         <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
           <span>© 2026 kdovie</span>
           <nav className="flex flex-wrap items-center gap-6">
+            <Link href="/recherche" className="hover:text-corail">
+              Retrouver une liste
+            </Link>
             <LiensLegaux className="hover:text-corail" />
           </nav>
         </div>

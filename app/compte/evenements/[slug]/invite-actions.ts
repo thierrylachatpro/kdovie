@@ -34,10 +34,10 @@ export async function sendInvitations(
   // règle que côté page publique : rien à faire fuiter si le pseudo est vide).
   const { data: profile } = await supabase
     .from("profiles")
-    .select("display_name")
+    .select("first_name")
     .eq("id", user.id)
     .single();
-  const organizerName = profile?.display_name?.trim() || null;
+  const organizerName = profile?.first_name?.trim() || null;
   const subject = organizerName
     ? `${organizerName} vous envoie sa liste de cadeaux`
     : "On vous envoie une liste de cadeaux";
