@@ -1491,6 +1491,120 @@ rayon de distance, tri des résultats par pertinence au-delà d'une correspondan
   - État de test restauré à l'identique après chaque vérification (comptes de test supprimés,
     confirmé par une recherche vide en suivi).
 
+## Fiabilisation du scraping multi-marchands (25 août 2026)
+
+Retour d'usage de l'utilisateur : la récupération automatique des infos d'article (tâche #16, voir
+"Scraping des métadonnées d'article" plus haut) fonctionne mal sur plusieurs sites testés en
+conditions réelles, Décathlon et Jardiland nommément. Diagnostic mené depuis la session de cadrage
+(pas Claude Code) — **avec une limite d'environnement importante à connaître avant de continuer ce
+chantier** : cette session tourne dans un bac à sable réseau qui bloque les requêtes sortantes vers
+des domaines arbitraires (proxy en liste blanche) — impossible d'y reproduire le `fetch()` serveur
+exact de l'app (celui de `scrape-action.ts`) contre decathlon.fr, jardiland.com, etc. Le diagnostic
+ci-dessous s'appuie donc sur un outil de lecture web à portée plus large mais qui ne restitue pas le
+HTML brut (scripts/JSON-LD non visibles) — suffisant pour confirmer des symptômes réels, mais pas
+pour calibrer précisément des sélecteurs CSS site par site. **La vérification empirique complète sur
+les 50 sites, avec le vrai HTML brut et les vraies clés ScrapingAnt/Bright Data, reste à faire dans
+Claude Code** (réseau non restreint) — protocole de test fourni en fin de section.
+
+### Top 50 des sites e-commerce les plus utilisés en France (repère, pas testés un par un)
+
+Compilé à partir de plusieurs classements d'audience (Médiamétrie/Fevad, Similarweb, ecommerceguide)
+récents — ordre approximatif, utile comme liste de référence pour prioriser les futurs tests, pas
+un classement figé au rang près :
+
+Généralistes/marketplaces : Amazon, Cdiscount, Fnac, Leboncoin, Vinted, Temu, AliExpress, Shein,
+Rakuten, Veepee, ManoMano, Darty. Bricolage/jardin/maison : Leroy Merlin, Castorama, Bricomarché,
+Bricorama, IKEA, But, Conforama, Maisons du Monde, Jardiland, Truffaut, Botanic, Gamm Vert. Mode :
+Zalando, La Redoute, Kiabi, C&A, H&M, Zara, Celio, Undiz, Petit Bateau. Sport : Decathlon,
+Intersport, Go Sport, Nike. Culture/loisirs : Cultura, Micromania, Boulanger. Beauté : Sephora,
+Nocibé, Yves Rocher. Enfant/jouets : King Jouet, JouéClub, Oxybul, Aubert, Autour de Bébé, Nature &
+Découvertes. Alimentaire/grande distribution : E.Leclerc, Carrefour, Auchan, Intermarché. Voyage
+(hors périmètre gift-list direct mais dans les classements d'audience généraux) : Booking, Airbnb,
+SNCF Connect.
+
+### Ce qui a été réellement observé (pas une supposition)
+
+- **Décathlon** : la fiche produit testée (tapis de protection sol, Domyos) affiche dans le contenu
+  récupéré le texte littéral `Prix ​​actuel {{currentPrice}}24,99 €` — un gabarit Vue/Nuxt non résolu
+  accolé à la vraie valeur. Ça confirme deux choses à la fois : (1) le prix réel est bien présent
+  côté serveur (pas besoin d'exécuter du JavaScript pour l'obtenir, contrairement à ce qu'on aurait
+  pu craindre), mais (2) aucune des 4 couches déjà en place (JSON-LD, Open Graph, microdonnées,
+  repli Amazon) ne le capture — le bloc de métadonnées récupéré ne contient ni `og:image` ni
+  `og:price`/`product:price:amount`. Autrement dit : la donnée existe dans la page, notre parseur ne
+  savait juste pas où la chercher. Un indice technique supplémentaire (balise `next-size-adjust`,
+  signature de `next/font`) suggère un site construit sur Next.js — cohérent avec le correctif
+  choisi ci-dessous.
+- **Jardiland** : le prix réel (64,99 €) est bien présent et correctement affiché dans le contenu
+  récupéré, mais rien ne prouve qu'il soit exposé en JSON-LD/OG/microdonnées plutôt qu'en simple
+  texte visible sans balisage structuré — cas de figure que le parseur actuel ne sait pas non plus
+  couvrir (aucune des 4 couches ne fait de repli sur du texte visible générique).
+- **But.fr** : l'URL produit testée (trouvée via une recherche web, potentiellement un peu datée)
+  a redirigé silencieusement vers la page de catégorie parente au lieu de renvoyer une erreur — le
+  produit semble ne plus exister. Pas un bug du scraping en soi, mais un cas à surveiller : sur une
+  redirection de ce type, `og:type` valait `website` plutôt que `product`, un signal exploitable
+  pour repérer ce genre de faux positif (piste notée, pas implémentée — voir "Hors périmètre"
+  ci-dessous).
+
+### Correctifs apportés à `lib/scrape-article.ts` (implémentés et testés unitairement)
+
+Deux familles de correctifs, dans l'ordre de priorité déjà documenté dans "Scraping des métadonnées
+d'article" (JSON-LD → Open Graph → microdonnées → repli Amazon), avec deux nouvelles couches
+ajoutées à la suite plutôt qu'en remplacement de l'existant :
+
+1. **JSON-LD plus robuste** (ne change rien pour les sites déjà correctement scrapés, corrige des
+   cas réels documentés en JSON-LD Product) :
+   - Les noeuds `Product` imbriqués sous `mainEntity`/`itemOffered`/`about`/`subjectOf` (une page
+     décrite comme `WebPage` contenant le produit en `mainEntity`, motif fréquent) sont maintenant
+     repérés — avant, seul `@graph` était déplié.
+   - Le prix est cherché dans `offers[].price`, `offers.priceSpecification.price`, et
+     `AggregateOffer.lowPrice` (plusieurs vendeurs/variantes) — avant, seul `offers[0].price` direct
+     était tenté, ce qui ratait tout produit dont le premier "offer" listé n'a pas de prix simple.
+   - Si plusieurs noeuds `Product` existent sur la page (produit principal + suggestions en rich
+     snippet), chacun est essayé jusqu'à trouver un résultat exploitable, au lieu de s'arrêter
+     aveuglément au premier trouvé.
+2. **Deux nouvelles couches de repli, après le repli Amazon existant, avant le `<title>` en dernier
+   recours** :
+   - **State embarqué Next.js/Nuxt.js** (`__NEXT_DATA__` / `window.__NUXT__`) : de plus en plus de
+     sites français (Décathlon inclus, indice `next-size-adjust` observé) sont reconstruits sur ces
+     frameworks et embarquent tout le state de la page en JSON pour l'hydratation côté client — déjà
+     résolu côté serveur, donc plus fiable qu'un scan de texte visible, et ça comble précisément le
+     cas Décathlon (prix présent en HTML mais hors de toute balise reconnue). Recherche bornée en
+     profondeur (8 niveaux) d'un objet qui a à la fois un champ nom/titre et un champ prix
+     plausible ; ne comble que les champs encore manquants, jamais n'écrase une valeur déjà trouvée
+     par une couche plus fiable.
+   - **Repli générique sur les sélecteurs de prix visibles** (`[itemprop="price"]`, `[data-price]`,
+     `[class*="price"]` en excluant explicitement les classes qui sentent le prix barré/promo
+     initial, `[data-testid*="price"]`) — **prix uniquement, jamais l'image** : un mauvais prix se
+     détecte (par un contrôle humain sur le formulaire, déjà en place) alors qu'une mauvaise image
+     (logo, bannière publicitaire) serait immédiatement plus gênante et moins évidente à repérer.
+     Reprend la leçon déjà tirée du premier bug Amazon (voir "Prix Amazon réactivé") : jamais un
+     sélecteur non scopé unique, toujours une liste où le premier résultat qui donne un prix
+     *parsable* gagne, pas le premier élément qui matche juste le sélecteur.
+- **Testé** : 10 cas unitaires exécutés directement contre la vraie fonction `parseArticleMetadata`
+  (via `tsx`, pas une réimplémentation) — 6 cas couvrant les nouveaux comportements (mainEntity +
+  AggregateOffer, priceSpecification imbriqué, repli `__NEXT_DATA__`, repli `window.__NUXT__`, repli
+  générique sur sélecteur de prix, et son exclusion volontaire d'un prix barré) et 4 cas de
+  non-régression (JSON-LD simple historique, Open Graph, repli Amazon, aucune donnée trouvée) — tous
+  au vert. `npx tsc --noEmit` et `npx eslint lib/scrape-article.ts` propres.
+
+### Hors périmètre pour cette passe — à reprendre dans Claude Code
+
+- **Vérification empirique sur du vrai HTML brut, contre les vraies clés ScrapingAnt/Bright Data** :
+  cette session n'a pas pu reproduire le `fetch()` serveur réel de l'app (bac à sable réseau
+  restreint). Protocole prêt à relancer tel quel dans Claude Code, qui a le réseau et les clés :
+  fetch direct (mêmes headers que `fetchDirect` dans `scrape-action.ts`) sur un échantillon d'URLs
+  produit réelles couvrant plusieurs catégories du top 50 ci-dessus (au moins Décathlon et Jardiland
+  en priorité, cités par l'utilisateur), HTML sauvegardé, puis `npx tsx` sur un petit script import­ant
+  directement `parseArticleMetadata` (comme fait ici en synthétique) pour voir précisément ce qui
+  est extrait — et calibrer/étendre `GENERIC_PRICE_SELECTORS` avec les vraies classes CSS observées
+  si les couches actuelles ne suffisent toujours pas sur certains sites.
+- **Signal `og:type` pour détecter une redirection vers une page de catégorie** (cas But.fr
+  ci-dessus) : piste identifiée, pas implémentée — pourrait justifier de traiter le résultat comme
+  moins fiable (ou de le signaler dans les logs `[scrape]`) quand `og:type` vaut autre chose que
+  `product`/`og:product`, sans bloquer le remplissage manuel existant.
+- **Pas de changement à l'ordre de priorité déjà en place ni au comportement Amazon/Bright Data** :
+  ce chantier ajoute des couches après l'existant, ne remplace rien.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
