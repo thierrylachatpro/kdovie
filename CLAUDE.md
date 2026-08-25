@@ -1309,6 +1309,37 @@ que l'ancien `exchangeCodeForSession`) — reprend telle quelle la logique déj�
     par le correctif.
   - `tsc`/`lint`/`build` propres.
 
+## Refonte visuelle de la page /auth/confirmer (24 août 2026)
+
+Suite à la question posée avec l'utilisateur sur l'auto-redirect (voir "Bug lien magique grillé par
+un pré-scan automatique" ci-dessus) : **le mécanisme reste inchangé**, décision explicite — on garde
+le bouton "Me connecter" avec un vrai clic obligatoire, seule vraie protection fiable contre le
+pré-scan automatique des clients mail (Gmail et consorts). Ne pas revenir sur ce point sans en
+rediscuter.
+
+Ce qui doit changer : l'esthétique et le texte de cette page (`app/auth/confirmer/page.tsx` +
+`components/auth/ConfirmerConnexionButton.tsx`), jugés trop génériques aujourd'hui — la page
+réutilise telle quelle l'ossature sobre `PageLegale` (pensée pour mentions légales/CGU/CGV/Aide),
+avec juste un titre, un paragraphe et un bouton pleine largeur. Pas le traitement chaleureux qu'on
+donne d'habitude aux moments clés du parcours (ex. la page d'annulation de réservation
+`/liste/[slug]/annuler/[reservationId]`, ou les états de confirmation après réservation/cotisation).
+
+- **Contenu texte** : à revoir, le "Pour votre sécurité, confirmez que c'est bien vous qui avez
+  demandé ce lien" est correct mais froid/clinique — reformuler dans le ton chaleureux habituel du
+  produit (voir le reste des textes de `/compte/profil`, des emails transactionnels...), sans jargon
+  sécurité inutile pour l'utilisateur final.
+- **Esthétique** : à concevoir à l'implémentation plutôt qu'à figer ici dans le détail — l'utilisateur
+  n'a pas donné de direction précise, juste le constat que c'est trop nu aujourd'hui. Pistes possibles
+  à explorer : sortir de l'ossature `PageLegale` au profit d'une mise en page centrée façon "moment"
+  (carte crème centrée, logo, pas de pied de page complet avec tous les liens légaux qui n'ont pas
+  leur place ici), une icône ou un visuel de bienvenue, un texte d'attente qui prépare au clic plutôt
+  qu'un avertissement sécurité.
+- Les deux écrans existants de cette page (lien invalide / lien valide en attente de clic) doivent
+  tous les deux être repris dans cette refonte, pas seulement le second.
+
+**Hors périmètre** : le mécanisme lui-même (`confirmerConnexion`, `verifyOtp`, la nécessité du clic)
+— uniquement l'habillage.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
