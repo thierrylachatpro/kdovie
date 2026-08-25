@@ -1361,6 +1361,67 @@ Les deux écrans repris :
   Playwright, session confirmée (cookie posé, redirection vers `/compte`), compte de test supprimé
   ensuite. `tsc`/`lint`/`build` propres.
 
+## Recherche publique d'organisateurs par nom et ville (25 août 2026)
+
+Nouvelle fonctionnalité, absente du périmètre initial : aujourd'hui, une liste n'est jamais
+atteignable autrement que par le lien direct partagé par l'organisateur — pas de moyen de
+retrouver la liste de quelqu'un si on n'a pas reçu ce lien. Décisions actées avec l'utilisateur
+(la recherche par code postal avec suggestion de ville, ci-dessous, referme le dernier point resté
+ouvert) :
+
+- **Le pseudo disparaît au profit du prénom.** `profiles.display_name` reste en base telle quelle
+  (rien à migrer rétroactivement) mais n'est plus utilisée dans l'UI, dépréciée plutôt que
+  supprimée. Le prénom (`profiles.first_name`, nouveau champ) la remplace partout où le pseudo
+  apparaissait : dashboard ("Bonjour {pseudo}"), pseudo public sur `/liste/[slug]` ("liste de
+  {pseudo}", voir "Pseudo public sur la page liste"), etc.
+- **Nouveaux champs sur `/compte/profil`** : prénom (`first_name`, obligatoire), nom
+  (`last_name`, obligatoire dès qu'on veut être trouvable — jamais affiché en entier
+  publiquement, voir "Affichage en résultat" plus bas), code postal + ville (`postal_code`/`city`,
+  facultatifs, uniquement nécessaires si la recherche publique est activée).
+- **Visibilité dans la recherche : opt-in explicite**, case à cocher séparée non cochée par
+  défaut sur `/compte/profil` (ex. "Me rendre trouvable dans la recherche publique — prénom et
+  ville visibles"). Distinct de tout consentement RGPD plus général déjà évoqué comme sujet à
+  traiter dès la conception (voir "Points d'attention techniques" ci-dessous) — celui-ci reste à
+  traiter séparément, pas remplacé par cette case.
+- **Nouvelle page publique `/recherche`**, sans compte nécessaire. Deux champs requis
+  **ensemble**, jamais l'un sans l'autre (pour ne pas devenir un annuaire consultable en vrac) :
+  prénom-ou-nom (recherche partielle, insensible à la casse) et ville.
+- **Saisie de la ville par code postal, avec suggestion automatique** (précision demandée par
+  l'utilisateur le 25 août 2026, remplace un simple champ ville en texte libre) : l'utilisateur
+  tape son code postal, une liste des communes correspondantes s'affiche en suggestion (un code
+  postal français peut couvrir plusieurs communes) et il sélectionne la bonne — même mécanisme
+  des deux côtés, à la fois pour renseigner sa ville sur `/compte/profil` et pour chercher sur
+  `/recherche`. Source de données à confirmer à l'implémentation (l'API Adresse du gouvernement,
+  `api-adresse.data.gouv.fr`, gratuite et sans clé, est le choix par défaut naturel en France pour
+  ce genre d'autocomplétion — à vérifier que c'est toujours la meilleure option disponible plutôt
+  qu'à figer ce choix ici). Stocké en base : code postal + nom de ville retenus (deux colonnes
+  texte simples), pas de dépendance à un code INSEE externe, pour ne pas complexifier le MVP.
+- **Résultats** : uniquement les listes ouvertes de l'organisateur trouvé (`status = 'ouverte'`,
+  `deleted_at is null`) — jamais un brouillon, cohérent avec le principe déjà en place qu'un
+  brouillon n'est visible à personne d'autre que l'organisateur.
+- **Affichage en résultat de recherche** : prénom en entier + initiale du nom suivie d'un point
+  (ex. "Thierry L."), jamais le nom complet — cohérent avec la sobriété de données déjà pratiquée
+  ailleurs dans le produit (noms d'invités floutés par défaut, aucun email exposé côté public).
+- **Emplacement du lien vers `/recherche`** : pied de page + page d'accueil uniquement — pas un
+  troisième lien dans `NavConnecte`, qui reste à exactement deux éléments ("Mes listes"/"Mon
+  compte") conformément à la règle déjà actée dans "En-tête unifié pour les organisateurs
+  connectés" ("Rien d'autre dans cette zone").
+- **Badge d'incitation sur `/compte`** : pour un organisateur qui n'a pas encore activé la
+  visibilité dans la recherche, un encart discret l'invite à le faire — même famille visuelle que
+  le bandeau d'incitation Stripe déjà en place (voir "Bandeau d'incitation à activer sa cagnotte
+  Stripe sur /compte"), simple incitation, jamais un blocage.
+
+**Migration** `0021_profiles_search_fields.sql` : nouvelles colonnes `profiles.first_name`,
+`profiles.last_name`, `profiles.postal_code`, `profiles.city`, `profiles.searchable` (boolean,
+défaut `false`). Nouvelle policy RLS publique sur `profiles`, limitée aux colonnes nécessaires à
+l'affichage des résultats (`first_name`, `last_name`, `city`) et restreinte aux lignes
+`searchable = true` — même schéma restrictif que la policy déjà en place pour `display_name`
+(voir "Pseudo public sur la page liste"), l'initiale du nom se calculant côté app à partir de
+`last_name`, pas en RLS.
+
+**Hors périmètre pour cette tâche** : suggestion de villes par géolocalisation, recherche par
+rayon de distance, tri des résultats par pertinence au-delà d'une correspondance simple.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
