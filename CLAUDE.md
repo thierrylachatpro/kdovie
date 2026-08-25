@@ -1340,6 +1340,27 @@ donne d'habitude aux moments clés du parcours (ex. la page d'annulation de rés
 **Hors périmètre** : le mécanisme lui-même (`confirmerConnexion`, `verifyOtp`, la nécessité du clic)
 — uniquement l'habillage.
 
+**Statut : implémenté et testé (25 août 2026).** `app/auth/confirmer/page.tsx` sort de l'ossature
+`PageLegale` au profit d'une mise en page "moment" reprise telle quelle de
+`/liste/[slug]/annuler/[reservationId]` (carte blanche centrée `max-w-[560px]`, icône dans un badge
+crème, titre, texte, action — en-tête réduit au logo seul, pied de page minimal sans nav complète).
+Les deux écrans repris :
+
+- **Lien valide** : icône 👋, titre "Plus qu'un clic !", texte "Votre lien est bien arrivé. Cliquez
+  ci-dessous pour rejoindre votre compte Kdovie." — plus aucune mention de sécurité/vérification.
+- **Lien invalide** : icône 🔗 (même pictogramme que l'état équivalent de la page d'annulation de
+  réservation, cohérence d'iconographie), titre "Ce lien ne fonctionne plus", texte "Il a peut-être
+  déjà été utilisé, ou il a expiré — demandez-en un nouveau, ça ne prend qu'un instant."
+- `components/auth/ConfirmerConnexionButton.tsx` : bouton resserré au contenu (`inline-flex`,
+  `px-6.5 py-4`) au lieu de pleine largeur, cohérent avec le bouton "Oui, annuler ma réservation" de
+  la page de référence — l'ancienne version pleine largeur était dimensionnée pour l'ossature
+  `PageLegale` plus étroite, devenue inutile.
+- **Testé réellement** : rendu des deux états vérifié par capture d'écran. Mécanisme retesté de bout
+  en bout après la refonte visuelle (hors périmètre de cette tâche, mais vérifié pour ne rien avoir
+  cassé) — vrai compte Supabase créé via `admin.generateLink`, clic réel sur "Me connecter" via
+  Playwright, session confirmée (cookie posé, redirection vers `/compte`), compte de test supprimé
+  ensuite. `tsc`/`lint`/`build` propres.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".

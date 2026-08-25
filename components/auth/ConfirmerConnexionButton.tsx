@@ -9,9 +9,9 @@ export default function ConfirmerConnexionButton() {
     <button
       type="submit"
       disabled={pending}
-      className="font-heading inline-flex w-full items-center justify-center gap-2.5 rounded-[20px] bg-corail py-[19px] text-lg font-bold text-creme disabled:opacity-60"
+      className="font-heading inline-flex items-center justify-center gap-2.5 rounded-2xl bg-corail px-6.5 py-4 text-base font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
     >
-      {pending && <KdovieSpinner className="h-5 w-5" variant="dark" />}
+      {pending && <KdovieSpinner className="h-4.5 w-4.5" variant="dark" />}
       {pending ? "Connexion en cours…" : "Me connecter"}
     </button>
   );
