@@ -1605,6 +1605,63 @@ ajoutées à la suite plutôt qu'en remplacement de l'existant :
 - **Pas de changement à l'ordre de priorité déjà en place ni au comportement Amazon/Bright Data** :
   ce chantier ajoute des couches après l'existant, ne remplace rien.
 
+### Protocole empirique exécuté dans Claude Code (25 août 2026)
+
+Protocole ci-dessus repris tel quel : vrai `fetch()` (mêmes headers que `fetchDirect`, et même chaîne
+ScrapingAnt → repli direct que `scrapeArticleUrl`) sur 9 URLs produit réelles (sourcées par
+recherche web, jamais devinées), HTML brut sauvegardé, puis `npx tsx` import­ant directement
+`parseArticleMetadata` (jamais de réimplémentation) pour voir précisément ce qui est extrait.
+
+**Résultat principal, qui contredit l'hypothèse de départ : aucune calibration de
+`GENERIC_PRICE_SELECTORS` n'était justifiée par l'échantillon testé.** Sur les 9 sites :
+
+- **Jardiland** (combo élagueuse/taille-haie, via ScrapingAnt — fetch direct bloqué en 403) : succès
+  complet (titre, prix 199,00 €, image), extrait via la couche JSON-LD déjà existante (couche 1,
+  pas une des couches ajoutées cette session).
+- **Boulanger** (`/ref/1200248`, fetch direct) : succès complet, également via JSON-LD (couche 1).
+- **Darty** (aspirateur laveur Roborock F25 Ultra, fetch direct) : succès complet (titre, prix
+  579,99 €, image `image.darty.com`), extrait via la couche microdonnées `itemprop="price"` déjà
+  existante (couche 3) — pas de JSON-LD Product ni d'Open Graph prix sur ce site, mais la couche
+  microdonnées suffisait déjà.
+- **Fnac** (liseuse Kindle, fetch direct, HTTP 200) : titre récupéré via le repli `<title>` (couche
+  7, dernier recours) uniquement — **aucun prix, aucune image, nulle part dans le HTML servi**,
+  vérifié par recherche exhaustive (`grep` sur JSON-LD, `og:price`, `__NEXT_DATA__`/`__NUXT__`,
+  toute occurrence de "€" dans la page). Fnac rend visiblement le prix et l'image côté client après
+  hydratation, pas dans le HTML servi au premier chargement — **aucun sélecteur CSS, aussi bien
+  calibré soit-il, ne peut extraire une donnée absente du document**. Seule option technique :
+  `browser=true` chez ScrapingAnt (rendu JS complet), déjà testé et retiré le 17 août 2026 pour
+  latence inacceptable (9 à 25 s) — non reconductible sans repenser l'UX, voir la section dédiée
+  plus haut. Limitation actuelle assumée, pas un bug de calibration.
+- **Décathlon, Sephora** : bloqués par une page de vérification anti-bot avant même d'atteindre le
+  parseur (Cloudflare "Just a moment…" pour Décathlon confirmé en 403 direct et 423 ScrapingAnt même
+  après la nouvelle tentative automatique ; "Access Denied" générique pour Sephora, 403 direct et
+  423 ScrapingAnt). Comportement de production déjà correct : `fetchDirect`/`fetchViaScrapingAnt`
+  retournent `null` sur ces statuts, `parseArticleMetadata` n'est jamais appelée sur le HTML de
+  challenge — le formulaire reste vide et modifiable à la main, aucune donnée inventée.
+- **Maisons du Monde** : bloqué par un challenge DataDome (`captcha-delivery.com`), 403 direct et
+  423 ScrapingAnt après nouvelle tentative — même comportement sûr que ci-dessus. Vérifié que le
+  motif générique déjà présent dans le regex de diagnostic `looksLikeBotChallenge`
+  (`scrape-action.ts`) — le mot "captcha" seul, sans ancrage de mot — matche déjà
+  "captcha-delivery.com" en sous-chaîne : aucune extension du regex nécessaire.
+- **Cdiscount** : URL produit renvoyant en réalité la page d'accueil (`og:url`/`og:title` =
+  `cdiscount.com`/"Cdiscount.com", pas de JSON-LD Product) — même famille que le cas But.fr déjà
+  documenté plus haut (signal `og:type` non-`product`), toujours hors périmètre de cette passe.
+- **Zalando** : URL sourcée par recherche web en réalité expirée (vraie page "Not Found" HTTP 200
+  côté Zalando) — non représentatif, aucune conclusion à en tirer. `parseArticleMetadata` s'est
+  comporté correctement dessus (tout `null`, pas de faux positif sur "Not Found").
+
+**Conclusion** : les couches ajoutées le 25 août 2026 (JSON-LD multi-nœuds/clés d'enveloppe, JSON de
+framework embarqué `__NEXT_DATA__`/`__NUXT__`, sélecteur de prix visible générique) restent en place
+par prudence pour de futurs sites non couverts par cet échantillon, mais aucune n'a été le facteur
+déterminant sur les 9 sites réellement testés — chacun réussit ou échoue selon des couches plus
+anciennes (JSON-LD, microdonnées) ou des causes non liées à un sélecteur CSS (blocage anti-bot,
+rendu 100 % client, redirection vers une page hors produit). `GENERIC_PRICE_SELECTORS` reste donc
+inchangée : `['[itemprop="price"]', "[data-price]", '[class*="price" i]:not([class*="old"
+i]):not([class*="barre" i]):not([class*="strike" i])', '[data-testid*="price" i]']` — la calibrer
+avec des classes devinées sans site réel qui en aurait eu besoin aurait été spéculatif, contraire à
+la règle du projet de ne jamais inventer une valeur. `tsc`/`lint`/`build` vérifiés propres après
+cette passe (aucun changement de code, uniquement cette documentation).
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
