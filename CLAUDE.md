@@ -1421,7 +1421,9 @@ l'affichage des résultats (`first_name`, `last_name`, `city`) et restreinte aux
 **Hors périmètre pour cette tâche** : suggestion de villes par géolocalisation, recherche par
 rayon de distance, tri des résultats par pertinence au-delà d'une correspondance simple.
 
-**Statut : implémenté (25 août 2026), testé dans la limite du possible sans migration appliquée.**
+**Statut : implémenté et validé de bout en bout avec de vraies données (25 août 2026).** Migration
+`0021` appliquée par l'utilisateur sur les deux bases, confirmé par requête REST directe (colonnes
+`profiles` présentes, `search_organizers` appelable) avant tout test applicatif.
 
 - **Écart assumé par rapport au cadrage, pour une vraie raison de sécurité** : le cadrage proposait
   "une nouvelle policy RLS publique... restreinte aux lignes `searchable = true` — même schéma
@@ -1471,13 +1473,23 @@ rayon de distance, tri des résultats par pertinence au-delà d'une correspondan
   `RechercheVille.tsx`, même piège `react-hooks/set-state-in-effect` que `StatutLien.tsx` — corrigé
   en déplaçant le `setState` synchrone dans le `onChange` de l'input plutôt que le corps de
   l'effet). Autocomplétion testée avec de vrais appels à l'API Adresse (pas mockés) : `01000`
-  renvoie bien "Bourg-en-Bresse" et "Saint-Denis-lès-Bourg" en options du `<select>` ; `/recherche`
-  ne plante pas quand on soumet une recherche avant que la migration soit appliquée (la fonction RPC
-  inexistante renvoie une erreur avalée proprement, résultats vides plutôt qu'un 500). `IdentiteCard`
+  renvoie bien "Bourg-en-Bresse" et "Saint-Denis-lès-Bourg" en options du `<select>`. `IdentiteCard`
   vérifié par capture d'écran (état par défaut + validation cliente quand "trouvable" est coché sans
-  nom/ville). **Pas testé** : la vraie recherche de bout en bout (`search_organizers` contre de
-  vraies données) et le dépôt réel des nouveaux champs sur `/compte/profil` — bloqués tant que la
-  migration `0021` n'est pas appliquée sur au moins une des deux bases.
+  nom/ville).
+- **`search_organizers` validé de bout en bout après application de la migration**, avec un vrai
+  compte de test créé puis supprimé (jamais de réimplémentation, la vraie fonction RPC à chaque
+  fois) sur les deux bases :
+  - Recherche par prénom et par nom, insensible à la casse, tous deux trouvent la bonne liste.
+  - Mauvaise ville → aucun résultat (le filtre ville fonctionne).
+  - Une seconde liste du même organisateur en `brouillon` n'apparaît jamais dans les résultats —
+    seules les listes `ouverte` remontent.
+  - `searchable = false` → plus aucun résultat, même requête, même ville — l'opt-in est
+    structurellement respecté, pas seulement par convention côté app.
+  - Chaîne complète de la vraie page testée (pas juste la fonction RPC isolée) : `/recherche?q=...&city=...`
+    contre un vrai compte de test sur prod, capture d'écran à l'appui — la carte de résultat affiche
+    correctement l'icône du type de liste, le nom de la liste, et "Prénom Nom · Type".
+  - État de test restauré à l'identique après chaque vérification (comptes de test supprimés,
+    confirmé par une recherche vide en suivi).
 
 ## Points d'attention techniques
 
