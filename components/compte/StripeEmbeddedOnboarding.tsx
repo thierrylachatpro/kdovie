@@ -34,7 +34,7 @@ export default function StripeEmbeddedOnboarding({ onExit }: { onExit: () => voi
           variables: {
             fontFamily: '"Work Sans", Arial, Helvetica, sans-serif',
             colorPrimary: "#E8734A",
-            colorBackground: "#FFF8F0",
+            colorBackground: "#FFFFFF",
             colorText: "#4A3529",
             colorDanger: "#A8431F",
             buttonPrimaryColorBackground: "#E8734A",
@@ -49,7 +49,7 @@ export default function StripeEmbeddedOnboarding({ onExit }: { onExit: () => voi
             badgeWarningColorBackground: "#F5B942",
             badgeWarningColorText: "#4A3529",
             badgeWarningColorBorder: "#F5B942",
-            formBackgroundColor: "#FFF8F0",
+            formBackgroundColor: "#FFFFFF",
             borderRadius: "14px",
             buttonBorderRadius: "14px",
             formBorderRadius: "12px",
@@ -66,7 +66,7 @@ export default function StripeEmbeddedOnboarding({ onExit }: { onExit: () => voi
   );
 
   return (
-    <div className="mt-4 rounded-2xl bg-white p-4">
+    <div className="mt-4 rounded-[28px] border-2 border-[#F2DFC9] bg-white p-6">
       <p className="mb-3.5 text-[13px] leading-relaxed text-[#8A7263]">
         Vérification sécurisée gérée directement par <strong>Stripe</strong>, notre partenaire de
         paiement — vos informations ne transitent jamais par les serveurs de Kdovie.
