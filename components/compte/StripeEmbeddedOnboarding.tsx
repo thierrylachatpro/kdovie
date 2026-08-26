@@ -67,10 +67,6 @@ export default function StripeEmbeddedOnboarding({ onExit }: { onExit: () => voi
 
   return (
     <div className="mt-4 rounded-[28px] border-2 border-[#F2DFC9] bg-white p-6">
-      <p className="mb-3.5 text-[13px] leading-relaxed text-[#8A7263]">
-        Vérification sécurisée gérée directement par <strong>Stripe</strong>, notre partenaire de
-        paiement — vos informations ne transitent jamais par les serveurs de Kdovie.
-      </p>
       <ConnectComponentsProvider connectInstance={stripeConnectInstance}>
         <ConnectAccountOnboarding onExit={onExit} />
       </ConnectComponentsProvider>
