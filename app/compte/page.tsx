@@ -74,6 +74,26 @@ export default async function ComptePage() {
   const afficherBandeauCagnotte =
     risqueCotisationSansCagnotte && organizerStripeStatus !== "actif";
 
+  // Barre compacte de réglages à finir — remplace les deux cartes d'incitation
+  // pleine largeur (cagnotte Stripe / recherche publique), voir CLAUDE.md.
+  // Les textes explicatifs de chaque réglage vivent sur /compte/profil, pas
+  // ici : cette barre ne fait que signaler et rediriger.
+  const reglagesRestants: { label: string; puceColor: string; href: string }[] = [];
+  if (afficherBandeauCagnotte) {
+    reglagesRestants.push({
+      label: "Connecter ma cagnotte",
+      puceColor: "#E8734A",
+      href: "/compte/profil",
+    });
+  }
+  if (!profile?.searchable) {
+    reglagesRestants.push({
+      label: "Me rendre trouvable",
+      puceColor: "#F5B942",
+      href: "/compte/profil",
+    });
+  }
+
   const [{ data: reservations }, { data: contributions }] = await Promise.all([
     supabase
       .from("reservations")
@@ -204,48 +224,25 @@ export default async function ComptePage() {
           </Link>
         </section>
 
-        {afficherBandeauCagnotte && (
-          <section className="mb-8 flex flex-wrap items-center justify-between gap-5 rounded-[28px] bg-[#F5E3C9] p-6.5">
-            <div className="max-w-130">
-              <h2 className="font-heading mb-1.5 text-lg font-bold text-[#7A5A16]">
-                {organizerStripeStatus === "aucun"
-                  ? "Activez votre cagnotte"
-                  : "Terminez la vérification de votre cagnotte"}
-              </h2>
-              <p className="text-[15px] leading-relaxed text-[#6B5426]">
-                {organizerStripeStatus === "aucun"
-                  ? "Certains de vos cadeaux acceptent les cotisations, mais vous n'avez pas encore connecté votre cagnotte pour recevoir l'argent."
-                  : "Votre cagnotte est en cours de vérification : terminez sa configuration pour pouvoir recevoir l'argent de vos cotisations."}
-              </p>
-            </div>
-            <Link
-              href="/compte/profil"
-              className="font-heading flex-none rounded-2xl bg-corail px-5 py-3.5 text-[15px] font-bold text-creme hover:bg-[#D45F37]"
-            >
-              {organizerStripeStatus === "aucun" ? "Activer ma cagnotte" : "Terminer la vérification"}
-              <StatutLien variant="dark" />
-            </Link>
-          </section>
-        )}
-
-        {!profile?.searchable && (
-          <section className="mb-8 flex flex-wrap items-center justify-between gap-5 rounded-[28px] bg-[#F5E3C9] p-6.5">
-            <div className="max-w-130">
-              <h2 className="font-heading mb-1.5 text-lg font-bold text-[#7A5A16]">
-                Devenez trouvable
-              </h2>
-              <p className="text-[15px] leading-relaxed text-[#6B5426]">
-                Un proche pourrait chercher votre liste sans avoir le lien direct. Activez la
-                recherche publique pour qu&apos;on vous retrouve par prénom, nom et ville.
-              </p>
-            </div>
-            <Link
-              href="/compte/profil"
-              className="font-heading flex-none rounded-2xl bg-corail px-5 py-3.5 text-[15px] font-bold text-creme hover:bg-[#D45F37]"
-            >
-              Me rendre trouvable
-              <StatutLien variant="dark" />
-            </Link>
+        {reglagesRestants.length > 0 && (
+          <section className="mb-8 flex flex-wrap items-center gap-1.5 rounded-[20px] bg-[#F5E3C9] px-2 py-1.5">
+            <span className="font-heading px-3 py-2 text-sm font-bold text-[#7A5A16]">
+              {reglagesRestants.length} réglage{reglagesRestants.length > 1 ? "s" : ""} à finir
+            </span>
+            {reglagesRestants.map((reglage) => (
+              <Link
+                key={reglage.label}
+                href={reglage.href}
+                className="inline-flex min-h-11 items-center gap-[9px] rounded-[14px] bg-creme px-[15px] py-2.5 text-[15px] font-semibold text-[#4A3529] hover:bg-[#FDEDE6]"
+              >
+                <span
+                  className="block h-2 w-2 rounded-full"
+                  style={{ backgroundColor: reglage.puceColor }}
+                />
+                {reglage.label}
+                <StatutLien />
+              </Link>
+            ))}
           </section>
         )}
 
