@@ -7,7 +7,6 @@ import NavConnecte from "@/components/layout/NavConnecte";
 
 const MESSAGES_ERREUR: Record<string, string> = {
   champs_invalides: "Merci de remplir le type et le nom de la liste.",
-  slug_pris: "Ce lien est déjà utilisé, modifiez-le avant de valider.",
   erreur: "Une erreur est survenue, réessayez.",
 };
 

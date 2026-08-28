@@ -3,9 +3,9 @@
 import { useState, type ChangeEvent } from "react";
 import { useFormStatus } from "react-dom";
 import { EVENT_TYPES } from "@/lib/event-types";
-import { generateEventSlug, slugify } from "@/lib/slug";
 import { createEvent } from "@/app/compte/evenements/nouveau/actions";
 import KdovieSpinner from "@/components/ui/KdovieSpinner";
+import SelecteurDate from "@/components/ui/SelecteurDate";
 
 // useFormStatus doit être appelé depuis un descendant du <form>, voir
 // AjouterArticleForm pour le même besoin.
@@ -26,20 +26,6 @@ function SubmitButton() {
 export default function NouvelEvenementForm() {
   const [name, setName] = useState("");
   const [type, setType] = useState<string | null>(null);
-  const [slug, setSlug] = useState("");
-  const [slugModifie, setSlugModifie] = useState(false);
-
-  function handleNameChange(value: string) {
-    setName(value);
-    if (!slugModifie) {
-      setSlug(value.trim() ? generateEventSlug(value) : "");
-    }
-  }
-
-  function handleSlugChange(value: string) {
-    setSlugModifie(true);
-    setSlug(slugify(value));
-  }
 
   return (
     <form action={createEvent} className="flex flex-col gap-4.5">
@@ -88,7 +74,7 @@ export default function NouvelEvenementForm() {
           required
           placeholder="Naissance de Léa"
           value={name}
-          onChange={(event: ChangeEvent<HTMLInputElement>) => handleNameChange(event.target.value)}
+          onChange={(event: ChangeEvent<HTMLInputElement>) => setName(event.target.value)}
           className="rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
         />
       </label>
@@ -98,24 +84,7 @@ export default function NouvelEvenementForm() {
           Date{" "}
           <span className="text-sm font-medium text-[#8A7263]">— facultatif</span>
         </span>
-        <input
-          type="date"
-          name="event_date"
-          className="rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
-        />
-      </label>
-
-      <label className="flex flex-col gap-1.5">
-        <span className="font-heading text-base font-bold text-[#4A3529]">Lien de la liste</span>
-        <input
-          type="text"
-          name="slug"
-          required
-          value={slug}
-          onChange={(event: ChangeEvent<HTMLInputElement>) => handleSlugChange(event.target.value)}
-          className="rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
-        />
-        <span className="text-[15px] text-[#8A7263]">kdovie.com/liste/{slug || "…"}</span>
+        <SelecteurDate name="event_date" />
       </label>
 
       <SubmitButton />
