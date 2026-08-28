@@ -3,9 +3,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import { eventStatusClassName, eventStatusLabel } from "@/lib/event-status";
-import { formatPriceCents } from "@/lib/gift-item";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
-import FilActivite, { type ActiviteItem } from "@/components/compte/FilActivite";
 import LiensLegaux from "@/components/layout/LiensLegaux";
 import NavConnecte from "@/components/layout/NavConnecte";
 import StatutLien from "@/components/ui/StatutLien";
@@ -94,20 +92,6 @@ export default async function ComptePage() {
     });
   }
 
-  const [{ data: reservations }, { data: contributions }] = await Promise.all([
-    supabase
-      .from("reservations")
-      .select("id, guest_name, reserved_at, gift_items(title)")
-      .order("reserved_at", { ascending: false })
-      .limit(5),
-    supabase
-      .from("contributions")
-      .select("id, guest_name, amount_cents, created_at, gift_items(title)")
-      .eq("status", "succeeded")
-      .order("created_at", { ascending: false })
-      .limit(5),
-  ]);
-
   const prenom = profile?.first_name?.trim() || user.email?.split("@")[0] || "";
   const pseudo = prenom || null;
 
@@ -141,23 +125,6 @@ export default async function ComptePage() {
       dateFormatee,
     };
   });
-
-  const activite: ActiviteItem[] = [
-    ...(reservations ?? []).map((r) => ({
-      nom: r.guest_name ?? "Anonyme",
-      texte: `a réservé « ${r.gift_items?.title ?? "un cadeau"} »`,
-      date: r.reserved_at,
-      couleur: "#8BA888",
-    })),
-    ...(contributions ?? []).map((c) => ({
-      nom: c.guest_name ?? "Anonyme",
-      texte: `a cotisé ${formatPriceCents(c.amount_cents)} pour « ${c.gift_items?.title ?? "un cadeau"} »`,
-      date: c.created_at,
-      couleur: "#E8734A",
-    })),
-  ]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5);
 
   const dernierEvenement = events?.[0];
   const lienAjoutRapide = dernierEvenement
@@ -209,11 +176,24 @@ export default async function ComptePage() {
             <h1 className="font-heading text-[42px] leading-[1.1] font-bold text-corail">
               Bonjour {prenom || "vous"}
             </h1>
-            <p className="mt-2.5 text-lg text-[#7A6354]">
-              {evenementsAvecStats.length} liste{evenementsAvecStats.length > 1 ? "s" : ""} dans
-              votre compte, {totalReserves} cadeau{totalReserves > 1 ? "x" : ""} déjà réservé
-              {totalReserves > 1 ? "s" : ""} par vos proches.
-            </p>
+            <div className="mt-3.5 flex flex-wrap items-center gap-x-5.5 gap-y-2.5 text-[15px] text-[#7A6354]">
+              <span className="inline-flex items-center gap-2">
+                <span className="block h-2.5 w-2.5 rounded-[3px] bg-corail" />
+                <strong className="font-semibold text-[#4A3529]">
+                  {evenementsAvecStats.length}
+                </strong>{" "}
+                listes
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="block h-2.5 w-2.5 rounded-[3px] bg-jaune" />
+                <strong className="font-semibold text-[#4A3529]">{totalCadeaux}</strong> cadeaux
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="block h-2.5 w-2.5 rounded-[3px] bg-sauge" />
+                <strong className="font-semibold text-[#4A3529]">{totalReserves}</strong> déjà
+                réservés
+              </span>
+            </div>
           </div>
           <Link
             href="/compte/evenements/nouveau"
@@ -246,35 +226,8 @@ export default async function ComptePage() {
           </section>
         )}
 
-        <section className="mb-8 flex flex-wrap items-center gap-x-5.5 gap-y-2.5 text-[15px] text-[#7A6354]">
-          <span className="inline-flex items-center gap-2">
-            <span className="block h-2.5 w-2.5 rounded-[3px] bg-corail" />
-            <strong className="font-semibold text-[#4A3529]">
-              {evenementsAvecStats.length}
-            </strong>{" "}
-            listes
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="block h-2.5 w-2.5 rounded-[3px] bg-jaune" />
-            <strong className="font-semibold text-[#4A3529]">{totalCadeaux}</strong> cadeaux
-          </span>
-          <span className="inline-flex items-center gap-2">
-            <span className="block h-2.5 w-2.5 rounded-[3px] bg-sauge" />
-            <strong className="font-semibold text-[#4A3529]">{totalReserves}</strong> déjà
-            réservés
-          </span>
-        </section>
-
         <section className="mb-11">
-          <div className="mb-5 flex flex-wrap items-baseline justify-between gap-4">
-            <h2 className="font-heading text-[28px] font-bold text-[#C0512A]">
-              Mes listes
-            </h2>
-            <span className="text-[15px] text-[#8A7263]">
-              {evenementsAvecStats.length} liste
-              {evenementsAvecStats.length > 1 ? "s" : ""} · les plus récentes d&apos;abord
-            </span>
-          </div>
+          <h2 className="font-heading mb-5 text-[28px] font-bold text-[#C0512A]">Mes listes</h2>
 
           {evenementsAvecStats.length > 0 ? (
             <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
@@ -385,14 +338,10 @@ export default async function ComptePage() {
           </div>
         </section>
 
-        <section>
-          <div className="rounded-[28px] border-2 border-[#F2DFC9] bg-white p-7">
-            <h2 className="font-heading mb-5 text-[22px] font-bold text-[#4A3529]">
-              Dernières nouvelles
-            </h2>
-            <FilActivite activite={activite} />
-          </div>
-        </section>
+        {/* Bloc "Dernières nouvelles" désactivé pour le moment (demande du
+            28 août 2026) — FilActivite et les requêtes reservations/
+            contributions associées ont été retirées, à réintroduire depuis
+            l'historique git si besoin. */}
       </main>
 
       <footer className="bg-[#F7E7D6] px-6 py-6.5 sm:px-10">
