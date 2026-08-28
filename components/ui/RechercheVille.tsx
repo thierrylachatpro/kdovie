@@ -108,7 +108,7 @@ export default function RechercheVille({
           }}
           placeholder="75001"
           required={required}
-          className="rounded-[18px] border-2 border-[#F2DFC9] bg-white px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
+          className="rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:ring-2 focus:ring-jaune"
         />
       </label>
 
@@ -119,7 +119,7 @@ export default function RechercheVille({
             value={city}
             onChange={(event) => setCity(event.target.value)}
             required={required}
-            className="rounded-[18px] border-2 border-[#F2DFC9] bg-white px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:border-corail"
+            className="rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:ring-2 focus:ring-jaune"
           >
             <option value="">Choisissez votre commune…</option>
             {suggestions.map((commune) => (
@@ -134,7 +134,7 @@ export default function RechercheVille({
             value={city}
             readOnly
             placeholder={recherche ? "Recherche…" : "Code postal d'abord"}
-            className="rounded-[18px] border-2 border-[#F2DFC9] bg-[#F7E7D6] px-4.5 py-4 text-[17px] text-[#8A7263] outline-none"
+            className="rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:ring-2 focus:ring-jaune"
           />
         )}
       </label>
