@@ -205,25 +205,22 @@ export default async function ComptePage() {
         </section>
 
         {reglagesRestants.length > 0 && (
-          <section className="mb-8 flex flex-wrap items-center gap-1.5 rounded-[20px] bg-[#F5E3C9] px-2 py-1.5">
-            <span className="font-heading px-3 py-2 text-sm font-bold text-[#7A5A16]">
-              {reglagesRestants.length} réglage{reglagesRestants.length > 1 ? "s" : ""} à finir
-            </span>
+          <div className="mb-8 flex flex-wrap gap-2.5">
             {reglagesRestants.map((reglage) => (
               <Link
                 key={reglage.label}
                 href={reglage.href}
-                className="inline-flex min-h-11 items-center gap-[9px] rounded-[14px] bg-creme px-[15px] py-2.5 text-[15px] font-semibold text-[#4A3529] hover:bg-[#FDEDE6]"
+                className="inline-flex min-h-11 items-center gap-2.5 rounded-full border-2 border-[#F2DFC9] bg-white px-4.5 py-2.5 text-[15px] font-semibold text-[#4A3529] hover:bg-[#FDEDE6]"
               >
                 <span
-                  className="block h-2 w-2 rounded-full"
+                  className="block h-2 w-2 flex-none rounded-full"
                   style={{ backgroundColor: reglage.puceColor }}
                 />
                 {reglage.label}
                 <StatutLien />
               </Link>
             ))}
-          </section>
+          </div>
         )}
 
         <section className="mb-11">
