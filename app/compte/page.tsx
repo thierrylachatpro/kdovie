@@ -72,26 +72,6 @@ export default async function ComptePage() {
   const afficherBandeauCagnotte =
     risqueCotisationSansCagnotte && organizerStripeStatus !== "actif";
 
-  // Barre compacte de réglages à finir — remplace les deux cartes d'incitation
-  // pleine largeur (cagnotte Stripe / recherche publique), voir CLAUDE.md.
-  // Les textes explicatifs de chaque réglage vivent sur /compte/profil, pas
-  // ici : cette barre ne fait que signaler et rediriger.
-  const reglagesRestants: { label: string; puceColor: string; href: string }[] = [];
-  if (afficherBandeauCagnotte) {
-    reglagesRestants.push({
-      label: "Connecter ma cagnotte",
-      puceColor: "#E8734A",
-      href: "/compte/profil",
-    });
-  }
-  if (!profile?.searchable) {
-    reglagesRestants.push({
-      label: "Me rendre trouvable",
-      puceColor: "#F5B942",
-      href: "/compte/profil",
-    });
-  }
-
   const prenom = profile?.first_name?.trim() || user.email?.split("@")[0] || "";
   const pseudo = prenom || null;
 
@@ -204,22 +184,40 @@ export default async function ComptePage() {
           </Link>
         </section>
 
-        {reglagesRestants.length > 0 && (
-          <div className="mb-8 flex flex-wrap gap-2.5">
-            {reglagesRestants.map((reglage) => (
+        {(afficherBandeauCagnotte || !profile?.searchable) && (
+          <div className="-mt-4 mb-8 flex flex-wrap gap-2.5">
+            {afficherBandeauCagnotte && (
               <Link
-                key={reglage.label}
-                href={reglage.href}
-                className="inline-flex min-h-11 items-center gap-2.5 rounded-full border-2 border-[#F2DFC9] bg-white px-4.5 py-2.5 text-[15px] font-semibold text-[#4A3529] hover:bg-[#FDEDE6]"
+                href="/compte/profil"
+                aria-label="Activez votre cagnotte — réglage à finir"
+                className="inline-flex min-h-11 items-center gap-2.5 rounded-full bg-[#FDEDE6] px-5 py-[11px] font-heading text-[15px] font-bold text-[#C0512A] hover:bg-[#FADACD]"
               >
                 <span
-                  className="block h-2 w-2 flex-none rounded-full"
-                  style={{ backgroundColor: reglage.puceColor }}
-                />
-                {reglage.label}
+                  aria-hidden="true"
+                  className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[#E8734A] font-sans text-[13px] text-[#FFF8F0]"
+                >
+                  !
+                </span>
+                Activez votre cagnotte
                 <StatutLien />
               </Link>
-            ))}
+            )}
+            {!profile?.searchable && (
+              <Link
+                href="/compte/profil"
+                aria-label="Publier mes listes — réglage à finir"
+                className="inline-flex min-h-11 items-center gap-2.5 rounded-full bg-[#FDF2DA] px-5 py-[11px] font-heading text-[15px] font-bold text-[#7A5A16] hover:bg-[#F8E6BD]"
+              >
+                <span
+                  aria-hidden="true"
+                  className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[#F5B942] font-sans text-[13px] text-[#4A3529]"
+                >
+                  !
+                </span>
+                Publier mes listes
+                <StatutLien />
+              </Link>
+            )}
           </div>
         )}
 
