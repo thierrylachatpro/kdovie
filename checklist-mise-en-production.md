@@ -85,15 +85,19 @@ Le mode maintenance est un indicateur en base (pas un redéploiement) : connecte
 
 ## 6. Ordre recommandé (à toi de trancher le calendrier)
 
-1. Objet social / RC Pro / CGV (section 1) : toujours ouverts, à arbitrer consciemment — rien de neuf
-   depuis le premier jet de cette checklist.
-2. Poser `NEXT_PUBLIC_GTM_ID` sur Vercel + vérifier la balise GA4 dans Google Tag Manager (section 4).
-3. Fusionner `dev` dans `main` quand tu es prêt (ta décision, jamais automatique) — c'est ce qui met
-   en ligne la politique de confidentialité, le bandeau de cookies et le reste du travail récent.
-4. Faire vérifier l'état des migrations en prod par Claude Code.
-5. Basculer Stripe en live (section 2), tester avec une vraie petite transaction.
-6. Ouvrir la page de maintenance depuis `/admin`.
-7. Communiquer / lancer.
+1. ✅ Objet social / RC Pro / CGV (section 1) : toujours ouverts, à arbitrer consciemment — rien de
+   neuf signalé.
+2. ✅ **Fait, confirmé par toi le 29 août** — `NEXT_PUBLIC_GTM_ID` posée sur Vercel.
+3. ✅ **Fait, confirmé par toi le 29 août** — balise GA4 vérifiée dans Google Tag Manager.
+4. ✅ **Fait, confirmé par toi le 29 août** — `dev` fusionnée dans `main`.
+5. ⚠️ **"Je crois" que c'est fait, à confirmer précisément** — l'état des migrations en prod. Vu que
+   ça peut casser une fonctionnalité en silence (recherche publique, priorité, admin...) sans erreur
+   visible, demande à Claude Code de lancer `supabase migration list` contre la base de prod et de
+   te confirmer noir sur blanc `local` = `remote` sur toute la ligne, plutôt que de rester sur une
+   impression.
+6. Basculer Stripe en live (section 2), tester avec une vraie petite transaction.
+7. Ouvrir la page de maintenance depuis `/admin`.
+8. Communiquer / lancer.
 
 ## 7. Ce qui a changé depuis le premier jet (25 → 29 août 2026)
 
