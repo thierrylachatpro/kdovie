@@ -1665,59 +1665,68 @@ cette passe (aucun changement de code, uniquement cette documentation).
 ## Google Analytics 4, bandeau de consentement et Search Console (25 août 2026)
 
 Décision de l'utilisateur, en marge du chantier "politique de confidentialité RGPD" ci-dessous (les
-deux sont liés : GA n'existait pas encore, la politique doit maintenant en parler). Trois décisions
+deux sont liés : le tracking n'existait pas encore, la politique doit maintenant en parler). Décisions
 actées avec l'utilisateur, à ne pas redébattre :
 
-- **Bandeau de consentement complet avant tout déclenchement de GA** (pas de version "sans bandeau,
-  en connaissance du risque") — Google Analytics pose des cookies non essentiels
-  (`_ga`/`_ga_<container-id>`), la CNIL exige un consentement préalable, et GA standard ne rentre pas
-  dans le cadre restreint qu'elle exempte (contrairement à un outil comme Matomo auto-hébergé
-  correctement configuré).
-- **Rétention des données GA : 14 mois**, le défaut Google — aucun réglage à changer à la création de
-  la propriété GA4, c'est un paramètre du dashboard Google Analytics lui-même, pas du code Kdovie.
-- **Vérification Search Console par balise meta**, pas par enregistrement DNS TXT — plus simple, pas
-  de dépendance au registrar (Hostinger).
+- **Bandeau de consentement complet avant tout déclenchement du tracking** (pas de version "sans
+  bandeau, en connaissance du risque") — cookies non essentiels, la CNIL exige un consentement
+  préalable.
+- **Rétention des données GA : 14 mois**, le défaut Google — paramètre du dashboard Google Analytics
+  lui-même (à régler sur la propriété GA4, pas dans le code Kdovie).
+- **Search Console déjà vérifié par enregistrement DNS TXT**, posé directement par l'utilisateur chez
+  Hostinger (décision différente de la piste "balise meta" envisagée initialement dans ce fichier —
+  DNS TXT fonctionne tout aussi bien et est déjà fait). **Aucune action côté code nécessaire pour
+  Search Console** : la vérification DNS est indépendante de l'application, rien à ajouter dans
+  `app/layout.tsx`.
 
-### Comptes à créer par l'utilisateur (Claude ne peut pas le faire à sa place)
+### Précision du 25 août 2026 (après-coup) : Google Tag Manager, pas un tag GA4 direct
 
-- Une propriété **GA4** sur analytics.google.com pour kdovie.com → donne un identifiant de mesure
-  `G-XXXXXXXXXX`, à poser en variable d'environnement Vercel `NEXT_PUBLIC_GA_MEASUREMENT_ID`
-  (préfixe `NEXT_PUBLIC_` obligatoire, exposée au navigateur comme les autres clés publiques du
-  projet). Vide/absente tant que l'utilisateur ne l'a pas créée — dans ce cas, ne rien charger, pas
-  d'erreur (même principe de repli silencieux que `AMAZON_ASSOCIATE_TAG`/`SCRAPINGANT_API_KEY`).
-- Une propriété **Search Console** sur search.google.com/search-console → donne un code de
-  vérification, à poser en variable d'environnement `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`.
+L'utilisateur a fourni un conteneur **Google Tag Manager** (`GTM-PT2M3BJZ`), pas un identifiant de
+mesure GA4 (`G-XXXXXXXXXX`) directement — changement de nature, pas juste de valeur : GTM est un
+conteneur qui charge lui-même les tags configurés dans son propre tableau de bord
+(tagmanager.google.com), dont potentiellement un tag "Configuration GA4" pointant vers la propriété
+GA4 — **cette configuration-là vit entièrement côté Google Tag Manager, pas dans le code Kdovie**.
+Si ce n'est pas déjà fait, l'utilisateur doit vérifier/créer ce tag GA4 dans l'interface GTM ; hors
+périmètre de ce que Claude Code peut faire (pas d'accès à ce compte Google).
 
-### Implémentation
-
-- **Search Console** : utiliser le champ natif de l'App Router plutôt qu'une balise ajoutée à la
-  main — `export const metadata = { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } }`
-  dans `app/layout.tsx` (ou une metadata dédiée si un layout enfant convient mieux). Next.js génère
-  la balise `<meta name="google-site-verification" ...>` automatiquement, pas de JSX manuel.
-- **GA4 avec Google Consent Mode v2** (pas un simple `<GoogleAnalytics gaId="..." />` de
-  `@next/third-parties/google` posé tel quel : ce composant ne gère pas le consentement lui-même,
-  il faut piloter le chargement) :
-  1. Le script `gtag.js` est chargé (`next/script`, stratégie `afterInteractive`) uniquement si
-     `NEXT_PUBLIC_GA_MEASUREMENT_ID` est définie.
-  2. Avant toute autre chose, poser un état de consentement par défaut **refusé** :
-     `gtag('consent', 'default', { analytics_storage: 'denied' })` — GA charge mais ne pose aucun
-     cookie ni n'envoie de données identifiantes tant que le consentement n'est pas accordé (mode
-     "cookieless ping" de Google, conforme par construction).
-  3. Le bandeau de consentement (`components/ui/BandeauCookies.tsx`, nouveau composant client) :
-     affiché sur toutes les pages (organisateur connecté ou non, invité, y compris `/liste/[slug]`)
-     tant qu'aucun choix n'est enregistré. Style cohérent avec l'identité Kdovie (fond crème,
-     bouton principal corail, coins arrondis) et avec le traitement "feuille" déjà utilisé pour les
-     modales mobiles (voir "Refonte mobile de la page publique"). Deux actions : "Accepter" /
-     "Refuser" (pas de case précochée, pas de bouton "Accepter" visuellement plus proéminent que
-     "Refuser" — exigence CNIL de symétrie des choix).
-  4. Choix stocké en `localStorage` (`kdovie_consentement_analytics`, valeur `"accepte"`/`"refuse"`)
-     — fonctionne aussi bien pour un invité sans compte que pour un organisateur connecté, pas
-     besoin d'une colonne en base pour ça. Sur "Accepter" :
-     `gtag('consent', 'update', { analytics_storage: 'granted' })`. Sur "Refuser" : le bandeau se
-     ferme, l'état par défaut refusé de l'étape 2 reste actif, rien d'autre à faire.
-  5. **Reconsentement possible à tout moment** (exigence légale : retirer son consentement doit être
-     aussi simple que le donner) : un lien "Gérer les cookies" dans le pied de page (`LiensLegaux`,
-     aux côtés des liens légaux déjà présents) rouvre le bandeau/panneau de préférences.
+- **Variable d'environnement** : `NEXT_PUBLIC_GTM_ID` = `GTM-PT2M3BJZ`, scope Vercel **Production
+  uniquement** (garder Preview/dev sans GTM, cohérent avec la séparation déjà en place ailleurs dans
+  le projet — pas de trafic de développement mélangé aux vraies données d'audience). Vide/absente ⇒
+  rien ne se charge, pas d'erreur (même principe de repli silencieux que les autres clés).
+- **Composant** : `<GoogleTagManager gtmId={...} />` de `@next/third-parties/google` dans
+  `app/layout.tsx`, **plus le fallback `<noscript>`** ajouté à la main juste après l'ouverture de
+  `<body>` (le composant `@next/third-parties` n'injecte que le `<script>`, jamais le
+  `<noscript><iframe>` — à ajouter explicitement, sinon la mesure échoue pour les visiteurs sans
+  JavaScript) :
+  ```html
+  <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-PT2M3BJZ"
+    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+  ```
+- **Consent Mode avec GTM** : le principe reste identique à un gtag.js classique (Google documente
+  explicitement ce même mécanisme pour une intégration via GTM) — un petit script inline, chargé
+  **avant** le conteneur GTM lui-même (`next/script` avec `strategy="beforeInteractive"`, placé avant
+  le `<GoogleTagManager>`), définit le shim `gtag()` qui pousse dans `window.dataLayer` et pose l'état
+  par défaut refusé :
+  ```js
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){ dataLayer.push(arguments); }
+  gtag('consent', 'default', { analytics_storage: 'denied' });
+  ```
+  GTM lit ce même `dataLayer` au chargement — aucune dépendance à gtag.js chargé séparément.
+- Le bandeau de consentement (`components/ui/BandeauCookies.tsx`, nouveau composant client) reste
+  autrement inchangé par rapport à la spec initiale ci-dessous : affiché tant qu'aucun choix n'est
+  enregistré, style Kdovie (fond crème, bouton corail, coins arrondis, traitement "feuille" mobile
+  cohérent avec les modales existantes), deux actions égales "Accepter"/"Refuser" (pas de case
+  précochée, pas d'asymétrie visuelle — exigence CNIL). Choix stocké en `localStorage`
+  (`kdovie_consentement_analytics`, `"accepte"`/`"refuse"`) — sur "Accepter", appelle le même shim
+  `gtag('consent', 'update', { analytics_storage: 'granted' })`.
+- **Reconsentement possible à tout moment** : un lien "Gérer les cookies" dans le pied de page
+  (`LiensLegaux`) rouvre le bandeau/panneau de préférences — exigence légale (retirer son
+  consentement doit être aussi simple que le donner).
+- **Recommandation pour l'utilisateur, côté GTM (pas du code)** : sur le tag GA4 configuré dans
+  Google Tag Manager, activer les "vérifications de consentement supplémentaires" sur
+  `analytics_storage` — filet de sécurité redondant avec le blocage côté code, recommandé par Google
+  pour une intégration Consent Mode robuste.
 - **Aucun changement ailleurs** : pas de tracking custom, pas d'e-commerce tracking GA4 avancé
   (achats/cotisations) pour cette première passe — juste la mesure d'audience de base. À étendre
   plus tard si l'utilisateur le souhaite, pas anticipé maintenant.
