@@ -16,9 +16,11 @@ import {
 // enregistré ; rouvrable à tout moment via "Gérer les cookies"
 // (LiensLegaux) grâce à l'événement OUVRIR_PREFERENCES_COOKIES_EVENT.
 //
-// Deux boutons "Accepter"/"Refuser" strictement identiques (taille, poids
-// visuel, aucune case précochée) — exigence CNIL contre les bandeaux qui
-// orientent visuellement vers l'acceptation.
+// "Accepter" en corail (couleur principale) et "Refuser" en retrait, mais
+// tous deux de même taille et aussi facilement cliquables l'un que l'autre
+// (aucune case précochée, "Refuser" jamais réduit à un simple lien) —
+// respecte l'exigence CNIL sur le fond (refuser doit être aussi simple
+// qu'accepter) sans imposer une identité de couleur stricte entre les deux.
 export default function BandeauCookies() {
   const [visible, setVisible] = useState(false);
 
@@ -62,7 +64,7 @@ export default function BandeauCookies() {
     <div
       role="dialog"
       aria-label="Préférences de cookies"
-      className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-4 sm:px-6 sm:pb-6"
+      className="fixed inset-x-0 bottom-0 z-40 flex justify-start px-4 pb-4 sm:px-6 sm:pb-6"
     >
       <div className="w-full max-w-[640px] rounded-[24px] border-2 border-[#F2DFC9] bg-creme p-5.5 sm:p-6.5">
         <p className="mb-4 text-[15px] leading-relaxed text-[#5C4436]">
@@ -86,7 +88,7 @@ export default function BandeauCookies() {
           <button
             type="button"
             onClick={() => choisir("accepte")}
-            className="rounded-full border-2 border-[#F2DFC9] bg-white px-6 py-3 font-heading text-[15px] font-bold text-[#4A3529] hover:bg-[#FDEDE6]"
+            className="rounded-full border-2 border-corail bg-corail px-6 py-3 font-heading text-[15px] font-bold text-creme hover:bg-[#D45F37]"
           >
             Accepter
           </button>
