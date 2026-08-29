@@ -1662,6 +1662,214 @@ avec des classes devinées sans site réel qui en aurait eu besoin aurait été 
 la règle du projet de ne jamais inventer une valeur. `tsc`/`lint`/`build` vérifiés propres après
 cette passe (aucun changement de code, uniquement cette documentation).
 
+## Google Analytics 4, bandeau de consentement et Search Console (25 août 2026)
+
+Décision de l'utilisateur, en marge du chantier "politique de confidentialité RGPD" ci-dessous (les
+deux sont liés : GA n'existait pas encore, la politique doit maintenant en parler). Trois décisions
+actées avec l'utilisateur, à ne pas redébattre :
+
+- **Bandeau de consentement complet avant tout déclenchement de GA** (pas de version "sans bandeau,
+  en connaissance du risque") — Google Analytics pose des cookies non essentiels
+  (`_ga`/`_ga_<container-id>`), la CNIL exige un consentement préalable, et GA standard ne rentre pas
+  dans le cadre restreint qu'elle exempte (contrairement à un outil comme Matomo auto-hébergé
+  correctement configuré).
+- **Rétention des données GA : 14 mois**, le défaut Google — aucun réglage à changer à la création de
+  la propriété GA4, c'est un paramètre du dashboard Google Analytics lui-même, pas du code Kdovie.
+- **Vérification Search Console par balise meta**, pas par enregistrement DNS TXT — plus simple, pas
+  de dépendance au registrar (Hostinger).
+
+### Comptes à créer par l'utilisateur (Claude ne peut pas le faire à sa place)
+
+- Une propriété **GA4** sur analytics.google.com pour kdovie.com → donne un identifiant de mesure
+  `G-XXXXXXXXXX`, à poser en variable d'environnement Vercel `NEXT_PUBLIC_GA_MEASUREMENT_ID`
+  (préfixe `NEXT_PUBLIC_` obligatoire, exposée au navigateur comme les autres clés publiques du
+  projet). Vide/absente tant que l'utilisateur ne l'a pas créée — dans ce cas, ne rien charger, pas
+  d'erreur (même principe de repli silencieux que `AMAZON_ASSOCIATE_TAG`/`SCRAPINGANT_API_KEY`).
+- Une propriété **Search Console** sur search.google.com/search-console → donne un code de
+  vérification, à poser en variable d'environnement `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`.
+
+### Implémentation
+
+- **Search Console** : utiliser le champ natif de l'App Router plutôt qu'une balise ajoutée à la
+  main — `export const metadata = { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } }`
+  dans `app/layout.tsx` (ou une metadata dédiée si un layout enfant convient mieux). Next.js génère
+  la balise `<meta name="google-site-verification" ...>` automatiquement, pas de JSX manuel.
+- **GA4 avec Google Consent Mode v2** (pas un simple `<GoogleAnalytics gaId="..." />` de
+  `@next/third-parties/google` posé tel quel : ce composant ne gère pas le consentement lui-même,
+  il faut piloter le chargement) :
+  1. Le script `gtag.js` est chargé (`next/script`, stratégie `afterInteractive`) uniquement si
+     `NEXT_PUBLIC_GA_MEASUREMENT_ID` est définie.
+  2. Avant toute autre chose, poser un état de consentement par défaut **refusé** :
+     `gtag('consent', 'default', { analytics_storage: 'denied' })` — GA charge mais ne pose aucun
+     cookie ni n'envoie de données identifiantes tant que le consentement n'est pas accordé (mode
+     "cookieless ping" de Google, conforme par construction).
+  3. Le bandeau de consentement (`components/ui/BandeauCookies.tsx`, nouveau composant client) :
+     affiché sur toutes les pages (organisateur connecté ou non, invité, y compris `/liste/[slug]`)
+     tant qu'aucun choix n'est enregistré. Style cohérent avec l'identité Kdovie (fond crème,
+     bouton principal corail, coins arrondis) et avec le traitement "feuille" déjà utilisé pour les
+     modales mobiles (voir "Refonte mobile de la page publique"). Deux actions : "Accepter" /
+     "Refuser" (pas de case précochée, pas de bouton "Accepter" visuellement plus proéminent que
+     "Refuser" — exigence CNIL de symétrie des choix).
+  4. Choix stocké en `localStorage` (`kdovie_consentement_analytics`, valeur `"accepte"`/`"refuse"`)
+     — fonctionne aussi bien pour un invité sans compte que pour un organisateur connecté, pas
+     besoin d'une colonne en base pour ça. Sur "Accepter" :
+     `gtag('consent', 'update', { analytics_storage: 'granted' })`. Sur "Refuser" : le bandeau se
+     ferme, l'état par défaut refusé de l'étape 2 reste actif, rien d'autre à faire.
+  5. **Reconsentement possible à tout moment** (exigence légale : retirer son consentement doit être
+     aussi simple que le donner) : un lien "Gérer les cookies" dans le pied de page (`LiensLegaux`,
+     aux côtés des liens légaux déjà présents) rouvre le bandeau/panneau de préférences.
+- **Aucun changement ailleurs** : pas de tracking custom, pas d'e-commerce tracking GA4 avancé
+  (achats/cotisations) pour cette première passe — juste la mesure d'audience de base. À étendre
+  plus tard si l'utilisateur le souhaite, pas anticipé maintenant.
+
+## Politique de confidentialité RGPD (25 août 2026)
+
+Chantier identifié comme le plus urgent des points juridiques en suspens (voir la checklist de mise
+en production) : contrairement à l'objet social/RC Pro/CGV (des risques *business* que l'utilisateur
+peut choisir d'assumer temporairement), une politique de confidentialité est une obligation légale
+inconditionnelle dès qu'un site traite des données personnelles (RGPD art. 13/14) — pas liée au
+volume de transactions ni au statut de la société.
+
+### Constat factuel, vérifié dans le code (pas une supposition) avant rédaction
+
+- **Aucun outil d'analytics/tracking tiers avant ce chantier** — confirmé par lecture de
+  `package.json` et `app/layout.tsx` : ni Google Analytics, ni Meta Pixel, ni Sentry, ni Vercel
+  Analytics. Change avec l'ajout de GA4 ci-dessus, à refléter dans le texte.
+- **Exactement deux cookies posés par le code applicatif** avant ce chantier : `kdovie_acces`
+  (`proxy.ts`, contournement de la page de maintenance, httpOnly, 30 jours) et les cookies de
+  session Supabase Auth (`@supabase/ssr`, organisateurs connectés uniquement, jamais les invités).
+  Les composants Stripe Connect embarqués (`/compte/profil`, onboarding organisateur) peuvent poser
+  leurs propres cookies Stripe le temps de l'onboarding, en iframe sur kdovie.com.
+- **Aucune donnée sur un mineur/bébé stockée** : le type de liste "naissance" est une simple valeur
+  d'énumération sur `events.type`, aucune colonne ne capture le nom/la date de naissance d'un enfant
+  nulle part dans le schéma.
+- **Sous-traitants identifiés** : Stripe (paiement), Resend (email transactionnel), Supabase
+  (hébergement base de données + auth), Vercel (hébergement application), ScrapingAnt et Bright Data
+  (scraping de métadonnées produit — reçoivent uniquement l'URL du produit à scraper, jamais de
+  donnée personnelle d'un utilisateur Kdovie), et désormais Google (Analytics + Search Console).
+- **Transferts hors UE** : Stripe, Supabase, Vercel, Resend et Google sont tous des sociétés
+  américaines. Chacun encadre ses transferts par les clauses contractuelles types de la Commission
+  européenne (décision 2021/914) et/ou une certification au cadre EU-US Data Privacy Framework,
+  selon le sous-traitant — mécanisme standard de l'article 46 RGPD, rien d'exotique ni de spécifique
+  à Kdovie.
+
+### Décisions actées avec l'utilisateur
+
+- **Données invités (nom/email, réservation ou cotisation)** : conservées **12 mois après
+  l'événement**, puis à purger. Pas encore automatisé (voir "Backlog technique" ci-dessous) — la
+  politique promet cette durée, l'automatisation reste à construire.
+- **Comptes organisateurs inactifs et listes supprimées (`deleted_at`)** : conservés **3 ans**
+  d'inactivité, puis à purger/anonymiser. Même remarque : pas encore automatisé.
+- **Demandes d'accès/rectification/effacement** : traitées **sous 1 mois** (délai légal), à la main
+  par l'utilisateur via le script `cleanup-organizer.mjs` existant (ou son évolution) — pas de
+  bouton self-service pour l'instant, ce qui est légal tant que le délai est tenu. Canal :
+  `contact@kdovie.com`.
+- **DPO** : non désigné — l'activité de Prowebia ne relève pas des cas où un DPO est obligatoire
+  (traitement à grande échelle de données sensibles ou suivi systématique à grande échelle).
+  Questions RGPD adressées directement à `contact@kdovie.com`.
+
+### Backlog technique : automatiser le nettoyage des comptes/données expirées
+
+Rien n'existe aujourd'hui pour repérer automatiquement "un compte inactif depuis 3 ans" (pas de
+colonne exploitée côté app pour la dernière connexion — l'info existe côté `auth.users` via l'API
+admin Supabase, mais rien ne l'exploite) ni pour purger à échéance les données invités (12 mois) ou
+les comptes/listes (3 ans). À concevoir plus tard, hors périmètre de cette tâche : probablement une
+tâche planifiée (cron Vercel) qui identifie les lignes concernées et anonymise plutôt que supprime
+en dur pour les `contributions` liées à un paiement réel (cohérent avec le choix déjà fait de
+soft-delete pour les listes, pour la traçabilité comptable). Pas bloquant pour publier la politique
+elle-même (elle promet une durée, pas encore un mécanisme automatique — l'utilisateur s'est engagé à
+la traiter manuellement en attendant), mais à ne pas oublier : une politique qui promet une durée
+jamais appliquée devient elle-même un manquement RGPD.
+
+### Premier jet du texte (à poser sur une nouvelle page `/politique-de-confidentialite`)
+
+Même patron que les autres pages légales : composant partagé `PageLegale`
+(`components/layout/PageLegale.tsx`), lien ajouté dans `LiensLegaux` (`components/layout/LiensLegaux.tsx`)
+aux côtés de mentions légales/CGU/CGV/aide/contact/recherche déjà présents dans les pieds de page.
+
+---
+
+**Politique de confidentialité**
+
+*Dernière mise à jour : [date de publication]*
+
+**1. Qui est responsable de vos données ?**
+
+Prowebia, SASU au capital de 500 €, SIREN 992 497 891, RCS Amiens, siège social 15 Rue du Bois 80540
+Clairy-Saulchoix, est responsable du traitement des données collectées sur kdovie.com. Pour toute
+question, contactez `contact@kdovie.com`. Nous n'avons pas désigné de délégué à la protection des
+données (DPO) — nos activités n'entrent pas dans les cas où cette désignation est obligatoire ;
+adressez-nous directement vos questions.
+
+**2. Quelles données collectons-nous, et pourquoi ?**
+
+*Si vous êtes organisateur (vous créez un compte)* : votre email (connexion par lien magique, sans
+mot de passe), votre prénom et nom (affichés sur vos listes et, si vous l'activez, dans la recherche
+publique), votre code postal et ville (uniquement si vous activez la recherche publique). Base
+légale : exécution du contrat qui nous lie (vous fournir le service Kdovie) pour l'email/prénom/nom,
+consentement explicite pour la recherche publique (case à cocher séparée, désactivée par défaut).
+
+*Si vous êtes invité (vous réservez ou cotisez sur une liste, sans compte)* : votre nom et email,
+tous deux facultatifs. Base légale : exécution du contrat (vous permettre de réserver/cotiser) et,
+si vous renseignez votre email, notre intérêt légitime à vous envoyer une confirmation et à vous
+permettre d'annuler votre réservation.
+
+*Si vous cotisez financièrement* : vos coordonnées bancaires sont saisies directement sur les pages
+sécurisées de Stripe, notre prestataire de paiement — nous ne les voyons ni ne les stockons jamais.
+Nous recevons uniquement la confirmation que le paiement a réussi et son montant.
+
+*Navigation* : si vous acceptez notre bandeau de cookies, nous utilisons Google Analytics pour
+mesurer la fréquentation du site (pages consultées, provenance, appareil) — jamais pour vous
+identifier personnellement. Voir la section 5.
+
+**3. Combien de temps conservons-nous vos données ?**
+
+- Vos coordonnées d'invité (nom, email) : 12 mois après la date de l'événement concerné.
+- Votre compte organisateur, si vous ne vous reconnectez plus : 3 ans après votre dernière
+  connexion, puis suppression ou anonymisation.
+- Vos données de navigation (Google Analytics), si vous les avez acceptées : 14 mois.
+- Les données liées à un paiement réel (montants, dates) peuvent être conservées plus longtemps
+  lorsque la loi nous y oblige (obligations comptables et fiscales).
+
+**4. À qui transmettons-nous vos données ?**
+
+Uniquement aux prestataires qui nous aident à faire fonctionner Kdovie, jamais à des tiers à des
+fins commerciales : Stripe (paiement), Resend (emails), Supabase (hébergement de la base de
+données), Vercel (hébergement du site), ScrapingAnt et Bright Data (récupération des informations
+d'un produit à partir d'un lien que vous collez — ils ne reçoivent que ce lien, jamais vos données
+personnelles), et si vous acceptez les cookies, Google (Analytics et Search Console). Certains de
+ces prestataires sont basés aux États-Unis ; leurs transferts de données sont encadrés par les
+clauses contractuelles types de la Commission européenne et/ou une certification au cadre européen
+de protection des données (Data Privacy Framework).
+
+**5. Les cookies utilisés sur Kdovie**
+
+- Un cookie technique qui garde votre session de connexion active (si vous êtes organisateur) —
+  strictement nécessaire, pas de consentement requis.
+- Si vous acceptez notre bandeau, des cookies Google Analytics pour mesurer l'audience du site — vous
+  pouvez revenir sur ce choix à tout moment via le lien "Gérer les cookies" en pied de page.
+
+**6. Vos droits**
+
+Vous pouvez nous demander d'accéder à vos données, de les rectifier, de les effacer, d'en limiter
+l'usage, ou d'en récupérer une copie, en écrivant à `contact@kdovie.com`. Nous répondons sous 1 mois.
+Vous pouvez aussi déposer une réclamation auprès de la CNIL (cnil.fr) si vous estimez que vos droits
+ne sont pas respectés.
+
+**7. Sécurité**
+
+Nous prenons des mesures raisonnables pour protéger vos données (chiffrement des connexions,
+accès restreint à notre base de données, aucun stockage de coordonnées bancaires). Aucun système
+n'est infaillible ; en cas d'incident affectant vos données, nous vous en informerons conformément
+à nos obligations légales.
+
+---
+
+**Statut : premier jet écrit, pas encore mis en page ni publié.** Contenu à ajuster librement à
+l'implémentation (ton, formulations) sans revenir sur les décisions de fond (durées, sous-traitants,
+délai de traitement) actées ci-dessus. La date "[date de publication]" à remplacer par la date
+réelle de mise en ligne.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
