@@ -21,19 +21,24 @@ La page CGV est volontairement restée "en cours de rédaction" tant que ces tro
 ### RGPD — politique de confidentialité
 Distincte des CGU, jamais rédigée. Contrairement aux trois points ci-dessus (qui sont surtout des risques *business*), celle-ci est une obligation légale inconditionnelle dès qu'un site traite des données personnelles (RGPD art. 13/14) — pas liée au volume ni au statut de la société. C'est probablement le point le plus urgent des quatre à combler avant un vrai lancement public.
 
-**Statut (25 août 2026) : décisions actées avec l'utilisateur, premier jet rédigé.** Voir CLAUDE.md >
-"Politique de confidentialité RGPD" pour le texte complet et le détail des choix (rétention invités
-12 mois après l'événement, comptes organisateurs inactifs et listes supprimées 3 ans, délai d'1 mois
-pour toute demande d'accès/effacement, traité manuellement par l'utilisateur pour l'instant).
+**Statut (29 août 2026) : ✅ rédigée, mise en page et publiée dans le code.** Page
+`/politique-de-confidentialite` construite (`app/politique-de-confidentialite/page.tsx`), lien posé
+dans le pied de page de tout le site. Reste seulement à être vraiment en ligne sur kdovie.com — ce
+qui suppose que `dev` soit fusionnée dans `main` (ta décision, jamais automatique).
 
-### Nouveau : ajout de Google Analytics 4 et Search Console (25 août 2026)
-Décision de l'utilisateur, en même temps que la politique de confidentialité. Comme GA pose des
-cookies non essentiels, un **bandeau de consentement complet** est requis avant que GA ne se
-déclenche (CNIL) — chantier à part entière, pas juste une balise à coller. Voir CLAUDE.md >
-"Google Analytics 4, bandeau de consentement et Search Console" pour la spec complète. Deux comptes
-à créer par l'utilisateur (Claude ne peut pas le faire à sa place) avant que Claude Code puisse
-finir le câblage : propriété GA4 (identifiant `G-XXXXXXXXXX`) et propriété Search Console (code de
-vérification, méthode retenue : balise meta).
+### Google Analytics (via Google Tag Manager) et Search Console (25-29 août 2026)
+**Statut : ✅ codé et testé dans la mesure du possible, ⚠️ pas encore vérifié en conditions réelles.**
+Bandeau de consentement (`components/ui/BandeauCookies.tsx`) + conteneur GTM (`GTM-PT2M3BJZ`) posés
+dans `app/layout.tsx`, page de confidentialité liée depuis le bandeau. Search Console déjà vérifié
+par toi via un enregistrement DNS TXT chez Hostinger — rien à coder pour ça.
+
+Ce qui reste à faire avant que ce soit vraiment actif :
+1. Poser `NEXT_PUBLIC_GTM_ID=GTM-PT2M3BJZ` sur Vercel, **scope Production uniquement**.
+2. Dans l'interface Google Tag Manager (tagmanager.google.com), vérifie qu'une balise "Google
+   Analytics : Configuration GA4" existe, avec ton Measurement ID `G-XXXXXXXXXX` et le déclencheur
+   "All Pages" — sans ça, le conteneur se charge mais rien ne remonte dans GA4.
+3. Une fois en ligne, teste réellement : accepte le bandeau de cookies sur kdovie.com, vérifie dans
+   GA4 (rapport "Temps réel") ou via le mode Aperçu de GTM que ta visite apparaît.
 
 ### Backlog technique : automatiser le nettoyage des comptes inactifs
 La politique de confidentialité promet une rétention de 3 ans pour les comptes organisateurs
@@ -68,6 +73,8 @@ Beaucoup de migrations ont été écrites au fil des sessions ; certaines ont é
 
 Déjà posées, à confirmer toujours valides : `RESEND_API_KEY`, `SCRAPINGANT_API_KEY`, `BRIGHTDATA_API_KEY`, `SUPABASE_SEND_EMAIL_HOOK_SECRET`.
 
+**Manquante, à poser** : `NEXT_PUBLIC_GTM_ID` = `GTM-PT2M3BJZ` (scope Production uniquement) — sans elle, le conteneur Google Tag Manager ne se charge jamais, même si le code est prêt.
+
 À vérifier : `AMAZON_ASSOCIATE_TAG` — le statut exact n'est pas confirmé dans l'historique du projet (compte Amazon Partenaires à créer par toi si pas déjà fait). Sans elle, les liens restent simplement non affiliés (pas d'erreur), donc non bloquant pour lancer, mais à ne pas oublier si tu veux la commission.
 
 `MAINTENANCE_MODE` (variable Vercel) : n'a plus d'effet, le mode maintenance est piloté depuis `/admin` (base de données) — tu peux la retirer de Vercel si tu veux faire le ménage, aucune action requise.
@@ -78,8 +85,22 @@ Le mode maintenance est un indicateur en base (pas un redéploiement) : connecte
 
 ## 6. Ordre recommandé (à toi de trancher le calendrier)
 
-1. Régler ou au moins arbitrer consciemment les points juridiques de la section 1 (au minimum la politique de confidentialité RGPD, qui est une obligation inconditionnelle).
-2. Faire vérifier l'état des migrations en prod par Claude Code.
-3. Basculer Stripe en live (section 2), tester avec une vraie petite transaction.
-4. Ouvrir la page de maintenance.
-5. Communiquer / lancer.
+1. Objet social / RC Pro / CGV (section 1) : toujours ouverts, à arbitrer consciemment — rien de neuf
+   depuis le premier jet de cette checklist.
+2. Poser `NEXT_PUBLIC_GTM_ID` sur Vercel + vérifier la balise GA4 dans Google Tag Manager (section 4).
+3. Fusionner `dev` dans `main` quand tu es prêt (ta décision, jamais automatique) — c'est ce qui met
+   en ligne la politique de confidentialité, le bandeau de cookies et le reste du travail récent.
+4. Faire vérifier l'état des migrations en prod par Claude Code.
+5. Basculer Stripe en live (section 2), tester avec une vraie petite transaction.
+6. Ouvrir la page de maintenance depuis `/admin`.
+7. Communiquer / lancer.
+
+## 7. Ce qui a changé depuis le premier jet (25 → 29 août 2026)
+
+✅ Politique de confidentialité rédigée, mise en page et publiée dans le code.
+✅ Bandeau de consentement cookies + Google Tag Manager codés et testés en local.
+✅ Search Console déjà vérifié (DNS TXT).
+⚠️ Toujours ouvert : objet social, RC Pro, CGV (section 1) — aucune avancée signalée.
+⚠️ Nouveau restant : poser `NEXT_PUBLIC_GTM_ID` sur Vercel + vérifier la balise GA4 dans GTM (section 4).
+⚠️ Stripe live (section 2) et vérification des migrations (section 3) : toujours à faire, rien n'a
+   changé sur ces deux points.
