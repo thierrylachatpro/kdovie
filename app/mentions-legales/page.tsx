@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import PageLegale from "@/components/layout/PageLegale";
 
@@ -83,9 +84,13 @@ export default async function MentionsLegalesPage() {
           Kdovie traite des données personnelles (organisateurs et invités) dans le cadre de son
           activité.
         </p>
-        <p className="text-[15px] leading-relaxed text-[#8A7263] italic">
-          Une politique de confidentialité dédiée, détaillant ce traitement, est en cours de
-          rédaction et sera liée depuis cette section dès sa publication.
+        <p className="text-[16px] leading-relaxed text-[#5C4436]">
+          Le détail de ce traitement (données collectées, durées de conservation, destinataires,
+          vos droits) figure dans notre{" "}
+          <Link href="/politique-de-confidentialite" className="underline hover:text-corail">
+            politique de confidentialité
+          </Link>
+          .
         </p>
       </section>
 

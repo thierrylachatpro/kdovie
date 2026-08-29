@@ -730,9 +730,6 @@ export default function AccueilClient({
             <Link href="/aide" className="hover:text-corail">
               Aide
             </Link>
-            <a href="#" className="hover:text-corail">
-              Confidentialité
-            </a>
             <Link href="/contact" className="hover:text-corail">
               Contact
             </Link>

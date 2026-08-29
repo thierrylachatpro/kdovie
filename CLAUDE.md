@@ -1731,6 +1731,44 @@ périmètre de ce que Claude Code peut faire (pas d'accès à ce compte Google).
   (achats/cotisations) pour cette première passe — juste la mesure d'audience de base. À étendre
   plus tard si l'utilisateur le souhaite, pas anticipé maintenant.
 
+**Statut : implémenté et testé dans la mesure du possible (29 août 2026).**
+
+- `app/layout.tsx` : conteneur GTM (`@next/third-parties`, nouvelle dépendance) rendu uniquement si
+  `NEXT_PUBLIC_GTM_ID` est définie — absente en local (`.env.local`), à poser sur Vercel en scope
+  **Production uniquement**. Script inline Consent Mode (`strategy="beforeInteractive"`, valeur
+  exacte du snippet du cadrage) posé avant `<GoogleTagManager>`, `<noscript><iframe>` juste après
+  l'ouverture de `<body>`.
+- `lib/consent.ts` : clé `kdovie_consentement_analytics` (`localStorage`), shim `gtag()` (typé sur
+  `Window`), et l'événement DOM `kdovie:ouvrir-preferences-cookies` qui permet à `LiensLegaux`
+  (pied de page, plusieurs pages) de rouvrir `BandeauCookies` (monté une fois dans le layout racine)
+  sans état React partagé entre les deux.
+- `components/ui/BandeauCookies.tsx` : bandeau non bloquant ancré en bas d'écran (pas de fond
+  assombri façon modale — un choix de cookies n'a pas besoin de bloquer la page), deux boutons
+  "Refuser"/"Accepter" **strictement identiques** (même fond blanc, même bordure, même poids) pour
+  respecter l'exigence CNIL de symétrie visuelle — ni case précochée, ni bouton mis en avant. Lien
+  "En savoir plus" vers `/politique-de-confidentialite`.
+- `components/layout/LiensLegaux.tsx` passé en composant client (`"use client"`) pour porter le lien
+  "Confidentialité" et le bouton "Gérer les cookies" — propagés automatiquement à toutes les pages
+  qui utilisent déjà ce composant partagé. Le lien mort `<a href="#">Confidentialité</a>` propre à
+  `AccueilClient.tsx` (distinct de `LiensLegaux`, voir "Backlog produit : pages 'À propos', 'Aide'")
+  est retiré : cette page affichait déjà `<LiensLegaux>` juste à côté, la nouvelle entrée y suffit
+  sans doublon.
+- **Piège rencontré** : le premier jet lisait `localStorage` directement dans le corps du
+  `useEffect` de `BandeauCookies` (`setVisible(...)` synchrone en tête d'effet) — déclenchait
+  `react-hooks/set-state-in-effect`, même règle déjà rencontrée sur `StatutLien.tsx`/
+  `RechercheVille.tsx`. Corrigé en différant cette lecture dans un `setTimeout(0)` plutôt qu'un appel
+  direct — délai imperceptible, satisfait la règle sans changer le comportement.
+- **Testé réellement** (Playwright, page de prévisualisation supprimée ensuite) : bandeau affiché à
+  la première visite, les deux boutons rendus avec un style rigoureusement identique ; clic sur
+  "Accepter" → bandeau fermé, `localStorage.kdovie_consentement_analytics = "accepte"` confirmé par
+  lecture directe ; rechargement de page → bandeau absent (choix respecté) ; "Gérer les cookies" en
+  pied de page → rouvre le bandeau par-dessus le contenu existant. `tsc`/`lint`/`build` propres.
+- **Non testé** : le chargement réel du conteneur GTM lui-même (nécessite `NEXT_PUBLIC_GTM_ID` posée
+  sur Vercel, absente de cet environnement local) — la condition d'affichage (`GTM_ID &&`) est
+  vérifiée correcte à la lecture, mais le vrai tag `GTM-PT2M3BJZ` n'a pas été exercé en conditions
+  réelles. Le tag GA4 à configurer dans l'interface Google Tag Manager (hors de ce que Claude Code
+  peut faire) reste à vérifier par l'utilisateur.
+
 ## Politique de confidentialité RGPD (25 août 2026)
 
 Chantier identifié comme le plus urgent des points juridiques en suspens (voir la checklist de mise
@@ -1878,6 +1916,14 @@ n'est infaillible ; en cas d'incident affectant vos données, nous vous en infor
 l'implémentation (ton, formulations) sans revenir sur les décisions de fond (durées, sous-traitants,
 délai de traitement) actées ci-dessus. La date "[date de publication]" à remplacer par la date
 réelle de mise en ligne.
+
+**Statut (29 août 2026) : mis en page et publié.** Nouvelle page `/politique-de-confidentialite`
+(`app/politique-de-confidentialite/page.tsx`), même patron que les autres pages légales (`PageLegale`,
+en-tête connecté via `NavConnecte`) — texte repris tel quel du premier jet ci-dessus, date remplacée
+par la date réelle de publication (29 août 2026). Lien ajouté dans `LiensLegaux` (voir section GA4/GTM
+ci-dessus, les deux chantiers ont été implémentés dans le même mouvement). Le placeholder
+"en cours de rédaction" sur `/mentions-legales` (section "Données personnelles") est remplacé par un
+vrai lien vers cette page. `tsc`/`lint`/`build` propres, rendu vérifié par capture d'écran.
 
 ## Points d'attention techniques
 
