@@ -90,14 +90,11 @@ Le mode maintenance est un indicateur en base (pas un redéploiement) : connecte
 2. ✅ **Fait, confirmé par toi le 29 août** — `NEXT_PUBLIC_GTM_ID` posée sur Vercel.
 3. ✅ **Fait, confirmé par toi le 29 août** — balise GA4 vérifiée dans Google Tag Manager.
 4. ✅ **Fait, confirmé par toi le 29 août** — `dev` fusionnée dans `main`.
-5. ⚠️ **"Je crois" que c'est fait, à confirmer précisément** — l'état des migrations en prod. Vu que
-   ça peut casser une fonctionnalité en silence (recherche publique, priorité, admin...) sans erreur
-   visible, demande à Claude Code de lancer `supabase migration list` contre la base de prod et de
-   te confirmer noir sur blanc `local` = `remote` sur toute la ligne, plutôt que de rester sur une
-   impression.
-6. Basculer Stripe en live (section 2), tester avec une vraie petite transaction.
-7. Ouvrir la page de maintenance depuis `/admin`.
-8. Communiquer / lancer.
+5. ✅ **Fait, confirmé par toi le 29 août** — migrations vérifiées à jour sur la base de prod.
+6. ⬜ Basculer Stripe en live (section 2), tester avec une vraie petite transaction — dernier gros
+   morceau technique restant.
+7. ⬜ Ouvrir la page de maintenance depuis `/admin`.
+8. ⬜ Communiquer / lancer.
 
 ## 7. Ce qui a changé depuis le premier jet (25 → 29 août 2026)
 
