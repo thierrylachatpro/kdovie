@@ -57,13 +57,43 @@ Le flux d'argent transite toujours directement via Stripe vers l'organisateur (d
 
 ## 2. Bascule Stripe : test → live
 
-1. **Activer le compte Stripe** (si pas déjà fait) : dans le Dashboard Stripe, section "Activer votre compte" — coordonnées bancaires de Prowebia pour recevoir la commission Kdovie, vérification d'identité de la plateforme elle-même.
-2. **Récupérer les clés live** : `sk_live_...` et `pk_live_...` (Dashboard Stripe > Développeurs > Clés API, bascule "Mode test" désactivée).
-3. **Remplacer sur Vercel, scope Production uniquement** (garder les clés de test sur Preview/dev, cohérent avec la séparation déjà en place) : `STRIPE_SECRET_KEY` et `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`.
-4. **Créer un nouveau webhook en mode live** : les webhooks test et live sont complètement séparés côté Stripe. Dashboard > Développeurs > Webhooks > Ajouter un endpoint, `https://kdovie.com/api/webhooks/stripe`, événement `checkout.session.completed` (celui écouté par le code actuel) — récupérer le nouveau `whsec_...` live et le poser dans `STRIPE_WEBHOOK_SECRET` sur Vercel (Production).
-5. **Vérifier le domaine autorisé pour l'onboarding Connect embarqué** : Dashboard Stripe > Paramètres > Connect > Onboarding — s'assurer que kdovie.com est bien autorisé pour les composants embarqués (`@stripe/connect-js`), ce réglage peut être spécifique au mode live.
-6. **Tous les comptes Stripe Connect organisateurs créés en test ne comptent pas en live.** N'importe quel organisateur ayant déjà fait l'onboarding pendant les tests devra recommencer une fois basculé en live — à prévoir dans ta communication si des organisateurs de test existent encore.
-7. **Test réel avant diffusion large** : une fois les clés live posées, faire une vraie cotisation avec ta propre carte (petit montant) pour confirmer que toute la chaîne fonctionne (Checkout → webhook → `confirm_contribution` → réception effective par le compte connecté) avant d'annoncer publiquement le lancement.
+1. ✅ **Fait le 31 août 2026** — compte Stripe Prowebia activé (mode production confirmé, clé
+   publique `pk_live_...98wm` visible sur le dashboard). Catégorie d'activité choisie : "Collecte de
+   fonds ou financement participatif" (aucune catégorie "cagnotte cadeau" n'existe chez Stripe),
+   description réécrite pour décrire Kdovie tel qu'il est réellement. Libellé de relevé bancaire posé
+   : `KDOVIE.COM` (abrégé `KDOVIE`) — c'est ce que tes invités voient sur leur relevé bancaire.
+   Type d'entreprise corrigé à l'écran (Stripe avait pré-rempli "Entrepreneur individuel" puis
+   "Société en commandite" par défaut, tous deux faux pour une SASU) → "Société" / "Société non
+   cotée", le bon mapping Stripe pour Prowebia. Étape optionnelle "Calcul des taxes" (Stripe Tax)
+   volontairement laissée de côté pour l'instant (frais supplémentaires, sujet fiscal à voir avec ton
+   expert-comptable plutôt qu'à activer par défaut).
+2. ✅ **Fait le 31 août 2026** — clés live récupérées.
+3. ✅ **Fait le 31 août 2026** — `STRIPE_SECRET_KEY` et `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` posées
+   sur Vercel en deux entrées séparées par variable (Production = valeurs live, Preview = valeurs
+   test), types corrects (`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` en "Config"/non-sensible puisqu'elle
+   est de toute façon exposée au navigateur, `STRIPE_SECRET_KEY` en "Secret") — vérifié directement
+   sur la page Vercel.
+4. ✅ **Fait le 31 août 2026** — nouveau webhook live créé (Stripe Dashboard > Workbench > Webhooks
+   > "kdovie-production"), périmètre "Votre compte" (pas "Comptes connectés" — la Checkout Session
+   est créée par la plateforme elle-même), événement `checkout.session.completed`, URL
+   `https://kdovie.com/api/webhooks/stripe`. `STRIPE_WEBHOOK_SECRET` (le `whsec_...` live) posé sur
+   Vercel, confirmé par toi.
+5. ✅ **Vérifié le 31 août 2026 — ce point était une fausse piste, rien à faire.** J'ai relu la
+   documentation officielle Stripe (`docs.stripe.com/connect/get-started-connect-embedded-components`)
+   : il n'existe aucune liste de domaines autorisés à configurer pour les composants Connect
+   embarqués (`@stripe/connect-js`). Les seules exigences réelles sont une clé publique valide, un
+   Account Session côté serveur, et — uniquement si le site a une Content-Security-Policy — d'y
+   autoriser `connect-js.stripe.com`/`js.stripe.com`. Kdovie n'a pas de CSP stricte définie
+   aujourd'hui, donc rien à changer. Ce point du premier jet de la checklist (25 août) reposait sur
+   une hypothèse non vérifiée à l'époque — je l'ai corrigé plutôt que de te faire chercher un réglage
+   qui n'existe pas.
+6. **Tous les comptes Stripe Connect organisateurs créés en test ne comptent pas en live.** N'importe
+   quel organisateur ayant déjà fait l'onboarding pendant les tests devra recommencer une fois
+   basculé en live — à prévoir dans ta communication si des organisateurs de test existent encore.
+7. ⬜ **Test réel avant diffusion large** : faire une vraie cotisation avec ta propre carte (petit
+   montant) pour confirmer que toute la chaîne fonctionne (Checkout → webhook →
+   `confirm_contribution` → réception effective par le compte connecté) avant d'annoncer publiquement
+   le lancement. Reste à faire.
 
 ## 3. Base de données
 
@@ -85,23 +115,26 @@ Le mode maintenance est un indicateur en base (pas un redéploiement) : connecte
 
 ## 6. Ordre recommandé (à toi de trancher le calendrier)
 
-1. ✅ Objet social / RC Pro / CGV (section 1) : toujours ouverts, à arbitrer consciemment — rien de
-   neuf signalé.
+1. ⚠️ Objet social / RC Pro / CGV (section 1) : **toujours ouverts**, à arbitrer consciemment — rien
+   de neuf signalé, ce ne sont pas des cases cochées, juste des risques que tu choisis d'assumer ou
+   non.
 2. ✅ **Fait, confirmé par toi le 29 août** — `NEXT_PUBLIC_GTM_ID` posée sur Vercel.
 3. ✅ **Fait, confirmé par toi le 29 août** — balise GA4 vérifiée dans Google Tag Manager.
 4. ✅ **Fait, confirmé par toi le 29 août** — `dev` fusionnée dans `main`.
 5. ✅ **Fait, confirmé par toi le 29 août** — migrations vérifiées à jour sur la base de prod.
-6. ⬜ Basculer Stripe en live (section 2), tester avec une vraie petite transaction — dernier gros
-   morceau technique restant.
+6. 🔄 **Presque fini (31 août)** — Stripe basculé en live : compte activé, clés live posées sur
+   Vercel, webhook live créé, domaine Connect embarqué vérifié (rien à faire de ce côté). Reste
+   uniquement : faire une vraie petite transaction test avant toute annonce publique.
 7. ⬜ Ouvrir la page de maintenance depuis `/admin`.
 8. ⬜ Communiquer / lancer.
 
-## 7. Ce qui a changé depuis le premier jet (25 → 29 août 2026)
+## 7. Ce qui a changé depuis le premier jet (25 → 31 août 2026)
 
 ✅ Politique de confidentialité rédigée, mise en page et publiée dans le code.
 ✅ Bandeau de consentement cookies + Google Tag Manager codés et testés en local.
 ✅ Search Console déjà vérifié (DNS TXT).
-⚠️ Toujours ouvert : objet social, RC Pro, CGV (section 1) — aucune avancée signalée.
-⚠️ Nouveau restant : poser `NEXT_PUBLIC_GTM_ID` sur Vercel + vérifier la balise GA4 dans GTM (section 4).
-⚠️ Stripe live (section 2) et vérification des migrations (section 3) : toujours à faire, rien n'a
-   changé sur ces deux points.
+✅ `NEXT_PUBLIC_GTM_ID` posée sur Vercel + balise GA4 vérifiée dans GTM.
+✅ Migrations vérifiées à jour sur la base de prod, `dev` fusionnée dans `main`.
+🔄 Stripe live : compte activé, clés + webhook posés (31 août) — reste le test réel et la
+   vérification du domaine Connect embarqué.
+⚠️ Toujours ouvert, sans avancée signalée : objet social, RC Pro, CGV (section 1).
