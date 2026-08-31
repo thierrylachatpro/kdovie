@@ -1925,6 +1925,43 @@ ci-dessus, les deux chantiers ont été implémentés dans le même mouvement). 
 "en cours de rédaction" sur `/mentions-legales` (section "Données personnelles") est remplacé par un
 vrai lien vers cette page. `tsc`/`lint`/`build` propres, rendu vérifié par capture d'écran.
 
+## Redirection automatique vers /compte pour un organisateur connecté (31 août 2026)
+
+Décision de l'utilisateur : aujourd'hui, un organisateur connecté qui visite `/` (la page d'accueil
+marketing) continue de voir le contenu marketing complet, avec uniquement l'en-tête qui change
+(`NavConnecte` au lieu des boutons "Se connecter"/"Créer ma liste" — voir "En-tête unifié pour les
+organisateurs connectés" plus haut, 19 août 2026, qui reste valable pour toutes les autres pages).
+Nouveau comportement demandé, uniquement sur `/` : un organisateur déjà connecté qui atterrit sur
+`/` doit être redirigé automatiquement vers `/compte`, son tableau de bord — il ne doit plus voir le
+contenu marketing tant qu'il est connecté. Conséquence assumée explicitement par l'utilisateur : pour
+revoir la vraie page d'accueil marketing, il faut se déconnecter au préalable (pas de contournement à
+prévoir, ex. pas de paramètre `?accueil=1` pour forcer l'affichage marketing en étant connecté — non
+demandé, ne pas anticiper).
+
+- **Fichier concerné : `app/page.tsx`** (Server Component, lit déjà `supabase.auth.getUser()` en
+  tête de fonction pour calculer `estConnecte`/`pseudo` transmis à `AccueilClient`). Ajouter un
+  `redirect("/compte")` (import `next/navigation`) juste après avoir obtenu `user`, si `user` est
+  non nul — avant tout calcul de `pseudo` ou rendu de `AccueilClient` (inutile de faire la requête
+  `profiles` si on redirige de toute façon).
+- **Ne touche à rien d'autre** : le comportement actuel de `/` pour un visiteur non connecté reste
+  strictement inchangé (page marketing complète). Les autres pages qui utilisent déjà `NavConnecte`
+  (pages sobres, `/connexion`, tout `/compte/*`, `/liste/[slug]` si l'organisateur consulte sa propre
+  liste) ne sont pas concernées par ce chantier — seule la racine `/` change de comportement.
+- **Pas de nouvelle notion de "page d'accueil pour connecté"** : `/compte` reste la même page
+  qu'aujourd'hui (tableau de bord organisateur déjà existant), rien à créer, juste une redirection
+  qui pointe dessus.
+
+**Statut : implémenté et testé dans la mesure du possible (31 août 2026).** `app/page.tsx` :
+`redirect("/compte")` posé juste après `supabase.auth.getUser()`, avant tout calcul de
+pseudo/profil — le reste de la fonction (requête `profiles`, rendu `AccueilClient`) n'est donc
+atteint que pour un visiteur non connecté, `estConnecte`/`pseudo` simplifiés en constantes
+(`false`/`null`) puisque c'est le seul cas restant. `tsc`/`lint`/`build` propres. Testé réellement
+pour le visiteur non connecté (serveur de dev, `curl` confirmant le contenu marketing complet
+toujours servi normalement) — **pas testé** pour le cas connecté : nécessiterait une session
+organisateur authentifiée, indisponible dans cet environnement ; le code reprend exactement le
+même schéma `redirect()` déjà éprouvé partout ailleurs dans le produit (`/compte/*`,
+`/connexion`...), risque de régression jugé faible.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import AccueilClient from "@/components/accueil/AccueilClient";
 
@@ -7,15 +8,13 @@ export default async function Home() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  let pseudo: string | null = null;
+  // Un organisateur déjà connecté ne voit plus le contenu marketing sur "/"
+  // — voir CLAUDE.md > "Redirection automatique vers /compte pour un
+  // organisateur connecté". Avant tout calcul de pseudo/rendu, inutile de
+  // faire la requête profiles si on redirige de toute façon.
   if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("first_name")
-      .eq("id", user.id)
-      .single();
-    pseudo = profile?.first_name?.trim() || user.email?.split("@")[0] || null;
+    redirect("/compte");
   }
 
-  return <AccueilClient estConnecte={Boolean(user)} pseudo={pseudo} />;
+  return <AccueilClient estConnecte={false} pseudo={null} />;
 }
