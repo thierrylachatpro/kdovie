@@ -68,8 +68,7 @@ export default function BandeauCookies() {
     >
       <div className="w-full max-w-[640px] rounded-[24px] border-2 border-[#F2DFC9] bg-creme p-5.5 sm:p-6.5">
         <p className="mb-4 text-[15px] leading-relaxed text-[#5C4436]">
-          Nous aimerions mesurer la fréquentation de Kdovie avec Google Analytics, uniquement si
-          vous l&apos;acceptez.{" "}
+          Nous aimerions mesurer la fréquentation de Kdovie, sans jamais vous identifier personnellement.{" "}
           <Link
             href="/politique-de-confidentialite"
             className="font-semibold text-[#4A3529] underline hover:text-corail"
