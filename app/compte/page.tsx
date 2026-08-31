@@ -188,7 +188,7 @@ export default async function ComptePage() {
           <div className="-mt-4 mb-8 flex flex-wrap gap-2.5">
             {afficherBandeauCagnotte && (
               <Link
-                href="/compte/profil"
+                href="/compte/profil#cagnotte"
                 aria-label="Activez votre cagnotte — réglage à finir"
                 className="inline-flex min-h-11 items-center gap-2.5 rounded-full bg-[#FDEDE6] px-5 py-[11px] font-heading text-[15px] font-bold text-[#C0512A] hover:bg-[#FADACD]"
               >

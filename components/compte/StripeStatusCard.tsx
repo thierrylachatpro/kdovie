@@ -50,7 +50,7 @@ export default function StripeStatusCard({ status }: { status: OrganizerStripeSt
   }
 
   return (
-    <section className="mt-5 rounded-[28px] bg-[#F7E7D6] p-6.5">
+    <section id="cagnotte" className="mt-5 scroll-mt-6 rounded-[28px] bg-[#F7E7D6] p-6.5">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="max-w-105">
           <div className="mb-1.5 flex items-center gap-2.5">
