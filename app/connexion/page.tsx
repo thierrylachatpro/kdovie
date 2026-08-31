@@ -1,7 +1,8 @@
 import Link from "next/link";
 import ConnexionForm from "@/components/auth/ConnexionForm";
-import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavAnonyme from "@/components/layout/NavAnonyme";
 import NavConnecte from "@/components/layout/NavConnecte";
+import PiedDePage from "@/components/layout/PiedDePage";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function ConnexionPage({
@@ -67,16 +68,8 @@ export default async function ConnexionPage({
             </span>
           </span>
         </Link>
-        {estConnecte ? (
-          <NavConnecte estConnecte={estConnecte} pseudo={pseudo} />
-        ) : (
-          <Link
-            href="/aide"
-            className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
-          >
-            Aide
-          </Link>
-        )}
+        <NavConnecte estConnecte={estConnecte} pseudo={pseudo} />
+        <NavAnonyme estConnecte={estConnecte} />
       </header>
 
       <main className="mx-auto grid w-full max-w-[1180px] flex-1 items-center gap-16 px-6 py-6 sm:px-10 sm:py-10 md:grid-cols-2">
@@ -145,26 +138,7 @@ export default async function ConnexionPage({
         </div>
       </main>
 
-      <footer className="bg-[#F7E7D6] px-6 py-6 sm:px-10">
-        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
-          <span>© 2026 kdovie</span>
-          <nav className="flex flex-wrap gap-6">
-            <Link href="/aide" className="hover:text-corail">
-              Aide
-            </Link>
-            <Link href="/contact" className="hover:text-corail">
-              Contact
-            </Link>
-            <LiensLegaux className="hover:text-corail" />
-            <Link href="/recherche" className="hover:text-corail">
-              Retrouver une liste
-            </Link>
-            <Link href="/" className="hover:text-corail">
-              Retour à l&apos;accueil
-            </Link>
-          </nav>
-        </div>
-      </footer>
+      <PiedDePage />
     </div>
   );
 }

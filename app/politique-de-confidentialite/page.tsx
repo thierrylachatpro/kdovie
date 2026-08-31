@@ -125,7 +125,7 @@ export default async function PolitiqueConfidentialitePage() {
           <li>
             Si vous acceptez notre bandeau, des cookies Google Analytics pour mesurer
             l&apos;audience du site — vous pouvez revenir sur ce choix à tout moment via le lien
-            « Gérer les cookies » en pied de page.
+            « Cookies » en pied de page.
           </li>
         </ul>
       </section>

@@ -3,10 +3,11 @@ import StatutLien from "@/components/ui/StatutLien";
 
 // En-tête unifié pour un organisateur connecté, sur toutes les pages du
 // site — voir CLAUDE.md > "En-tête unifié pour les organisateurs connectés
-// + page Contact". Toujours exactement ces deux liens, dans cet ordre,
-// jamais masqués même sur la page qu'ils désignent. Rendu null si
-// déconnecté : chaque page garde son en-tête actuel dans ce cas (hors
-// périmètre de cette unification).
+// + page Contact" et "Recherche déplacée dans l'en-tête connecté" (31 août
+// 2026, ajoute "Chercher une liste" en premier). Toujours exactement ces
+// trois liens, dans cet ordre, jamais masqués même sur la page qu'ils
+// désignent. Rendu null si déconnecté : chaque page affiche NavAnonyme à
+// la place dans ce cas.
 export default function NavConnecte({
   estConnecte,
   pseudo,
@@ -20,6 +21,13 @@ export default function NavConnecte({
 
   return (
     <div className="flex flex-wrap items-center gap-3">
+      <Link
+        href="/recherche"
+        className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
+      >
+        Chercher une liste
+        <StatutLien />
+      </Link>
       <Link
         href="/compte"
         className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"

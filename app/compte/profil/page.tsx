@@ -6,8 +6,8 @@ import { stripe } from "@/lib/stripe";
 import DeconnexionButton from "@/components/auth/DeconnexionButton";
 import IdentiteCard from "@/components/compte/IdentiteCard";
 import StripeStatusCard from "@/components/compte/StripeStatusCard";
-import LiensLegaux from "@/components/layout/LiensLegaux";
 import NavConnecte from "@/components/layout/NavConnecte";
+import PiedDePage from "@/components/layout/PiedDePage";
 import {
   deriveOrganizerStripeStatus,
   type OrganizerStripeStatus,
@@ -148,26 +148,7 @@ export default async function ProfilPage() {
         </section>
       </main>
 
-      <footer className="bg-[#F7E7D6] px-6 py-6.5 sm:px-10">
-        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
-          <span>© 2026 kdovie</span>
-          <nav className="flex flex-wrap items-center gap-6">
-            <Link href="/aide" className="hover:text-corail">
-              Aide
-            </Link>
-            <Link href="/contact" className="hover:text-corail">
-              Contact
-            </Link>
-            <LiensLegaux className="hover:text-corail" />
-            <Link href="/recherche" className="hover:text-corail">
-              Retrouver une liste
-            </Link>
-            <Link href="/compte" className="hover:text-corail">
-              Mes listes
-            </Link>
-          </nav>
-        </div>
-      </footer>
+      <PiedDePage />
     </div>
   );
 }

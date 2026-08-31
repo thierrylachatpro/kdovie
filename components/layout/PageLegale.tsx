@@ -1,7 +1,8 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
-import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavAnonyme from "@/components/layout/NavAnonyme";
 import NavConnecte from "@/components/layout/NavConnecte";
+import PiedDePage from "@/components/layout/PiedDePage";
 
 // Ossature commune aux pages "sobres" (mentions légales, CGU, CGV, Aide,
 // Contact) — voir CLAUDE.md > "Pages légales : mentions légales, CGU, CGV"
@@ -51,6 +52,7 @@ export default function PageLegale({
           </span>
         </Link>
         <NavConnecte estConnecte={estConnecte} pseudo={pseudo} />
+        <NavAnonyme estConnecte={estConnecte} />
       </header>
 
       <main className="mx-auto w-full max-w-[720px] flex-1 px-6 pt-4 pb-20 sm:px-10">
@@ -60,26 +62,7 @@ export default function PageLegale({
         <div className="flex flex-col gap-6">{children}</div>
       </main>
 
-      <footer className="bg-[#F7E7D6] px-6 py-6.5 sm:px-10">
-        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
-          <span>© 2026 kdovie</span>
-          <nav className="flex flex-wrap items-center gap-6">
-            <Link href="/aide" className="hover:text-corail">
-              Aide
-            </Link>
-            <Link href="/contact" className="hover:text-corail">
-              Contact
-            </Link>
-            <LiensLegaux className="hover:text-corail" />
-            <Link href="/recherche" className="hover:text-corail">
-              Retrouver une liste
-            </Link>
-            <Link href="/" className="hover:text-corail">
-              Retour à l&apos;accueil
-            </Link>
-          </nav>
-        </div>
-      </footer>
+      <PiedDePage />
     </div>
   );
 }

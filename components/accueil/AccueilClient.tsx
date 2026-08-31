@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavAnonyme from "@/components/layout/NavAnonyme";
 import NavConnecte from "@/components/layout/NavConnecte";
-import StatutLien from "@/components/ui/StatutLien";
 
 type Occasion = {
   label: string;
@@ -240,42 +240,8 @@ export default function AccueilClient({
             kdovie
           </span>
         </div>
-        <nav className="hidden items-center gap-7 text-[15px] font-medium text-[#5C4436] md:flex">
-          <a href="#comment" className="hover:text-corail">
-            Comment ça marche
-          </a>
-          <a href="#evenements" className="hover:text-corail">
-            Occasions
-          </a>
-          <a href="#cagnotte" className="hover:text-corail">
-            Cagnotte
-          </a>
-          <a href="#questions" className="hover:text-corail">
-            Questions
-          </a>
-          <Link href="/recherche" className="hover:text-corail">
-            Retrouver une liste
-          </Link>
-        </nav>
-        {estConnecte ? (
-          <NavConnecte estConnecte={estConnecte} pseudo={pseudo} />
-        ) : (
-          <div className="flex items-center gap-3">
-            <Link
-              href="/connexion"
-              className="rounded-2xl px-4 py-2.5 text-[15px] font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
-            >
-              Se connecter
-            </Link>
-            <Link
-              href={lienNouvelleListe}
-              className="rounded-2xl bg-corail px-[22px] py-3 text-[15px] font-semibold text-creme hover:bg-[#D45F37]"
-            >
-              Créer ma liste
-              <StatutLien variant="dark" />
-            </Link>
-          </div>
-        )}
+        <NavConnecte estConnecte={estConnecte} pseudo={pseudo} />
+        <NavAnonyme estConnecte={estConnecte} />
       </header>
 
       <section className="mx-auto grid w-full max-w-[1180px] items-center gap-14 px-6 py-12 sm:px-10 sm:py-16 md:grid-cols-2">
@@ -732,9 +698,6 @@ export default function AccueilClient({
             </Link>
             <Link href="/contact" className="hover:text-corail">
               Contact
-            </Link>
-            <Link href="/recherche" className="hover:text-corail">
-              Retrouver une liste
             </Link>
             <LiensLegaux className="hover:text-corail" />
           </nav>

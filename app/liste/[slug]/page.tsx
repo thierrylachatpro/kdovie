@@ -7,8 +7,9 @@ import type { FeeMode } from "@/lib/fee-calculation";
 import { deriveOrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 import { getAffiliateLink } from "@/lib/affiliate-link";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
-import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavAnonyme from "@/components/layout/NavAnonyme";
 import NavConnecte from "@/components/layout/NavConnecte";
+import PiedDePage from "@/components/layout/PiedDePage";
 
 export default async function ListePubliquePage({
   params,
@@ -152,6 +153,7 @@ export default async function ListePubliquePage({
           estConnecte={estProprietaire}
           pseudo={organizerPseudo || user?.email?.split("@")[0] || null}
         />
+        <NavAnonyme estConnecte={estProprietaire} />
       </header>
 
       <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-4 pt-1.5 pb-10 sm:px-10 sm:pt-5 sm:pb-20">
@@ -226,26 +228,7 @@ export default async function ListePubliquePage({
         )}
       </main>
 
-      <footer className="bg-[#F7E7D6] px-6 py-6.5 sm:px-10">
-        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
-          <span>© 2026 kdovie</span>
-          <nav className="flex flex-wrap items-center gap-6">
-            <Link href="/aide" className="hover:text-corail">
-              Aide
-            </Link>
-            <Link href="/contact" className="hover:text-corail">
-              Contact
-            </Link>
-            <LiensLegaux className="hover:text-corail" />
-            <Link href="/recherche" className="hover:text-corail">
-              Retrouver une liste
-            </Link>
-            <Link href="/" className="hover:text-corail">
-              Créer ma propre liste
-            </Link>
-          </nav>
-        </div>
-      </footer>
+      <PiedDePage />
     </div>
   );
 }

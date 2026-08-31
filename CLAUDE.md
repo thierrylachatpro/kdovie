@@ -1962,6 +1962,138 @@ organisateur authentifiée, indisponible dans cet environnement ; le code repren
 même schéma `redirect()` déjà éprouvé partout ailleurs dans le produit (`/compte/*`,
 `/connexion`...), risque de régression jugé faible.
 
+## Uniformisation du pied de page + déplacement de la recherche vers l'en-tête (31 août 2026)
+
+Décision de l'utilisateur, en prolongement direct de la vérification du bouton "Gérer les cookies"
+ci-dessus (confirmé obligatoire par la CNIL, donc à garder partout) : le pied de page diverge
+aujourd'hui légèrement d'une page à l'autre (ordre des liens, présence ou non de "Retrouver une
+liste"/"Retour à l'accueil"/"Déconnexion" selon la page). À uniformiser sur **tout le site**, dans
+cet ordre exact, sans rien d'autre :
+
+```
+© 2026 kdovie · Aide · Contact · Mentions légales · CGU · CGV · Confidentialité · Cookies
+```
+
+- **"Cookies" remplace le libellé "Gérer les cookies"** dans `LiensLegaux`
+  (`components/layout/LiensLegaux.tsx`) — même bouton, même comportement (rouvre `BandeauCookies`
+  via `ouvrirPreferencesCookies`), juste un texte plus court pour coller à la liste ci-dessus.
+- **Retiré de tous les pieds de page, sans exception** : le lien "Retrouver une liste" (`/recherche`)
+  et le lien "Retour à l'accueil" (`/`). Décision révisée le 31 août : une première version gardait
+  "Retrouver une liste" en pied de page pour les seuls visiteurs non connectés (pour ne pas leur
+  couper l'accès à `/recherche` sur les pages sans nav publique) — **remplacée** par la solution
+  ci-dessous ("Nav publique pour les visiteurs anonymes"), qui couvre ce même besoin autrement. Ne
+  pas réintroduire cette exception conditionnelle dans le pied de page.
+- **Retiré aussi du pied de page de `/compte`** : le bouton `DeconnexionButton`
+  (`app/compte/page.tsx`) — décision confirmée après une première hésitation de l'utilisateur (a
+  d'abord dit le garder, puis s'est ravisé). La déconnexion reste accessible via `/compte/profil`
+  ("Mon compte"), qui a toujours son propre `DeconnexionButton` — ce n'était qu'un raccourci en
+  double, pas la seule porte de sortie.
+- **Fichiers concernés** (grep réel du 31 août 2026, à revérifier avant d'implémenter au cas où
+  d'autres pages auraient été ajoutées entretemps) : `components/layout/PageLegale.tsx` (ossature
+  partagée par `/mentions-legales`, `/cgu`, `/cgv`, `/aide`, `/contact`, `/recherche`),
+  `components/accueil/AccueilClient.tsx`, `app/compte/page.tsx`,
+  `app/liste/[slug]/page.tsx`, `app/liste/[slug]/not-found.tsx`,
+  `app/liste/[slug]/annuler/[reservationId]/page.tsx`, `app/connexion/page.tsx`,
+  `app/compte/profil/page.tsx`, `app/compte/evenements/nouveau/page.tsx`,
+  `app/compte/evenements/[slug]/page.tsx`, `app/auth/confirmer/page.tsx`. Tous partagent déjà la
+  même structure de balisage (`<footer>` > `<div>` avec `© 2026 kdovie` + `<nav>` de liens) sauf
+  `AccueilClient.tsx`, dont le footer a son propre habillage visuel (logo + nom à gauche, copyright à
+  droite) — **ne pas toucher à cet habillage visuel spécifique à l'accueil**, seulement retirer
+  "Retrouver une liste" de son `<nav>`, le reste de sa mise en page reste comme aujourd'hui.
+- **Occasion d'un petit refactor, pas obligatoire mais logique vu la duplication déjà visible** :
+  les 10 fichiers hors `AccueilClient.tsx` répètent aujourd'hui un bloc `<footer>` quasi identique
+  (`© 2026 kdovie` + `Aide` + `Contact` + `LiensLegaux`). Un composant partagé (ex.
+  `components/layout/PiedDePage.tsx`) qui rend ce bloc une seule fois, réutilisé partout, éviterait
+  de futures divergences comme celle qu'on corrige aujourd'hui — laissé à l'appréciation de
+  l'implémentation, pas une exigence stricte de l'utilisateur.
+
+### Recherche déplacée dans l'en-tête connecté
+
+**Supersède partiellement la décision du 25 août** ("Recherche publique d'organisateurs" plus haut :
+*"Emplacement du lien vers `/recherche` : pied de page + page d'accueil uniquement — pas un
+troisième lien dans `NavConnecte`, qui reste à exactement deux éléments"*) — ce n'est plus vrai à
+partir d'aujourd'hui, ne pas revenir à l'ancienne règle :
+
+- **`components/layout/NavConnecte.tsx`** gagne un troisième lien, **"Chercher une liste"**, placé
+  **à gauche de "Mes listes"** (donc premier élément, avant "Mes listes" et "Mon compte") → `/recherche`.
+  Même traitement que "Mes listes" (texte simple, pas un bouton plein corail) : même classes
+  Tailwind, et `<StatutLien />` (variante par défaut, pas `variant="dark"`) pour l'indicateur de
+  navigation, cohérent avec le reste de `NavConnecte`.
+- Toujours rendu `null` en entier si `estConnecte` est faux, comme aujourd'hui — ce lien
+  n'apparaît que pour un organisateur connecté, exactement comme "Mes listes"/"Mon compte". Pour un
+  visiteur non connecté, `/recherche` est désormais accessible via la nouvelle nav publique
+  ci-dessous, plus du tout via le pied de page (retiré partout, voir plus haut).
+
+### Nav publique pour les visiteurs anonymes (symétrique à `NavConnecte`)
+
+Nouvelle demande du même échange : sur la page d'accueil non connectée, l'en-tête a aujourd'hui
+(`components/accueil/AccueilClient.tsx`, ~lignes 243-275) une nav à 5 liens ("Comment ça marche" →
+`#comment`, "Occasions" → `#evenements`, "Cagnotte" → `#cagnotte`, "Questions" → `#questions`,
+"Retrouver une liste" → `/recherche`) puis deux actions à droite ("Se connecter", lien texte simple,
+et "Créer ma liste", bouton plein corail). Deux changements, à traiter ensemble :
+
+1. **Retirer le bouton "Créer ma liste" de cet en-tête** (uniquement celui de l'en-tête — ne pas
+   toucher aux autres call-to-action "Créer ma liste"/"Créer ma première liste" plus bas sur la page
+   d'accueil, ex. section hero, cartes de fin de page : ceux-là restent inchangés, hors périmètre de
+   cette demande).
+2. **"Se connecter" devient le bouton plein corail** (`rounded-2xl bg-corail ... text-creme`, le
+   style aujourd'hui utilisé par "Créer ma liste") à la place de son style actuel en simple lien
+   texte — devient donc la seule action mise en avant dans l'en-tête pour un visiteur non connecté.
+3. **Cette même nav (les 4 liens d'ancrage + "Retrouver une liste" + le bouton "Se connecter" en
+   corail) doit apparaître, à l'identique, sur toutes les pages consultées par un visiteur non
+   connecté** — pas seulement l'accueil. Nouveau composant partagé à créer, ex.
+   `components/layout/NavAnonyme.tsx`, symétrique à `NavConnecte.tsx` (rendu uniquement si
+   `!estConnecte`, sinon `null` — sur une page où l'organisateur est connecté c'est `NavConnecte` qui
+   s'affiche, jamais les deux en même temps, même logique déjà en place partout dans le produit).
+   - **Les 4 liens d'ancrage utilisent un chemin absolu vers l'accueil avec l'ancre**, ex.
+     `/#comment`, `/#evenements`, `/#cagnotte`, `/#questions` — pas juste `#comment` (qui ne
+     fonctionnerait que si on est déjà sur `/`). Depuis une autre page, ce lien doit d'abord naviguer
+     vers l'accueil puis faire défiler jusqu'à la section ; depuis l'accueil elle-même, ce chemin
+     absolu continue de fonctionner comme un simple ancrage sur place.
+   - Pages concernées, celles qui aujourd'hui n'affichent que le logo pour un visiteur non connecté
+     (à revérifier à l'implémentation) : `components/layout/PageLegale.tsx` (donc
+     `/mentions-legales`, `/cgu`, `/cgv`, `/aide`, `/contact`, `/recherche`), `app/connexion/page.tsx`,
+     `app/liste/[slug]/page.tsx` (sauf pour l'organisateur propriétaire connecté, cas déjà géré par
+     `NavConnecte`), `app/liste/[slug]/not-found.tsx`,
+     `app/liste/[slug]/annuler/[reservationId]/page.tsx`, `app/auth/confirmer/page.tsx`. Les pages
+     `/compte/*` ne sont jamais concernées (toujours réservées aux connectés).
+   - `components/accueil/AccueilClient.tsx` elle-même : soit continue d'avoir sa propre nav en dur
+     (déjà là, il suffit d'appliquer les deux changements ci-dessus dessus), soit bascule sur le
+     nouveau composant partagé si c'est plus simple à maintenir — les deux options sont acceptables,
+     à trancher à l'implémentation, du moment que le rendu final est identique aux autres pages.
+
+**Statut : implémenté et testé dans la mesure du possible (31 août 2026).**
+
+- `components/layout/PiedDePage.tsx` (nouveau) : pied de page uniformisé, réutilisé sur les 10
+  fichiers listés ci-dessus (dont `PageLegale.tsx`) — plus aucun `<footer>` dupliqué à la main hors
+  de `AccueilClient.tsx`, qui garde son habillage visuel propre (seul le lien "Retrouver une liste"
+  y a été retiré, comme prévu).
+- `components/layout/NavAnonyme.tsx` (nouveau), symétrique à `NavConnecte.tsx` — posé sur toutes
+  les pages listées ci-dessus. `AccueilClient.tsx` bascule sur ce composant partagé plutôt que de
+  garder sa nav en dur (option choisie parmi les deux acceptables) : la nav de l'accueil et celle
+  des autres pages sont désormais une seule et même source, plus de risque de divergence future. Au
+  passage, `StatutLien` est devenu un import mort dans `AccueilClient.tsx` (il n'était posé que sur
+  le bouton d'en-tête "Créer ma liste", désormais retiré) — supprimé.
+- `NavConnecte.tsx` : "Chercher une liste" ajouté en premier lien (→ `/recherche`), même traitement
+  que "Mes listes".
+- `LiensLegaux.tsx` : "Gérer les cookies" → "Cookies".
+- Les pages qui n'avaient jusqu'ici ni vérification de session ni en-tête de nav
+  (`app/liste/[slug]/not-found.tsx`, `app/liste/[slug]/annuler/[reservationId]/page.tsx`,
+  `app/auth/confirmer/page.tsx`) ont gagné le bloc `supabase.auth.getUser()` + `NavConnecte`/
+  `NavAnonyme` déjà standard ailleurs dans le produit, pour pouvoir afficher la bonne nav.
+- **Testé réellement** (page de prévisualisation temporaire + Playwright, supprimée ensuite) :
+  capture d'écran avant/après sur une page connectée reconstituée (`/compte`, ancien en-tête à 2
+  liens + ancien pied de page avec "Se déconnecter" vs nouveau en-tête à 3 liens + `PiedDePage`) et
+  une page non connectée reconstituée (page "sobre", logo seul avant vs nouvelle nav complète +
+  bouton "Se connecter" corail après) — conforme au cadrage sur les deux. Vérifié aussi en conditions
+  réelles sur `/` (bouton "Créer ma liste" bien retiré de l'en-tête, "Se connecter" bien en corail)
+  et `/mentions-legales` (nav anonyme complète désormais visible, pied de page dans l'ordre exact
+  demandé). `tsc`/`lint`/`build` propres.
+- **Non testé en conditions réelles** : le rendu connecté d'une vraie page comme `/compte` avec une
+  session organisateur authentique (indisponible dans cet environnement) — la reconstitution
+  avant/après ci-dessus utilise les vrais composants `NavConnecte`/`PiedDePage` avec des props
+  simulées, pas une session réelle.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".

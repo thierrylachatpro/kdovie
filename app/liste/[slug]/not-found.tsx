@@ -1,6 +1,25 @@
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import NavAnonyme from "@/components/layout/NavAnonyme";
+import NavConnecte from "@/components/layout/NavConnecte";
+import PiedDePage from "@/components/layout/PiedDePage";
 
-export default function ListeNotFound() {
+export default async function ListeNotFound() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let pseudo: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("first_name")
+      .eq("id", user.id)
+      .single();
+    pseudo = profile?.first_name?.trim() || user.email?.split("@")[0] || null;
+  }
+
   return (
     <div className="flex flex-1 flex-col">
       <div className="flex h-2">
@@ -37,6 +56,8 @@ export default function ListeNotFound() {
             <span className="text-[13px] text-[#8A7263]">Un seul compte, toute une vie de cadeaux</span>
           </span>
         </Link>
+        <NavConnecte estConnecte={Boolean(user)} pseudo={pseudo} />
+        <NavAnonyme estConnecte={Boolean(user)} />
       </header>
 
       <main className="mx-auto flex w-full max-w-[1180px] flex-1 flex-col px-6 pt-6 pb-20 sm:px-10">
@@ -60,22 +81,7 @@ export default function ListeNotFound() {
         </section>
       </main>
 
-      <footer className="bg-[#F7E7D6] px-6 py-6.5 sm:px-10">
-        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
-          <span>© 2026 kdovie</span>
-          <nav className="flex flex-wrap items-center gap-6">
-            <Link href="/aide" className="hover:text-corail">
-              Aide
-            </Link>
-            <Link href="/contact" className="hover:text-corail">
-              Contact
-            </Link>
-            <Link href="/" className="hover:text-corail">
-              Créer ma propre liste
-            </Link>
-          </nav>
-        </div>
-      </footer>
+      <PiedDePage />
     </div>
   );
 }

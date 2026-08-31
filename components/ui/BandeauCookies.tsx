@@ -13,8 +13,8 @@ import {
 // Bandeau de consentement Google Analytics (via GTM) — voir CLAUDE.md >
 // "Google Analytics 4, bandeau de consentement et Search Console". Monté
 // une seule fois dans app/layout.tsx. Affiché tant qu'aucun choix n'est
-// enregistré ; rouvrable à tout moment via "Gérer les cookies"
-// (LiensLegaux) grâce à l'événement OUVRIR_PREFERENCES_COOKIES_EVENT.
+// enregistré ; rouvrable à tout moment via "Cookies" (LiensLegaux) grâce à
+// l'événement OUVRIR_PREFERENCES_COOKIES_EVENT.
 //
 // "Accepter" en corail (couleur principale) et "Refuser" en retrait, mais
 // tous deux de même taille et aussi facilement cliquables l'un que l'autre

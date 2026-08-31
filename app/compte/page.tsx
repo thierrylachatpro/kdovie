@@ -3,9 +3,8 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import { eventStatusClassName, eventStatusLabel } from "@/lib/event-status";
-import DeconnexionButton from "@/components/auth/DeconnexionButton";
-import LiensLegaux from "@/components/layout/LiensLegaux";
 import NavConnecte from "@/components/layout/NavConnecte";
+import PiedDePage from "@/components/layout/PiedDePage";
 import StatutLien from "@/components/ui/StatutLien";
 import { deriveOrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 
@@ -339,24 +338,7 @@ export default async function ComptePage() {
             l'historique git si besoin. */}
       </main>
 
-      <footer className="bg-[#F7E7D6] px-6 py-6.5 sm:px-10">
-        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
-          <span>© 2026 kdovie</span>
-          <nav className="flex flex-wrap items-center gap-6">
-            <Link href="/aide" className="hover:text-corail">
-              Aide
-            </Link>
-            <Link href="/contact" className="hover:text-corail">
-              Contact
-            </Link>
-            <LiensLegaux className="hover:text-corail" />
-            <Link href="/recherche" className="hover:text-corail">
-              Retrouver une liste
-            </Link>
-            <DeconnexionButton className="text-sm text-[#8A7263] hover:text-corail" />
-          </nav>
-        </div>
-      </footer>
+      <PiedDePage />
     </div>
   );
 }

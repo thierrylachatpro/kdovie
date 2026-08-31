@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { cancelReservation } from "@/app/liste/[slug]/cancel-reservation-actions";
-import LiensLegaux from "@/components/layout/LiensLegaux";
+import NavAnonyme from "@/components/layout/NavAnonyme";
+import NavConnecte from "@/components/layout/NavConnecte";
+import PiedDePage from "@/components/layout/PiedDePage";
 
 export default async function AnnulerReservationPage({
   params,
@@ -10,6 +13,21 @@ export default async function AnnulerReservationPage({
   const { slug, reservationId } = await params;
   const sp = await searchParams;
   const erreur = sp.erreur === "1";
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let pseudo: string | null = null;
+  if (user) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("first_name")
+      .eq("id", user.id)
+      .single();
+    pseudo = profile?.first_name?.trim() || user.email?.split("@")[0] || null;
+  }
 
   const admin = createAdminClient();
   const { data: reservation } = await admin
@@ -63,6 +81,8 @@ export default async function AnnulerReservationPage({
             kdovie
           </span>
         </Link>
+        <NavConnecte estConnecte={Boolean(user)} pseudo={pseudo} />
+        <NavAnonyme estConnecte={Boolean(user)} />
       </header>
 
       <main className="mx-auto flex w-full max-w-[560px] flex-1 flex-col px-6 pt-6 pb-20 sm:px-10">
@@ -112,17 +132,7 @@ export default async function AnnulerReservationPage({
         </section>
       </main>
 
-      <footer className="bg-[#F7E7D6] px-6 py-6.5 sm:px-10">
-        <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-6 text-sm text-[#8A7263]">
-          <span>© 2026 kdovie</span>
-          <nav className="flex flex-wrap items-center gap-6">
-            <Link href="/recherche" className="hover:text-corail">
-              Retrouver une liste
-            </Link>
-            <LiensLegaux className="hover:text-corail" />
-          </nav>
-        </div>
-      </footer>
+      <PiedDePage />
     </div>
   );
 }
