@@ -27,7 +27,7 @@ type GiftItem = {
   status: string;
   mode: string;
   funded_amount_cents: number;
-  is_priority: boolean;
+  position: number;
 };
 
 const TONES = ["#F7D9C9", "#F5E3C9", "#DCE7DA"];
@@ -83,7 +83,8 @@ export default function ListePubliqueClient({
   }, [redirectStatus, annulationSucces]);
 
   // Anti-doublon : reflète en direct la réservation faite par un autre
-  // invité pendant la consultation, voir CLAUDE.md > tâche #17.
+  // invité pendant la consultation, voir CLAUDE.md > tâche #17. Reflète
+  // aussi un réordonnancement fait par l'organisateur (champ position).
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -102,7 +103,7 @@ export default function ListePubliqueClient({
             status: string;
             mode: string;
             funded_amount_cents: number;
-            is_priority: boolean;
+            position: number;
           };
           setItems((current) =>
             current.map((item) =>
@@ -112,7 +113,7 @@ export default function ListePubliqueClient({
                     status: updated.status,
                     mode: updated.mode,
                     funded_amount_cents: updated.funded_amount_cents,
-                    is_priority: updated.is_priority,
+                    position: updated.position,
                   }
                 : item,
             ),

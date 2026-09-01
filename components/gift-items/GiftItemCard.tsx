@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useTransition, type ChangeEvent } from "react";
+import { useState, type ChangeEvent } from "react";
 import {
   deleteGiftItem,
   updateGiftItem,
-  updateGiftItemPriority,
 } from "@/app/compte/evenements/[slug]/gift-item-actions";
 import { formatPriceCents } from "@/lib/gift-item";
 import { estAttenue } from "@/lib/gift-item-sort";
@@ -23,7 +22,7 @@ type GiftItem = {
   status: string;
   mode: string;
   funded_amount_cents: number;
-  is_priority: boolean;
+  position: number;
 };
 
 const TONES = ["#F7D9C9", "#F5E3C9", "#DCE7DA"];
@@ -40,14 +39,16 @@ export default function GiftItemCard({
   toneIndex,
   reservedByName,
   contributorNames,
+  onEditingChange,
 }: {
   item: GiftItem;
   slug: string;
   toneIndex: number;
   reservedByName: string | null;
   contributorNames: (string | null)[];
+  onEditingChange?: (editing: boolean) => void;
 }) {
-  const [mode, setMode] = useState<"reading" | "editing" | "confirming">("reading");
+  const [mode, setModeState] = useState<"reading" | "editing" | "confirming">("reading");
   const [draftTitle, setDraftTitle] = useState(item.title);
   const [draftPrice, setDraftPrice] = useState(
     item.price_cents !== null ? (item.price_cents / 100).toFixed(2) : "",
@@ -57,16 +58,21 @@ export default function GiftItemCard({
   const [erreur, setErreur] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [nomRevele, setNomRevele] = useState(false);
-  const [isPriority, setIsPriority] = useState(item.is_priority);
-  const [, startPriorityTransition] = useTransition();
+
+  // Prévient le parent (GiftItemsList) pour qu'il désactive le glisser-déposer
+  // de cette carte pendant une édition/suppression en cours — éviter de perdre
+  // une saisie non enregistrée sur un revalidatePath déclenché par un drag.
+  function setMode(next: "reading" | "editing" | "confirming") {
+    setModeState(next);
+    onEditingChange?.(next !== "reading");
+  }
 
   const locked = item.status !== "disponible";
   const attenue = estAttenue({
     status: item.status,
-    mode: item.mode,
     price_cents: item.price_cents,
     funded_amount_cents: item.funded_amount_cents,
-    is_priority: item.is_priority,
+    position: item.position,
   });
   const badge = BADGES[item.status] ?? BADGES.disponible;
   const percent =
@@ -117,17 +123,6 @@ export default function GiftItemCard({
     setMode("reading");
   }
 
-  function togglePriority() {
-    const next = !isPriority;
-    setIsPriority(next);
-    startPriorityTransition(async () => {
-      const result = await updateGiftItemPriority(item.id, next, slug);
-      if (result.error) {
-        setIsPriority(!next);
-      }
-    });
-  }
-
   return (
     <article
       className={`rounded-[26px] border-2 p-6 ${
@@ -159,16 +154,6 @@ export default function GiftItemCard({
           {mode === "reading" || mode === "confirming" ? (
             <div>
               <div className="mb-1.5 flex flex-wrap items-center gap-2.5">
-                <button
-                  type="button"
-                  onClick={togglePriority}
-                  title={isPriority ? "Retirer la mise en avant" : "Mettre en avant"}
-                  className={`text-xl leading-none ${
-                    isPriority ? "text-jaune" : "text-[#D8C7B0] hover:text-jaune"
-                  }`}
-                >
-                  {isPriority ? "★" : "☆"}
-                </button>
                 <h3 className="contents">
                   <TitreArticle
                     title={item.title}

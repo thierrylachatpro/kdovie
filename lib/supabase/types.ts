@@ -136,6 +136,7 @@ export type Database = {
           locked_at: string | null
           mode: string
           original_title: string | null
+          position: number
           price_cents: number | null
           source_url: string | null
           status: string
@@ -154,6 +155,7 @@ export type Database = {
           locked_at?: string | null
           mode?: string
           original_title?: string | null
+          position?: number
           price_cents?: number | null
           source_url?: string | null
           status?: string
@@ -172,6 +174,7 @@ export type Database = {
           locked_at?: string | null
           mode?: string
           original_title?: string | null
+          position?: number
           price_cents?: number | null
           source_url?: string | null
           status?: string

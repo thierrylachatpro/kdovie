@@ -7,7 +7,7 @@ import { sortGiftItems } from "@/lib/gift-item-sort";
 import EnTeteListe from "@/components/evenements/EnTeteListe";
 import VisibiliteListe from "@/components/evenements/VisibiliteListe";
 import AjouterArticleForm from "@/components/gift-items/AjouterArticleForm";
-import GiftItemCard from "@/components/gift-items/GiftItemCard";
+import GiftItemsList from "@/components/gift-items/GiftItemsList";
 import NavConnecte from "@/components/layout/NavConnecte";
 import PiedDePage from "@/components/layout/PiedDePage";
 
@@ -56,10 +56,10 @@ export default async function EvenementPage({
   const { data: giftItems } = await supabase
     .from("gift_items")
     .select(
-      "id, title, original_title, price_cents, image_url, description, source_url, mode, status, funded_amount_cents, is_priority",
+      "id, title, original_title, price_cents, image_url, description, source_url, mode, status, funded_amount_cents, position",
     )
     .eq("event_id", event.id)
-    .order("created_at", { ascending: false });
+    .order("position", { ascending: true });
 
   const items = sortGiftItems(giftItems ?? []);
   const reservedIds = items.filter((i) => i.status === "reserve").map((i) => i.id);
@@ -78,14 +78,13 @@ export default async function EvenementPage({
       : Promise.resolve({ data: [] }),
   ]);
 
-  const guestNameByItemId = new Map(
-    (reservations ?? []).map((r) => [r.gift_item_id, r.guest_name]),
-  );
-  const contributorNamesByItemId = new Map<string, (string | null)[]>();
+  const reservedNames: Record<string, string | null> = {};
+  (reservations ?? []).forEach((r) => {
+    reservedNames[r.gift_item_id] = r.guest_name;
+  });
+  const contributorNames: Record<string, (string | null)[]> = {};
   (contributions ?? []).forEach((c) => {
-    const current = contributorNamesByItemId.get(c.gift_item_id) ?? [];
-    current.push(c.guest_name);
-    contributorNamesByItemId.set(c.gift_item_id, current);
+    (contributorNames[c.gift_item_id] ??= []).push(c.guest_name);
   });
 
   const host = (await headers()).get("host");
@@ -168,19 +167,20 @@ export default async function EvenementPage({
             <span className="text-[15px] text-[#8A7263]">{lockedLabel}</span>
           </div>
 
+          {items.length > 1 && (
+            <p className="mb-4 text-[15px] text-[#8A7263]">
+              Attrapez la poignée à gauche d&apos;un cadeau pour le déplacer :
+              l&apos;ordre que vous choisissez est aussi celui que verront vos invités.
+            </p>
+          )}
+
           {items.length > 0 ? (
-            <div className="flex flex-col gap-4">
-              {items.map((item, index) => (
-                <GiftItemCard
-                  key={item.id}
-                  item={item}
-                  slug={event.slug}
-                  toneIndex={index}
-                  reservedByName={guestNameByItemId.get(item.id) ?? null}
-                  contributorNames={contributorNamesByItemId.get(item.id) ?? []}
-                />
-              ))}
-            </div>
+            <GiftItemsList
+              items={items}
+              slug={event.slug}
+              reservedNames={reservedNames}
+              contributorNames={contributorNames}
+            />
           ) : (
             <p className="text-sm text-gris">Aucun cadeau ajouté pour l&apos;instant.</p>
           )}

@@ -76,10 +76,10 @@ export default async function ListePubliquePage({
     ? await supabase
         .from("gift_items")
         .select(
-          "id, title, original_title, price_cents, image_url, source_url, status, mode, funded_amount_cents, is_priority",
+          "id, title, original_title, price_cents, image_url, source_url, status, mode, funded_amount_cents, position",
         )
         .eq("event_id", event.id)
-        .order("created_at", { ascending: false })
+        .order("position", { ascending: true })
     : { data: null };
 
   const estVide = estOuverte && (giftItems?.length ?? 0) === 0;

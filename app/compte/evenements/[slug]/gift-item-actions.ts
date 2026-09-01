@@ -33,6 +33,18 @@ export async function createGiftItem(formData: FormData) {
     priceCents = Number.isFinite(value) && value >= 0 ? Math.round(value * 100) : null;
   }
 
+  // Un nouveau cadeau se place en tête de liste (l'organisateur vient de
+  // l'ajouter, il veut le voir) — l'ordre étant désormais entièrement manuel,
+  // voir CLAUDE.md > "Glisser-déposer pour réordonner les cadeaux".
+  const { data: premier } = await supabase
+    .from("gift_items")
+    .select("position")
+    .eq("event_id", eventId)
+    .order("position", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const position = premier ? premier.position - 1 : 0;
+
   const { error } = await supabase.from("gift_items").insert({
     event_id: eventId,
     title,
@@ -41,6 +53,7 @@ export async function createGiftItem(formData: FormData) {
     image_url: imageUrl,
     description,
     price_cents: priceCents,
+    position,
   });
 
   if (error) {
@@ -74,14 +87,14 @@ export async function updateGiftItemMode(
   return { error: error?.message ?? null };
 }
 
-// Contrairement à updateGiftItem/deleteGiftItem, jamais bloquée par le
-// verrouillage d'un article — is_priority n'est pas dans le trigger
-// protect_gift_item_mode, voir migration 0011 et CLAUDE.md > "Ajustements
-// listes publique et gestion".
-export async function updateGiftItemPriority(
-  itemId: string,
-  isPriority: boolean,
+// Réordonne les cadeaux d'une liste d'après l'ordre passé (glisser-déposer,
+// voir CLAUDE.md > "Glisser-déposer pour réordonner les cadeaux"). Jamais
+// bloquée par le verrouillage d'un article — `position` n'est pas dans le
+// trigger protect_gift_item_mode (migration 0022). L'ordre s'applique aussi
+// à la page publique /liste/[slug], d'où sa revalidation.
+export async function reorderGiftItems(
   slug: string,
+  orderedIds: string[],
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
   const {
@@ -92,16 +105,39 @@ export async function updateGiftItemPriority(
     redirect("/connexion");
   }
 
-  const { error } = await supabase
-    .from("gift_items")
-    .update({ is_priority: isPriority })
-    .eq("id", itemId);
+  const { data: event } = await supabase
+    .from("events")
+    .select("id")
+    .eq("slug", slug)
+    .eq("organizer_id", user.id)
+    .is("deleted_at", null)
+    .single();
 
-  if (!error) {
-    revalidatePath(`/compte/evenements/${slug}`);
+  if (!event) {
+    return { error: "Liste introuvable." };
   }
 
-  return { error: error?.message ?? null };
+  // La policy RLS gift_items_update_own_event garantit déjà que l'organisateur
+  // ne peut toucher que ses propres cadeaux ; le filtre event_id évite en plus
+  // qu'un id d'une autre liste se glisse dans la requête.
+  const resultats = await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase
+        .from("gift_items")
+        .update({ position: index })
+        .eq("id", id)
+        .eq("event_id", event.id),
+    ),
+  );
+
+  const echec = resultats.find((r) => r.error);
+  if (echec?.error) {
+    return { error: "L'ordre n'a pas pu être enregistré, réessayez." };
+  }
+
+  revalidatePath(`/compte/evenements/${slug}`);
+  revalidatePath(`/liste/${slug}`);
+  return { error: null };
 }
 
 export async function updateGiftItem(

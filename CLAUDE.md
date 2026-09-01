@@ -2094,6 +2094,71 @@ et "Créer ma liste", bouton plein corail). Deux changements, à traiter ensembl
   avant/après ci-dessus utilise les vrais composants `NavConnecte`/`PiedDePage` avec des props
   simulées, pas une session réelle.
 
+## Glisser-déposer pour réordonner les cadeaux (1er septembre 2026)
+
+Demande de l'utilisateur : rendre les cadeaux d'une liste déplaçables par glisser-déposer
+depuis la page de gestion (`/compte/evenements/[slug]`). Décisions tranchées avec lui avant
+l'implémentation, à ne pas redébattre :
+
+- **L'ordre manuel s'applique partout, invités compris** — pas seulement la page de gestion.
+  L'ordre choisi par l'organisateur est aussi celui vu sur la page publique `/liste/[slug]`
+  (desktop + mobile).
+- **L'ordre manuel prime sur tout** : plus de tri automatique par statut. Un cadeau réservé
+  ou une cagnotte finalisée reste là où l'organisateur l'a placé. Le fond atténué
+  « déjà réglé » (`estAttenue`) demeure comme **repère visuel uniquement**, il ne pilote
+  plus l'ordre.
+- **L'étoile ★ « mettre en avant » est supprimée** : le glisser-déposer la remplace
+  (mettre en avant = glisser en haut). `is_priority` reste en base (colonne + migration
+  0011 intactes) mais n'est plus jamais lue par l'app — dépréciée, pas de migration
+  destructive.
+
+**Implémentation :**
+
+- **Migration `0022_gift_items_position.sql`** (écrite, pas encore appliquée à la base
+  distante — comme les autres en attente) : colonne `gift_items.position` (integer, not null,
+  défaut 0), remplie initialement d'après l'ordre d'affichage d'alors (prioritaires non
+  terminés, puis groupes de statut, puis `created_at desc`) pour ne rien bousculer. Index
+  `(event_id, position)`. **Pas ajoutée au trigger `protect_gift_item_mode`** (migration
+  0006) : l'organisateur peut réordonner même un cadeau verrouillé, exactement comme
+  `is_priority` avant.
+- **`lib/gift-item-sort.ts`** : `sortGiftItems` trie uniquement par `position`.
+  `SortableGiftItem` perd `mode`/`is_priority`, gagne `position`. `estAttenue` conservée
+  (repère visuel), `estTermine` redevenue interne.
+- **`lib/supabase/types.ts`** : `position` ajoutée à la main aux Row/Insert/Update de
+  `gift_items` (même pratique que les migrations précédentes en attente).
+- **`app/compte/evenements/[slug]/gift-item-actions.ts`** :
+  - nouvelle action `reorderGiftItems(slug, orderedIds)` — re-vérifie la session et la
+    propriété de la liste, met à jour `position = index` pour chaque cadeau (N updates en
+    parallèle, la policy RLS `gift_items_update_own_event` garantit déjà l'isolation),
+    revalide `/compte/evenements/[slug]` **et** `/liste/[slug]`.
+  - `createGiftItem` place le nouveau cadeau en tête (`position = min - 1`).
+  - `updateGiftItemPriority` supprimée.
+- **`components/gift-items/GiftItemsList.tsx`** (nouveau, client) : `@dnd-kit` (`core` +
+  `sortable` + `modifiers` + `utilities`, nouvelles dépendances — distinctes de
+  `@stripe/*`), `DndContext`/`SortableContext`, poignée dédiée à gauche de chaque carte
+  (`PointerSensor` avec seuil 6px + `KeyboardSensor`, `touch-none` pour le tactile,
+  `aria-label` explicite, annonces et instructions lecteur d'écran en français).
+  Réordonnancement optimiste local + appel serveur, revert + message d'erreur si l'appel
+  échoue. Resynchronisation de l'ordre local sur le serveur après revalidation via le
+  pattern React de setState en phase de rendu (`initialItems !== prevInitial`), pas un
+  `useEffect` (règle `react-hooks/set-state-in-effect`). Le glisser-déposer de toutes les
+  cartes est désactivé tant qu'une carte est en cours d'édition/suppression (nouveau prop
+  `onEditingChange` sur `GiftItemCard`) pour ne pas perdre une saisie sur un revalidate.
+- **`components/gift-items/GiftItemCard.tsx`** : étoile ★ + `togglePriority` retirées,
+  `is_priority` → `position` dans le type, `setMode` wrappe désormais `onEditingChange`.
+- **`app/liste/[slug]/page.tsx`** + **`ListePubliqueClient.tsx`** : `select` et `.order`
+  sur `position` au lieu de `created_at`/`is_priority` ; la souscription Realtime reflète
+  aussi un changement de `position` (réordonnancement live chez un invité en train de
+  consulter).
+- **Testé** : `tsc`/`lint`/`build` propres. Rendu de `GiftItemsList` vérifié via une page
+  de prévisualisation temporaire (données bouchon, 4 états — disponible, cotisation
+  obligatoire, cagnotte en cours, réservé — supprimée ensuite) : les 4 cartes + poignées
+  avec `aria-label` corrects, carte verrouillée bien « Non modifiable », aucun warning
+  d'hydratation. **Pas testé** : le glisser-déposer interactif lui-même (pas de navigateur
+  dans cet environnement) ni le flux complet contre une vraie session organisateur — la
+  logique repose sur `@dnd-kit` (standard) et les patterns d'action serveur déjà éprouvés
+  ailleurs. Migration `0022` à appliquer avant tout test réel.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".

@@ -1,46 +1,35 @@
-// Tri des articles, identique sur /liste/[slug] et /compte/evenements/[slug],
-// voir CLAUDE.md > "Ajustements listes publique et gestion" (18 août 2026).
+// Ordre des cadeaux, identique sur /liste/[slug] et /compte/evenements/[slug].
+//
+// Depuis le glisser-déposer (voir CLAUDE.md > "Glisser-déposer pour
+// réordonner les cadeaux") : l'ordre est entièrement manuel, piloté par la
+// colonne `position` que l'organisateur ajuste. Plus de tri automatique par
+// statut, plus de remontée des cadeaux "mis en avant" — `is_priority` n'est
+// plus lue.
+//
+// `estAttenue` reste : ce n'est pas un critère d'ordre, juste un repère
+// visuel ("déjà réglé") pour un cadeau réservé ou une cagnotte finalisée.
 
 export type SortableGiftItem = {
   status: string;
-  mode: string;
   price_cents: number | null;
   funded_amount_cents: number;
-  is_priority: boolean;
+  position: number;
 };
 
-// Groupe 1 : non réservés (réservation directe possible)
-// Groupe 2 : cagnottes non démarrées (réservation directe impossible)
-// Groupe 3 : cagnotte démarrée
-// Groupe 4 : cagnotte finalisée
-// Groupe 5 : réservés
-function groupe(item: SortableGiftItem): 1 | 2 | 3 | 4 | 5 {
-  if (item.status === "reserve") return 5;
+// "Terminé" = cagnotte finalisée ou article réservé.
+function estTermine(item: SortableGiftItem): boolean {
+  if (item.status === "reserve") return true;
   if (item.status === "cagnotte") {
-    const finalisee = item.price_cents !== null && item.funded_amount_cents >= item.price_cents;
-    return finalisee ? 4 : 3;
+    return item.price_cents !== null && item.funded_amount_cents >= item.price_cents;
   }
-  // status === "disponible"
-  return item.mode === "cotisation_obligatoire" ? 2 : 1;
+  return false;
 }
 
-// "Terminé" = cagnotte finalisée ou article réservé — la mise en avant ne
-// s'applique plus une fois l'article terminé.
-export function estTermine(item: SortableGiftItem): boolean {
-  const g = groupe(item);
-  return g === 4 || g === 5;
-}
-
-// Fond atténué ("déjà réglé") : mêmes deux groupes que "terminé".
+// Fond atténué ("déjà réglé") — purement visuel, n'influe pas sur l'ordre.
 export function estAttenue(item: SortableGiftItem): boolean {
   return estTermine(item);
 }
 
 export function sortGiftItems<T extends SortableGiftItem>(items: T[]): T[] {
-  return [...items].sort((a, b) => {
-    const aPrioritaire = a.is_priority && !estTermine(a);
-    const bPrioritaire = b.is_priority && !estTermine(b);
-    if (aPrioritaire !== bPrioritaire) return aPrioritaire ? -1 : 1;
-    return groupe(a) - groupe(b);
-  });
+  return [...items].sort((a, b) => a.position - b.position);
 }
