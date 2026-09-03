@@ -2212,12 +2212,14 @@ JSON-LD complets, `/recherche` désormais titre + description **uniques**, `?q=&
 200 `image/png` 1200×630 (rendu vérifié par capture — charte respectée, accents OK) ; route OG
 par liste → 200 avec repli générique sur slug inconnu.
 
+**`noindex` sur les listes : validé par l'utilisateur le 3 septembre 2026.** Décision confirmée,
+`/liste/[slug]` reste `noindex, follow` — plus un point ouvert.
+
 **Reste à faire (hors étapes 1-2)** : vérifier `NEXT_PUBLIC_SITE_URL` sur Vercel (prod + dev) ;
-soumettre le sitemap dans Search Console (déjà vérifié par DNS TXT) ; décider formellement du
-`noindex` des listes avec le chef de projet (implémenté par défaut ici, cohérent avec la posture
-RGPD) ; en-têtes de sécurité dans `next.config.ts` (M1) ; mesures CWV terrain via `/seo google`
-une fois des clés API posées ; plan éditorial via `/seo cluster` (M5) ; police custom sur les
-images OG si on veut la vraie typo Quicksand.
+soumettre le sitemap dans Search Console (déjà vérifié par DNS TXT) ; en-têtes de sécurité dans
+`next.config.ts` (M1) ; mesures CWV terrain via `/seo google` une fois des clés API posées ; plan
+éditorial via `/seo cluster` (M5) ; police custom sur les images OG si on veut la vraie typo
+Quicksand.
 
 ## Points d'attention techniques
 
