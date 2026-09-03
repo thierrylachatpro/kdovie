@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { pageMetadata } from "@/lib/seo";
 import PageLegale from "@/components/layout/PageLegale";
 
-export const metadata: Metadata = {
-  title: "Conditions générales de vente | Kdovie",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Conditions générales de vente",
+  description:
+    "Les conditions générales de vente applicables aux cagnottes et contributions financières sur Kdovie.",
+  path: "/cgv",
+});
 
 export default async function CgvPage() {
   const supabase = await createClient();

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
@@ -10,6 +11,55 @@ import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import NavAnonyme from "@/components/layout/NavAnonyme";
 import NavConnecte from "@/components/layout/NavConnecte";
 import PiedDePage from "@/components/layout/PiedDePage";
+
+// Les pages de liste portent des données personnelles (prénom d'organisateur,
+// cadeaux, montants) — toujours noindex, quelle que soit la visibilité. follow:
+// true pour laisser circuler le PageRank interne. Le title/description et
+// l'image Open Graph (app/liste/[slug]/opengraph-image.tsx) restent soignés :
+// c'est le lien que l'organisateur colle dans WhatsApp/Messenger.
+export async function generateMetadata({
+  params,
+}: PageProps<"/liste/[slug]">): Promise<Metadata> {
+  const { slug } = await params;
+  const supabase = await createClient();
+
+  const { data: event } = await supabase
+    .from("events")
+    .select("name, organizer_id, deleted_at")
+    .eq("slug", slug)
+    .single();
+
+  if (!event || event.deleted_at) {
+    return { title: "Liste introuvable", robots: { index: false, follow: false } };
+  }
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("first_name")
+    .eq("id", event.organizer_id)
+    .single();
+  const prenom = profile?.first_name?.trim() || null;
+
+  const title = prenom ? `${event.name} — la liste de ${prenom}` : event.name;
+  const description = prenom
+    ? `Découvrez la liste de cadeaux de ${prenom} sur Kdovie. Réservez un cadeau ou participez à une cagnotte commune, sans créer de compte.`
+    : "Découvrez cette liste de cadeaux sur Kdovie. Réservez un cadeau ou participez à une cagnotte commune, sans créer de compte.";
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/liste/${slug}` },
+    robots: { index: false, follow: true },
+    openGraph: {
+      type: "website",
+      siteName: "Kdovie",
+      locale: "fr_FR",
+      url: `/liste/${slug}`,
+      title,
+      description,
+    },
+  };
+}
 
 export default async function ListePubliquePage({
   params,

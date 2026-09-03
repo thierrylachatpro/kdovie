@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { notFound } from "next/navigation";
 import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { createAdminClient } from "@/lib/supabase/admin";
 import AdminSidebar from "@/components/admin/AdminSidebar";
+
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 // Garde-fou unique pour tout /admin/* : 404 (pas de redirection) pour ne
 // rien laisser deviner de ces routes à un compte non-admin — remplace la

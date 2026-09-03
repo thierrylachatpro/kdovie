@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { pageMetadata } from "@/lib/seo";
 import PageLegale from "@/components/layout/PageLegale";
 import ContactForm from "@/components/contact/ContactForm";
 
-export const metadata: Metadata = {
-  title: "Contact | Kdovie",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Contact",
+  description:
+    "Une question sur Kdovie, un souci avec une liste ou une réservation ? Écrivez-nous, on répond vite.",
+  path: "/contact",
+});
 
 export default async function ContactPage() {
   const supabase = await createClient();

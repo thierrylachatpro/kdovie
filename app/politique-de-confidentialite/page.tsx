@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { pageMetadata } from "@/lib/seo";
 import PageLegale from "@/components/layout/PageLegale";
 
-export const metadata: Metadata = {
-  title: "Politique de confidentialité | Kdovie",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Politique de confidentialité",
+  description:
+    "Comment Kdovie collecte, utilise et protège vos données personnelles : données d'organisateur et d'invité, durées de conservation, sous-traitants, vos droits.",
+  path: "/politique-de-confidentialite",
+});
 
 export default async function PolitiqueConfidentialitePage() {
   const supabase = await createClient();

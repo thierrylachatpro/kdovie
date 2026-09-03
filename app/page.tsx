@@ -1,6 +1,15 @@
+import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { DEFAULT_DESCRIPTION, pageMetadata } from "@/lib/seo";
 import AccueilClient from "@/components/accueil/AccueilClient";
+
+// Pas de `title` : hérite du title.default de app/layout.tsx (titre complet de
+// la marque, non templaté) — c'est la page racine.
+export const metadata: Metadata = pageMetadata({
+  description: DEFAULT_DESCRIPTION,
+  path: "/",
+});
 
 export default async function Home() {
   const supabase = await createClient();

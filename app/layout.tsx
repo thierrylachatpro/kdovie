@@ -4,6 +4,8 @@ import { Quicksand, Work_Sans } from "next/font/google";
 import { GoogleTagManager } from "@next/third-parties/google";
 import BandeauCookies from "@/components/ui/BandeauCookies";
 import BandeauEnvironnement from "@/components/layout/BandeauEnvironnement";
+import { SITE_URL } from "@/lib/site-url";
+import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, SITE_NAME } from "@/lib/seo";
 import "./globals.css";
 
 // Google Tag Manager — voir CLAUDE.md > "Google Analytics 4, bandeau de
@@ -25,8 +27,64 @@ const workSans = Work_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Kdovie",
-  description: "La liste de cadeaux qui suit vos événements",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: DEFAULT_TITLE,
+    template: `%s | ${SITE_NAME}`,
+  },
+  description: DEFAULT_DESCRIPTION,
+  applicationName: SITE_NAME,
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "fr_FR",
+    url: "/",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESCRIPTION,
+  },
+};
+
+// Données structurées d'entité — reprises des mentions légales
+// (Prowebia SASU, SIREN 992 497 891). Organization + WebSite, injectées une
+// seule fois sur tout le site. Pas de SearchAction : /recherche cherche des
+// personnes, pas le contenu du site — un sitelinks searchbox y renverrait à tort.
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      legalName: "Prowebia",
+      url: SITE_URL,
+      logo: `${SITE_URL}/logo-email.png`,
+      email: "contact@kdovie.com",
+      description: DEFAULT_DESCRIPTION,
+      vatID: "FR18992497891",
+      taxID: "992497891",
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: "15 Rue du Bois",
+        postalCode: "80540",
+        addressLocality: "Clairy-Saulchoix",
+        addressCountry: "FR",
+      },
+      founder: { "@type": "Person", name: "Thierry Lachat" },
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: SITE_NAME,
+      inLanguage: "fr-FR",
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -36,6 +94,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${quicksand.variable} ${workSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-creme text-foreground">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
         {GTM_ID && (
           <>
             <noscript>

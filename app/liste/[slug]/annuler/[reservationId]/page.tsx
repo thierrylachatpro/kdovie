@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
@@ -5,6 +6,12 @@ import { cancelReservation } from "@/app/liste/[slug]/cancel-reservation-actions
 import NavAnonyme from "@/components/layout/NavAnonyme";
 import NavConnecte from "@/components/layout/NavConnecte";
 import PiedDePage from "@/components/layout/PiedDePage";
+
+// Jeton secret (UUID de réservation) dans l'URL — jamais indexé ni suivi.
+export const metadata: Metadata = {
+  title: "Annuler une réservation",
+  robots: { index: false, follow: false },
+};
 
 export default async function AnnulerReservationPage({
   params,

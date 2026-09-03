@@ -1,8 +1,27 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
+import { pageMetadata } from "@/lib/seo";
 import PageLegale from "@/components/layout/PageLegale";
 import RechercheVille from "@/components/ui/RechercheVille";
+
+export async function generateMetadata({
+  searchParams,
+}: PageProps<"/recherche">): Promise<Metadata> {
+  const params = await searchParams;
+  const q = typeof params.q === "string" ? params.q.trim() : "";
+  const city = typeof params.city === "string" ? params.city.trim() : "";
+  // Les pages de résultats (?q=…&city=…) sont noindex : variations infinies +
+  // elles révèlent qui est "trouvable". La page nue reste indexable.
+  return pageMetadata({
+    title: "Retrouver la liste de cadeaux d'un proche",
+    description:
+      "Cherchez le prénom ou le nom d'un proche et sa ville pour retrouver ses listes de cadeaux ouvertes sur Kdovie.",
+    path: "/recherche",
+    noindex: Boolean(q && city),
+  });
+}
 
 // Recherche publique d'organisateurs par nom et ville — voir CLAUDE.md >
 // "Recherche publique d'organisateurs par nom et ville". Formulaire GET

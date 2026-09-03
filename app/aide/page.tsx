@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { pageMetadata } from "@/lib/seo";
 import PageLegale from "@/components/layout/PageLegale";
 
-export const metadata: Metadata = {
-  title: "Aide | Kdovie",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Aide",
+  description:
+    "Questions fréquentes sur Kdovie : créer une liste de cadeaux, ajouter des articles depuis n'importe quelle boutique, réserver, participer à une cagnotte commune, annuler une réservation.",
+  path: "/aide",
+});
 
 // FAQ étendue — voir CLAUDE.md > "Backlog produit : pages 'À propos', 'Aide'
 // (19 août 2026)". Reprend telles quelles les 5 questions déjà écrites sur

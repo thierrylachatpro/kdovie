@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { pageMetadata } from "@/lib/seo";
 import PageLegale from "@/components/layout/PageLegale";
 
-export const metadata: Metadata = {
-  title: "Mentions légales | Kdovie",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Mentions légales",
+  description:
+    "Éditeur du site kdovie.com : Prowebia, SASU au capital de 500 €, SIREN 992 497 891, RCS Amiens. Hébergement, propriété intellectuelle, contact.",
+  path: "/mentions-legales",
+});
 
 export default async function MentionsLegalesPage() {
   const supabase = await createClient();

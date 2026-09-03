@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import NavAnonyme from "@/components/layout/NavAnonyme";
 import NavConnecte from "@/components/layout/NavConnecte";
@@ -5,6 +6,12 @@ import PiedDePage from "@/components/layout/PiedDePage";
 import ConfirmerConnexionButton from "@/components/auth/ConfirmerConnexionButton";
 import { createClient } from "@/lib/supabase/server";
 import { confirmerConnexion } from "./actions";
+
+// Lien de connexion à usage unique dans l'URL — jamais indexé ni suivi.
+export const metadata: Metadata = {
+  title: "Confirmer la connexion",
+  robots: { index: false, follow: false },
+};
 
 // Étape intermédiaire entre le lien reçu par e-mail et la connexion réelle
 // — exige un vrai clic sur "Me connecter" avant d'appeler verifyOtp, voir

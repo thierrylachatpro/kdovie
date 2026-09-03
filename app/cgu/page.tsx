@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
+import { pageMetadata } from "@/lib/seo";
 import PageLegale from "@/components/layout/PageLegale";
 
-export const metadata: Metadata = {
-  title: "Conditions générales d'utilisation | Kdovie",
-};
+export const metadata: Metadata = pageMetadata({
+  title: "Conditions générales d'utilisation",
+  description:
+    "Les conditions générales d'utilisation du service de listes de cadeaux Kdovie, édité par Prowebia.",
+  path: "/cgu",
+});
 
 export default async function CguPage() {
   const supabase = await createClient();

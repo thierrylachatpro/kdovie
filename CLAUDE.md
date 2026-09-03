@@ -2159,6 +2159,66 @@ l'implémentation, à ne pas redébattre :
   logique repose sur `@dnd-kit` (standard) et les patterns d'action serveur déjà éprouvés
   ailleurs. Migration `0022` à appliquer avant tout test réel.
 
+## Fondations SEO / indexation (3 septembre 2026)
+
+Le site est resté `noindex` de fait tant que `maintenance_mode` était actif (tout `kdovie.com`
+réécrit vers `/bientot-disponible`, elle-même `noindex`). Maintenance désormais coupée → le site
+est crawlable, mais il n'avait aucune plomberie SEO. Audit mené en « boîte grise » (lecture du
+source + `parse_html.py`/`content_quality.py` du skill `seo` sur le HTML réel — les scripts ne
+peuvent pas atteindre le site depuis le sandbox : HTTPS externe = échec de certificat, localhost =
+bloqué par leur module anti-SSRF). Étapes 1-2 du plan d'audit implémentées :
+
+- **`lib/site-url.ts`** : le repli de `SITE_URL` passe de `https://kdovie.vercel.app` à
+  `https://kdovie.com` (le domaine est en ligne). `NEXT_PUBLIC_SITE_URL` reste prioritaire —
+  **à poser sur l'environnement dev** si les emails de test ne doivent pas pointer kdovie.com.
+- **`lib/seo.ts`** (nouveau) : `DEFAULT_TITLE`, `DEFAULT_DESCRIPTION`, `SITE_NAME`, et le helper
+  `pageMetadata({ title?, description, path, noindex? })` qui produit title + description +
+  `alternates.canonical` + `openGraph` cohérents. `noindex` ⇒ `robots: { index: false, follow: true }`.
+- **`app/robots.ts`** (nouveau) : `Allow: /`, `Disallow` sur `/compte/`, `/admin/`, `/api/`,
+  `/auth/`, `/connexion`, `/liste/*/annuler/`, `/bientot-disponible` ; `Host` + `Sitemap`. Les
+  pages `/liste/[slug]` restent crawlables (elles portent `noindex, follow` elles-mêmes — on ne
+  coupe pas la circulation du PageRank interne).
+- **`app/sitemap.ts`** (nouveau) : 8 routes publiques stables uniquement. **Jamais** `/liste/[slug]`
+  (données perso), ni `/connexion`, `/auth/*`, `/compte/*`.
+- **`app/layout.tsx`** : `metadataBase: new URL(SITE_URL)`, `title.default` + `title.template`
+  (`"%s | Kdovie"`), `openGraph`/`twitter` par défaut, et un `<script type="application/ld+json">`
+  **Organization + WebSite** reprenant les vraies données des mentions légales (Prowebia, SIREN
+  992 497 891, TVA FR18992497891, adresse Clairy-Saulchoix, fondateur Thierry Lachat). Pas de
+  `SearchAction` : `/recherche` cherche des personnes, pas le contenu du site.
+- **Title/description uniques par route** (le bug initial : `/recherche` avait exactement le même
+  `<title>Kdovie</title>` et la même description que l'accueil) : `app/page.tsx` (metadata via
+  `pageMetadata`), `app/recherche/page.tsx` (`generateMetadata` — la page nue est indexable, les
+  variantes `?q=…&city=…` passent `noindex`), et `description` ajoutée sur `/aide`, `/contact`,
+  `/cgu`, `/cgv`, `/mentions-legales`, `/politique-de-confidentialite` (elles héritaient de la
+  description de l'accueil).
+- **`app/liste/[slug]/page.tsx`** : `generateMetadata` — titre « {nom} — la liste de {prénom} »,
+  description, canonical, et **`robots: { index: false, follow: true }`** (données personnelles,
+  jamais indexées, quelle que soit la visibilité). Repli « Liste introuvable » `noindex, nofollow`
+  si l'événement n'existe pas / est supprimé.
+- **Images Open Graph** (`next/og` `ImageResponse`, dessin 100 % flexbox, **pas de police custom**
+  pour la robustesse de déploiement — la typo par défaut couvre les accents FR) :
+  `app/opengraph-image.tsx` (accueil, statique) et `app/liste/[slug]/opengraph-image.tsx`
+  (dynamique : nom de liste + prénom, `try/catch` → vignette générique en repli). C'est l'aperçu
+  quand on colle un lien de liste dans WhatsApp/Messenger — auparavant nu.
+- **`noindex` défensif** : `app/compte/layout.tsx` (nouveau, `noindex, nofollow`),
+  `app/admin/layout.tsx` (metadata ajoutée), `app/connexion/page.tsx` (`noindex, follow`),
+  `app/auth/confirmer/page.tsx` et `app/liste/[slug]/annuler/[reservationId]/page.tsx`
+  (`noindex, nofollow` — jeton secret dans l'URL).
+
+**Testé** : `tsc`/`lint`/`build` propres. Vérifié sur serveur de dev (curl) : `/robots.txt` et
+`/sitemap.xml` bien générés, `<head>` de l'accueil avec title/description/canonical/OG/Twitter/
+JSON-LD complets, `/recherche` désormais titre + description **uniques**, `?q=&city=` bien
+`noindex`, `/connexion` `noindex, follow`, `/aide` description propre. `GET /opengraph-image` →
+200 `image/png` 1200×630 (rendu vérifié par capture — charte respectée, accents OK) ; route OG
+par liste → 200 avec repli générique sur slug inconnu.
+
+**Reste à faire (hors étapes 1-2)** : vérifier `NEXT_PUBLIC_SITE_URL` sur Vercel (prod + dev) ;
+soumettre le sitemap dans Search Console (déjà vérifié par DNS TXT) ; décider formellement du
+`noindex` des listes avec le chef de projet (implémenté par défaut ici, cohérent avec la posture
+RGPD) ; en-têtes de sécurité dans `next.config.ts` (M1) ; mesures CWV terrain via `/seo google`
+une fois des clés API posées ; plan éditorial via `/seo cluster` (M5) ; police custom sur les
+images OG si on veut la vraie typo Quicksand.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".

@@ -1,9 +1,17 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import ConnexionForm from "@/components/auth/ConnexionForm";
 import NavAnonyme from "@/components/layout/NavAnonyme";
 import NavConnecte from "@/components/layout/NavConnecte";
 import PiedDePage from "@/components/layout/PiedDePage";
 import { createClient } from "@/lib/supabase/server";
+
+export const metadata: Metadata = {
+  title: "Se connecter",
+  description:
+    "Connectez-vous à votre compte Kdovie par lien magique envoyé par e-mail, sans mot de passe.",
+  robots: { index: false, follow: true },
+};
 
 export default async function ConnexionPage({
   searchParams,
