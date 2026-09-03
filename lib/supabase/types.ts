@@ -400,6 +400,12 @@ export type Database = {
           last_name: string | null
         }[]
       }
+      get_list_organizer_first_name: {
+        Args: {
+          p_slug: string
+        }
+        Returns: string | null
+      }
     }
     Enums: {
       [_ in never]: never

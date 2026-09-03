@@ -27,12 +27,14 @@ export default async function Image({
       .single();
     if (event && !event.deleted_at) {
       nomListe = event.name;
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("first_name")
-        .eq("id", event.organizer_id)
-        .single();
-      prenom = profile?.first_name?.trim() || null;
+      // RPC security definer : first_name n'est pas lisible par anon en
+      // direct sur profiles (voir migration 0023) — et le robot d'aperçu de
+      // Facebook/WhatsApp est justement anonyme.
+      const { data: prenomBrut } = await supabase.rpc(
+        "get_list_organizer_first_name",
+        { p_slug: slug },
+      );
+      prenom = typeof prenomBrut === "string" ? prenomBrut.trim() || null : null;
     }
   } catch {
     // Vignette générique en repli — jamais d'erreur qui casserait l'aperçu.

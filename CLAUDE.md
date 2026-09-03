@@ -2224,11 +2224,31 @@ d'interférence avec l'iframe d'onboarding Stripe qui peut demander la caméra) 
 tard en testant contre le vrai flux Stripe. Vérifié sur serveur de dev (`curl -I`).
 
 **Vignette de partage d'une liste — nom de l'auteur** : décision utilisateur du 3 septembre 2026,
-**prénom seul** (« La liste de {prénom} »), cohérent avec ce qu'affiche déjà la page publique
-`/liste/[slug]`. C'est le comportement déjà en place — aucun changement de code. Ne s'affiche que si
-l'organisateur a renseigné son prénom sur `/compte/profil` (rappel : `first_name` n'est aujourd'hui
-obligatoire que pour activer la recherche publique — une liste dont l'organisateur n'a pas de prénom
-partage une vignette sans auteur).
+**prénom seul** (« La liste de {prénom} »), cohérent avec ce qu'affiche la page publique
+`/liste/[slug]`. Ne s'affiche que si l'organisateur a renseigné son prénom sur `/compte/profil`
+(rappel : `first_name` n'est aujourd'hui obligatoire que pour activer la recherche publique).
+
+**Bug corrigé dans la foulée (3 septembre 2026) — le prénom ne s'affichait à personne** : après
+test réel (Facebook), constat que « La liste de {prénom} » n'apparaissait ni sur la vignette ni sur
+la page publique, même prénom renseigné. Cause : depuis le passage `display_name` → `first_name`
+(migration 0021, 25 août), **aucun accès anon à `first_name` n'existait** — jamais accordé en
+colonne à anon, et `search_organizers` ne le renvoie que pour `searchable = true`. Donc
+`profiles.select("first_name")` renvoyait `[]` pour tout invité / robot Facebook (tous anonymes) ;
+« liste de {prénom} » ne marchait que pour l'organisateur regardant sa propre liste. (Constaté
+aussi : migration 0008 — grant colonne `display_name` à anon — semble ne jamais avoir été appliquée
+en prod ; sans effet puisque `display_name` n'est plus lu nulle part.)
+→ **Migration `0023_list_organizer_first_name.sql`** (écrite, à appliquer dev + prod) : fonction
+`get_list_organizer_first_name(p_slug)` `security definer`, `grant execute ... to anon` — même
+patron que `search_organizers`, renvoie le prénom uniquement dans le contexte d'une liste précise
+identifiée par son slug (« tu as le lien → tu vois le prénom de l'auteur »), jamais un accès large à
+`profiles`. `app/liste/[slug]/page.tsx` (page + `generateMetadata`) et
+`app/liste/[slug]/opengraph-image.tsx` passent par cette RPC au lieu de `profiles.select`.
+`lib/supabase/types.ts` mis à jour à la main. Repli gracieux si la fonction n'existe pas encore
+(RPC en erreur → `null` → vignette/page sans auteur, comme avant) : déployable avant l'application
+de la migration, sans régression.
+→ **Après application** : forcer Facebook à re-scanner via le
+[Sharing Debugger](https://developers.facebook.com/tools/debug/) (FB cache les données OG jusqu'à
+~30 jours).
 
 **Reste à faire (hors étapes 1-2)** : soumettre le sitemap dans Search Console (déjà vérifié par
 DNS TXT) ; mesures CWV terrain via `/seo google` une fois du trafic réel + une clé API Google

@@ -33,12 +33,12 @@ export async function generateMetadata({
     return { title: "Liste introuvable", robots: { index: false, follow: false } };
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("first_name")
-    .eq("id", event.organizer_id)
-    .single();
-  const prenom = profile?.first_name?.trim() || null;
+  // RPC security definer : first_name n'est pas lisible par anon en direct
+  // sur profiles (voir migration 0023).
+  const { data: prenomBrut } = await supabase.rpc("get_list_organizer_first_name", {
+    p_slug: slug,
+  });
+  const prenom = typeof prenomBrut === "string" ? prenomBrut.trim() || null : null;
 
   const title = prenom ? `${event.name} — la liste de ${prenom}` : event.name;
   const description = prenom
@@ -103,12 +103,15 @@ export default async function ListePubliquePage({
   } = await supabase.auth.getUser();
   const estProprietaire = user?.id === event.organizer_id;
 
-  const { data: organizerProfile } = await supabase
-    .from("profiles")
-    .select("first_name")
-    .eq("id", event.organizer_id)
-    .single();
-  const organizerPseudo = organizerProfile?.first_name?.trim() || null;
+  // RPC security definer : first_name n'est pas lisible par anon en direct
+  // sur profiles (voir migration 0023). Renvoie null pour une liste supprimée
+  // (aperçu admin) — acceptable, le nom de l'organisateur n'y est pas essentiel.
+  const { data: organizerFirstName } = await supabase.rpc(
+    "get_list_organizer_first_name",
+    { p_slug: slug },
+  );
+  const organizerPseudo =
+    typeof organizerFirstName === "string" ? organizerFirstName.trim() || null : null;
 
   // Colonne payouts_enabled ouverte à anon (migration 0010) uniquement,
   // stripe_account_id/organizer_id restent privés — voir CLAUDE.md > tâche #18.
