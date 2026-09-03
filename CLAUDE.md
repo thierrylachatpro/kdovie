@@ -2215,11 +2215,25 @@ par liste → 200 avec repli générique sur slug inconnu.
 **`noindex` sur les listes : validé par l'utilisateur le 3 septembre 2026.** Décision confirmée,
 `/liste/[slug]` reste `noindex, follow` — plus un point ouvert.
 
-**Reste à faire (hors étapes 1-2)** : vérifier `NEXT_PUBLIC_SITE_URL` sur Vercel (prod + dev) ;
-soumettre le sitemap dans Search Console (déjà vérifié par DNS TXT) ; en-têtes de sécurité dans
-`next.config.ts` (M1) ; mesures CWV terrain via `/seo google` une fois des clés API posées ; plan
-éditorial via `/seo cluster` (M5) ; police custom sur les images OG si on veut la vraie typo
-Quicksand.
+**En-têtes de sécurité (M1) : fait le 3 septembre 2026.** `next.config.ts` → `headers()` sur
+`/:path*` : `Strict-Transport-Security` (max-age 2 ans, includeSubDomains, sans `preload`),
+`X-Content-Type-Options: nosniff`, `X-Frame-Options: SAMEORIGIN`,
+`Referrer-Policy: strict-origin-when-cross-origin`. **Volontairement pas** de Content-Security-Policy
+(casserait GTM/Stripe/Supabase/next-font sans calibration) ni de Permissions-Policy (risque
+d'interférence avec l'iframe d'onboarding Stripe qui peut demander la caméra) — à compléter plus
+tard en testant contre le vrai flux Stripe. Vérifié sur serveur de dev (`curl -I`).
+
+**Vignette de partage d'une liste — nom de l'auteur** : décision utilisateur du 3 septembre 2026,
+**prénom seul** (« La liste de {prénom} »), cohérent avec ce qu'affiche déjà la page publique
+`/liste/[slug]`. C'est le comportement déjà en place — aucun changement de code. Ne s'affiche que si
+l'organisateur a renseigné son prénom sur `/compte/profil` (rappel : `first_name` n'est aujourd'hui
+obligatoire que pour activer la recherche publique — une liste dont l'organisateur n'a pas de prénom
+partage une vignette sans auteur).
+
+**Reste à faire (hors étapes 1-2)** : soumettre le sitemap dans Search Console (déjà vérifié par
+DNS TXT) ; mesures CWV terrain via `/seo google` une fois du trafic réel + une clé API Google
+posée ; plan éditorial via `/seo cluster` (M5) ; police custom sur les images OG si on veut la vraie
+typo Quicksand ; éventuellement CSP + Permissions-Policy (M1 étendu, à tester contre Stripe).
 
 ## Points d'attention techniques
 
