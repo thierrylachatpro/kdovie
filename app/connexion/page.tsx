@@ -71,7 +71,7 @@ export default async function ConnexionPage({
             <span className="font-heading text-2xl font-bold tracking-tight text-corail">
               kdovie
             </span>
-            <span className="text-[13px] text-[#8A7263]">
+            <span className="hidden text-[13px] text-[#8A7263] sm:block">
               Un seul compte, toute une vie de cadeaux
             </span>
           </span>

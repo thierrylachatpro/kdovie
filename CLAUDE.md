@@ -2298,10 +2298,24 @@ restent bien visibles** hors du menu.
   - Conteneur en `flex` (pas `flex-wrap`) + `flex-none`/`whitespace-nowrap` sur les boutons : le
     trio Rechercher / Se connecter / ☰ reste groupé, il wrappe sous le logo d'un bloc via le
     `flex-wrap` du `<header>`, jamais en escalier.
-- **Testé** : `tsc`/`lint`/`build` propres. Captures Playwright (via le chromium bundlé du skill
-  `seo`) à 375 / 430 / 1280 px sur `/`, `/connexion` (logo + baseline) et `/aide` (logo compact),
-  menu ouvert inclus — les 3 éléments clés visibles à toutes les largeurs, desktop identique à
-  avant, panneau hamburger correct.
+**Retouche mise en page (4 septembre, retour utilisateur)** : le hamburger était sur la même
+ligne que les 2 boutons, l'utilisateur le voulait **seul sur la ligne du logo, aligné à droite**,
+les boutons « Rechercher » / « Se connecter » sur une 2e ligne dessous.
+- La racine de `NavAnonyme` passe en **`display: contents`** sur mobile (`className="contents
+  md:flex …"`) : ses enfants remontent dans le flex du `<header>` (`justify-between`), le hamburger
+  se cale donc à droite du logo tout seul ; un `<div className="h-0 w-full md:hidden">` juste après
+  force « Rechercher » + « Se connecter » sur la ligne suivante. **Aucun `<header>` modifié.** Le
+  panneau du hamburger est ancré (`relative`) sur le conteneur des 2 boutons.
+- Marche uniquement si le logo est compact sur mobile. Les 2 seules pages où la baseline « Un seul
+  compte… » restait visible sous le logo en mobile (`app/connexion/page.tsx`,
+  `app/liste/[slug]/not-found.tsx`) passent la baseline en `hidden sm:block` — même traitement que
+  `app/liste/[slug]/page.tsx` déjà en place. (Accueil et pages `PageLegale` ont déjà un logo sans
+  baseline.)
+
+- **Testé** : `tsc`/`lint`/`build` propres. Captures Playwright (chromium bundlé du skill `seo`) à
+  375 / 390 / 760 / 1280 px sur `/`, `/connexion`, `/aide`, menu ouvert inclus — hamburger seul sur
+  la ligne du logo aligné à droite, boutons sur la 2e ligne, panneau correct, desktop identique à
+  avant.
 
 ## Points d'attention techniques
 
