@@ -2274,6 +2274,35 @@ DNS TXT) ; mesures CWV terrain via `/seo google` une fois du trafic réel + une 
 posée ; plan éditorial via `/seo cluster` (M5) ; police custom sur les images OG si on veut la vraie
 typo Quicksand ; éventuellement CSP + Permissions-Policy (M1 étendu, à tester contre Stripe).
 
+## Menu hamburger mobile pour la nav anonyme (4 septembre 2026)
+
+Bug signalé par l'utilisateur : sur mobile, un visiteur non connecté ne voyait **aucune
+navigation**, notamment aucun moyen d'atteindre `/recherche`. Cause : dans `NavAnonyme.tsx`
+(31 août), tout le bloc de liens était en `hidden md:flex` → invisible sous 768px, seul « Se
+connecter » restait. Touchait toutes les pages, accueil compris (les ancres « Comment ça
+marche »… disparaissaient aussi sur mobile). `NavConnecte` n'était pas concerné (jamais masqué,
+les 3 liens passent à la ligne).
+
+Décision utilisateur : **menu hamburger complet, mais « Retrouver une liste » et « Se connecter »
+restent bien visibles** hors du menu.
+
+- **`NavAnonyme.tsx`** devient un composant client (état d'ouverture, `Escape` + clic-extérieur
+  pour fermer, `aria-expanded`/`aria-controls`/`aria-label`).
+  - **Desktop (md+)** : inchangé — 4 ancres + « Retrouver une liste » + bouton « Se connecter »,
+    tout en ligne.
+  - **Mobile (<md)** : bouton « 🔍 Rechercher » (→ `/recherche`) + bouton « Se connecter »,
+    toujours visibles ; bouton hamburger qui ouvre un panneau (`absolute right-0 top-full`) avec
+    les 4 ancres d'accueil. Le lien « Retrouver une liste » desktop est doublé d'un bouton
+    « Rechercher » compact `md:hidden` (même `href`), plutôt qu'un simple `md:hidden` sur le
+    texte long qui débordait.
+  - Conteneur en `flex` (pas `flex-wrap`) + `flex-none`/`whitespace-nowrap` sur les boutons : le
+    trio Rechercher / Se connecter / ☰ reste groupé, il wrappe sous le logo d'un bloc via le
+    `flex-wrap` du `<header>`, jamais en escalier.
+- **Testé** : `tsc`/`lint`/`build` propres. Captures Playwright (via le chromium bundlé du skill
+  `seo`) à 375 / 430 / 1280 px sur `/`, `/connexion` (logo + baseline) et `/aide` (logo compact),
+  menu ouvert inclus — les 3 éléments clés visibles à toutes les largeurs, desktop identique à
+  avant, panneau hamburger correct.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".
