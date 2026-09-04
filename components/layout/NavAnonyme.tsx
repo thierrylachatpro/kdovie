@@ -119,7 +119,7 @@ export default function NavAnonyme({ estConnecte }: { estConnecte: boolean }) {
 
       {/* Rechercher + Se connecter : 2e ligne sur mobile (alignée à droite),
           dans le flux sur desktop. `relative` sert d'ancrage au panneau. */}
-      <div className="relative flex w-full items-center justify-end gap-2.5 md:w-auto md:gap-6">
+      <div className="relative flex w-full items-center justify-center gap-2.5 md:w-auto md:gap-6">
         <Link
           href="/recherche"
           className="hidden text-[15px] font-medium text-[#5C4436] hover:text-corail md:inline"
