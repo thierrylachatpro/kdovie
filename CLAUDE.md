@@ -2114,8 +2114,8 @@ l'implémentation, à ne pas redébattre :
 
 **Implémentation :**
 
-- **Migration `0022_gift_items_position.sql`** (écrite, pas encore appliquée à la base
-  distante — comme les autres en attente) : colonne `gift_items.position` (integer, not null,
+- **Migration `0022_gift_items_position.sql`** (appliquée dev + prod le 1er septembre 2026) :
+  colonne `gift_items.position` (integer, not null,
   défaut 0), remplie initialement d'après l'ordre d'affichage d'alors (prioritaires non
   terminés, puis groupes de statut, puis `created_at desc`) pour ne rien bousculer. Index
   `(event_id, position)`. **Pas ajoutée au trigger `protect_gift_item_mode`** (migration
@@ -2157,7 +2157,8 @@ l'implémentation, à ne pas redébattre :
   d'hydratation. **Pas testé** : le glisser-déposer interactif lui-même (pas de navigateur
   dans cet environnement) ni le flux complet contre une vraie session organisateur — la
   logique repose sur `@dnd-kit` (standard) et les patterns d'action serveur déjà éprouvés
-  ailleurs. Migration `0022` à appliquer avant tout test réel.
+  ailleurs. Migration `0022` appliquée dev + prod (backfill des `position` vérifié : contigus
+  0..N par liste, réservés en fin de liste).
 
 ## Fondations SEO / indexation (3 septembre 2026)
 
@@ -2241,8 +2242,11 @@ colonne à anon, et `search_organizers` ne le renvoie que pour `searchable = tru
 « liste de {prénom} » ne marchait que pour l'organisateur regardant sa propre liste. (Constaté
 aussi : migration 0008 — grant colonne `display_name` à anon — semble ne jamais avoir été appliquée
 en prod ; sans effet puisque `display_name` n'est plus lu nulle part.)
-→ **Migration `0023_list_organizer_first_name.sql`** (écrite, à appliquer dev + prod) : fonction
-`get_list_organizer_first_name(p_slug)` `security definer`, `grant execute ... to anon` — même
+→ **Migration `0023_list_organizer_first_name.sql`** (appliquée dev + prod le 3 septembre,
+RPC vérifiée en tant qu'anon sur les deux bases : renvoie bien le prénom pour un slug de liste
+ouverte, `null` pour un slug inconnu, et `profiles.first_name` reste inaccessible en direct à
+anon) : fonction `get_list_organizer_first_name(p_slug)` `security definer`,
+`grant execute ... to anon` — même
 patron que `search_organizers`, renvoie le prénom uniquement dans le contexte d'une liste précise
 identifiée par son slug (« tu as le lien → tu vois le prénom de l'auteur »), jamais un accès large à
 `profiles`. `app/liste/[slug]/page.tsx` (page + `generateMetadata`) et
@@ -2316,10 +2320,45 @@ les boutons « Rechercher » / « Se connecter » sur une 2e ligne dessous.
   `app/liste/[slug]/page.tsx` déjà en place. (Accueil et pages `PageLegale` ont déjà un logo sans
   baseline.)
 
-- **Testé** : `tsc`/`lint`/`build` propres. Captures Playwright (chromium bundlé du skill `seo`) à
+- **Testé** : `tsc`/`lint`/`build` propres. Captures Playwright (chromium bundlé du skill `seo`,
+  `PLAYWRIGHT_BROWSERS_PATH=~/.claude/skills/seo/ms-playwright` +
+  `~/.claude/skills/seo/.venv/bin/python3` — le projet lui-même n'a pas Playwright) à
   375 / 390 / 760 / 1280 px sur `/`, `/connexion`, `/aide`, menu ouvert inclus — hamburger seul sur
-  la ligne du logo aligné à droite, boutons sur la 2e ligne, panneau correct, desktop identique à
-  avant.
+  la ligne du logo aligné à droite, « Rechercher » / « Se connecter » **centrés** sur la 2e ligne
+  (retour utilisateur du 4 septembre : les avait d'abord alignés à droite), panneau correct,
+  desktop identique à avant.
+
+## État des migrations Supabase — historique non fiable (4 septembre 2026)
+
+L'application des migrations en prod/dev s'est faite au fil de l'eau par l'utilisateur, pas en une
+passe, et **le champ « appliquée / pas encore appliquée » disséminé dans les sections ci-dessus
+reflète l'état au moment de l'écriture, pas l'état réel actuel**. Cas concrets rencontrés :
+
+- **`0004_events_type_optional.sql` : jamais appliquée en prod jusqu'au 3 septembre 2026.**
+  Découverte en diagnostiquant une erreur « Une erreur est survenue, réessayez » à la création
+  d'une liste **sans type** sur `kdovie.com` — `events.type` avait toujours sa contrainte
+  `not null` d'origine. Reproduite en base (`null value in column "type"`), corrigée par
+  l'utilisateur via le SQL Editor (`alter column type drop not null` + recréation du check
+  autorisant `null`), re-vérifiée OK. Créer une liste avec un type précis n'avait jamais posé
+  problème, d'où la découverte tardive.
+- **`0008_profiles_public_display_name.sql` : semble ne jamais avoir été appliquée en prod**
+  (constaté via l'accès anon nul à `profiles`, voir "Fondations SEO" > bug prénom). Sans
+  conséquence — `display_name` n'est plus lu publiquement.
+
+**Migrations confirmées appliquées dev + prod à ce jour** (vérifiées par requête REST directe) :
+au moins `0009` → `0023` (colonnes `fee_mode`, `deleted_at`, `is_admin`, `is_priority`,
+`original_title`, `disabled`, `welcome_email_sent_at`, `app_settings`, `searchable`/`first_name`/…,
+`position`, et la fonction `get_list_organizer_first_name`). Avant de supposer qu'une migration
+plus ancienne est en place, **vérifier en base** plutôt que se fier à ce fichier.
+
+## Mode maintenance : coupé en prod (depuis ~début septembre 2026)
+
+`app_settings.maintenance_mode` est à **`false`** en prod — `kdovie.com` sert le vrai site à tout
+le monde, plus la page « bientôt disponible ». Les sections "Page d'attente en production" et
+"Bouton admin pour basculer le mode maintenance" ci-dessus décrivent le mécanisme, qui reste en
+place et réactivable depuis `/admin` ; seul l'état courant a changé. Conséquence directe : tout
+merge sur `main` est immédiatement public, et le travail SEO (crawl Google, aperçus de partage)
+compte pour de vrai.
 
 ## Points d'attention techniques
 
