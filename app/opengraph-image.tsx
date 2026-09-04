@@ -5,6 +5,7 @@ import { DEFAULT_TITLE } from "@/lib/seo";
 // sans image dédiée. Dessin 100 % flexbox (contrainte Satori) — pas de police
 // custom pour rester robuste au déploiement, la typo par défaut couvre les
 // accents français. Voir CLAUDE.md > "Audit SEO".
+export const runtime = "nodejs";
 export const alt = DEFAULT_TITLE;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

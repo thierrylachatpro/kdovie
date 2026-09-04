@@ -2250,6 +2250,25 @@ de la migration, sans régression.
 [Sharing Debugger](https://developers.facebook.com/tools/debug/) (FB cache les données OG jusqu'à
 ~30 jours).
 
+**Deux bugs découverts via le Sharing Debugger après application de 0023 (3-4 septembre 2026) :**
+
+1. **Redirection www ↔ non-www** : le domaine Vercel avait `www.kdovie.com` comme principal
+   (non-www → 308 → www), alors que tout le code déclare `https://kdovie.com` (sans www). Facebook
+   tournait en rond entre les deux et abandonnait l'aperçu. **Corrigé côté Vercel par l'utilisateur**
+   (Settings → Domains → `kdovie.com` sans www = Primary, `www` redirige vers lui). Aucun changement
+   de code — `SITE_URL` = `https://kdovie.com` est bien la valeur voulue partout.
+2. **Image OG de liste : crash Satori** (`Expected <div> to have explicit "display: flex" … if it
+   has more than one child node`). Le `<div>La liste de {prenom}</div>` compte « La liste de » +
+   `{prenom}` comme deux enfants → Satori exige `display:flex`. Invisible tant que `prenom` était
+   `null` (avant 0023) ; est apparu dès que la RPC a renvoyé un vrai prénom. **Corrigé** : template
+   literal `{`La liste de ${prenom}`}` (un seul nœud enfant). Règle Satori à garder en tête pour
+   toute future `ImageResponse` : un `<div>` avec du texte **+** une interpolation = deux enfants,
+   soit `display:flex`, soit fusionner en un seul template literal.
+   Au passage, `app/liste/[slug]/opengraph-image.tsx` a été réécrit sans `@/lib/supabase/server`
+   (donc sans `cookies()`, fragile dans le contexte d'une route `opengraph-image`) : appels REST
+   Supabase directs en clé anon, `AbortSignal.timeout(3500)`, repli vignette générique sur toute
+   erreur. `export const runtime = "nodejs"` explicite sur les deux routes OG.
+
 **Reste à faire (hors étapes 1-2)** : soumettre le sitemap dans Search Console (déjà vérifié par
 DNS TXT) ; mesures CWV terrain via `/seo google` une fois du trafic réel + une clé API Google
 posée ; plan éditorial via `/seo cluster` (M5) ; police custom sur les images OG si on veut la vraie

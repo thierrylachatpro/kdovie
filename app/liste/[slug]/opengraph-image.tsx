@@ -1,13 +1,67 @@
 import { ImageResponse } from "next/og";
-import { createClient } from "@/lib/supabase/server";
 
 // Aperçu de partage d'une liste (WhatsApp, Messenger, Facebook…) — c'est le
 // geste central du produit : coller le lien de sa liste. Les pages restent
 // noindex (données perso), seule cette vignette est soignée. Dessin 100 %
 // flexbox, pas de police custom (robustesse déploiement).
+//
+// Volontairement AUCUNE dépendance à @/lib/supabase/server (donc pas de
+// cookies() / client SSR) : le robot d'aperçu est anonyme, et cookies() dans
+// le contexte d'une route opengraph-image s'est révélé fragile en prod
+// (Facebook recevait une page d'erreur au lieu d'une image). On tape le REST
+// Supabase directement avec la clé anon.
+export const runtime = "nodejs";
 export const alt = "Une liste de cadeaux sur Kdovie";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+async function chargerInfosListe(
+  slug: string,
+): Promise<{ nomListe: string; prenom: string | null }> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const repli = { nomListe: "Une liste de cadeaux", prenom: null as string | null };
+  if (!url || !key) return repli;
+
+  const headers = { apikey: key, Authorization: `Bearer ${key}` };
+  // Timeout court : mieux vaut une vignette générique qu'une route qui traîne
+  // et fait échouer l'aperçu côté Facebook/WhatsApp.
+  const signal = AbortSignal.timeout(3500);
+
+  try {
+    const [evtRes, prenomRes] = await Promise.all([
+      fetch(
+        `${url}/rest/v1/events?select=name,deleted_at&slug=eq.${encodeURIComponent(slug)}`,
+        { headers, cache: "no-store", signal },
+      ),
+      fetch(`${url}/rest/v1/rpc/get_list_organizer_first_name`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ p_slug: slug }),
+        cache: "no-store",
+        signal,
+      }),
+    ]);
+
+    let nomListe = repli.nomListe;
+    if (evtRes.ok) {
+      const rows = (await evtRes.json()) as { name: string; deleted_at: string | null }[];
+      const event = rows[0];
+      if (event && !event.deleted_at && event.name) nomListe = event.name;
+      else return repli; // liste inexistante ou supprimée → vignette générique
+    }
+
+    let prenom: string | null = null;
+    if (prenomRes.ok) {
+      const data = await prenomRes.json();
+      prenom = typeof data === "string" ? data.trim() || null : null;
+    }
+
+    return { nomListe, prenom };
+  } catch {
+    return repli;
+  }
+}
 
 export default async function Image({
   params,
@@ -15,30 +69,7 @@ export default async function Image({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-
-  let nomListe = "Une liste de cadeaux";
-  let prenom: string | null = null;
-  try {
-    const supabase = await createClient();
-    const { data: event } = await supabase
-      .from("events")
-      .select("name, organizer_id, deleted_at")
-      .eq("slug", slug)
-      .single();
-    if (event && !event.deleted_at) {
-      nomListe = event.name;
-      // RPC security definer : first_name n'est pas lisible par anon en
-      // direct sur profiles (voir migration 0023) — et le robot d'aperçu de
-      // Facebook/WhatsApp est justement anonyme.
-      const { data: prenomBrut } = await supabase.rpc(
-        "get_list_organizer_first_name",
-        { p_slug: slug },
-      );
-      prenom = typeof prenomBrut === "string" ? prenomBrut.trim() || null : null;
-    }
-  } catch {
-    // Vignette générique en repli — jamais d'erreur qui casserait l'aperçu.
-  }
+  const { nomListe, prenom } = await chargerInfosListe(slug);
 
   return new ImageResponse(
     (
@@ -92,11 +123,11 @@ export default async function Image({
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
-          {prenom && (
+          {prenom ? (
             <div style={{ fontSize: "30px", fontWeight: 600, color: "#E8734A" }}>
-              La liste de {prenom}
+              {`La liste de ${prenom}`}
             </div>
-          )}
+          ) : null}
           <div
             style={{
               fontSize: "68px",
