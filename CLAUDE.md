@@ -2171,6 +2171,10 @@ bloqué par leur module anti-SSRF). Étapes 1-2 du plan d'audit implémentées :
 - **`lib/site-url.ts`** : le repli de `SITE_URL` passe de `https://kdovie.vercel.app` à
   `https://kdovie.com` (le domaine est en ligne). `NEXT_PUBLIC_SITE_URL` reste prioritaire —
   **à poser sur l'environnement dev** si les emails de test ne doivent pas pointer kdovie.com.
+  **4 septembre** : `SITE_URL` normalise désormais une valeur sans protocole
+  (`kdovie-git-dev-…vercel.app`) ou avec slash final — sinon `new URL(SITE_URL)` dans
+  `metadataBase` faisait planter le build de la preview (`ERR_INVALID_URL` sur `/_not-found`).
+  `NEXT_PUBLIC_SITE_URL` sur l'env preview Vercel était posée sans `https://`.
 - **`lib/seo.ts`** (nouveau) : `DEFAULT_TITLE`, `DEFAULT_DESCRIPTION`, `SITE_NAME`, et le helper
   `pageMetadata({ title?, description, path, noindex? })` qui produit title + description +
   `alternates.canonical` + `openGraph` cohérents. `noindex` ⇒ `robots: { index: false, follow: true }`.
