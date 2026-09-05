@@ -2354,13 +2354,15 @@ reflète l'état au moment de l'écriture, pas l'état réel actuel**. Cas concr
 - **`0008_profiles_public_display_name.sql` : semble ne jamais avoir été appliquée en prod**
   (constaté via l'accès anon nul à `profiles`, voir "Fondations SEO" > bug prénom). Sans
   conséquence — `display_name` n'est plus lu publiquement.
-- **`0007_gift_items_source_url_optional.sql` : jamais appliquée en prod, découverte le 5 septembre
-  2026** en marge du chantier extension navigateur (voir cette section plus bas) — contrairement à
-  ce qu'affirmait à tort la note "appliquée depuis" ajoutée sur cette migration dans l'historique
-  ci-dessous. **Conséquence réelle, pas juste théorique** : l'onglet "Saisie manuelle" du formulaire
-  "Ajouter un cadeau" est cassé en prod (`gift_items.source_url` toujours `not null`, tout ajout
-  sans lien produit échoue). À appliquer par l'utilisateur : `alter table public.gift_items alter
-  column source_url drop not null;`
+- **`0007_gift_items_source_url_optional.sql` : jamais appliquée en prod jusqu'au 5 septembre
+  2026**, découverte en marge du chantier extension navigateur (voir cette section plus bas) —
+  contrairement à ce qu'affirmait à tort la note "appliquée depuis" ajoutée sur cette migration
+  dans l'historique ci-dessous. **Conséquence réelle, pas juste théorique** : l'onglet "Saisie
+  manuelle" du formulaire "Ajouter un cadeau" était cassé en prod (`gift_items.source_url` toujours
+  `not null`, tout ajout sans lien produit échouait). **Appliquée par l'utilisateur le 5 septembre
+  2026 sur dev et prod, re-vérifiée** : un insert de test sans `source_url` échoue désormais sur la
+  contrainte de clé étrangère (événement inexistant), plus sur `source_url` — la colonne est bien
+  nullable.
 
 **Migrations confirmées appliquées dev + prod à ce jour** (vérifiées par requête REST directe) :
 au moins `0009` → `0023` (colonnes `fee_mode`, `deleted_at`, `is_admin`, `is_priority`,
@@ -2573,14 +2575,15 @@ reste le test en conditions réelles (vrai Chrome) avant publication.**
   entièrement autonome, toutes les fonctions utilitaires imbriquées dedans, requis pour
   l'injection via `chrome.scripting.executeScript({ func })`). `extension/README.md` : instructions
   d'installation en mode développeur + détail de ce qui a été vérifié.
-- **Bug de production sans rapport découvert en testant** : `gift_items.source_url` a toujours sa
-  contrainte `not null` d'origine sur prod — **la migration `0007_gift_items_source_url_optional.sql`
-  n'a jamais été appliquée**, malgré ce que laissait penser sa mention dans l'historique de ce
-  fichier ("appliquée depuis" écrit à tort avant cette découverte, voir "État des migrations
-  Supabase — historique non fiable"). Concrètement : **l'onglet "Saisie manuelle" du formulaire
-  "Ajouter un cadeau" est cassé en prod aujourd'hui** (`source_url` vide → violation de contrainte
-  → "Cet article est verrouillé..." ou erreur généri­que selon le point d'entrée). Migration à
-  appliquer par l'utilisateur (SQL Editor, prod **et** dev) :
+- **Bug de production sans rapport découvert en testant, corrigé le jour même** :
+  `gift_items.source_url` avait toujours sa contrainte `not null` d'origine sur prod — **la
+  migration `0007_gift_items_source_url_optional.sql` n'avait jamais été appliquée**, malgré ce que
+  laissait penser sa mention dans l'historique de ce fichier ("appliquée depuis" écrit à tort avant
+  cette découverte, voir "État des migrations Supabase — historique non fiable"). Concrètement :
+  **l'onglet "Saisie manuelle" du formulaire "Ajouter un cadeau" était cassé en prod** (`source_url`
+  vide → violation de contrainte). **Appliquée par l'utilisateur le 5 septembre 2026 sur dev et
+  prod**, re-vérifiée (insert de test sans `source_url` échoue désormais sur la FK, plus sur la
+  contrainte `not null`) :
   ```sql
   alter table public.gift_items alter column source_url drop not null;
   ```
@@ -2693,7 +2696,7 @@ Page publique `/liste/[slug]` refaite depuis la maquette Claude Design `Liste pu
 Page de gestion `/compte/evenements/[slug]` refaite depuis la maquette Claude Design `Gestion liste.dc.html`, et modification/suppression des articles (voir section "Gestion des articles par l'organisateur" ci-dessus) développées en même temps :
 - Migration `0006_gift_items_lock_edit_delete.sql` écrite (à appliquer manuellement via le SQL Editor Supabase, comme les précédentes) : étend le trigger `protect_gift_item_mode` pour bloquer aussi title/price_cents/image_url une fois `status != 'disponible'`, et ajoute un trigger `gift_items_protect_delete` équivalent pour le delete.
 - Nouvelles actions serveur `updateGiftItem`/`deleteGiftItem`.
-- `AjouterArticleForm` réorganisé en deux onglets (Par lien / Saisie manuelle). Mise à jour du 17 août 2026 (décision utilisateur) : le lien produit n'est plus demandé en saisie manuelle — migration `0007_gift_items_source_url_optional.sql` rend `gift_items.source_url` nullable, il reste obligatoire uniquement dans l'onglet "Par lien". Dans l'onglet "Par lien", les champs titre/prix/image/précisions n'apparaissent qu'après avoir cliqué sur "Récupérer le cadeau" (avant, ils étaient visibles d'emblée dans les deux onglets). **Correction du 5 septembre 2026 : contrairement à ce qu'affirmait cette ligne, `0007` n'a en réalité jamais été appliquée en prod** — découvert en marge du chantier extension navigateur (voir cette section plus bas), qui a besoin d'insérer sans `source_url`. L'onglet "Saisie manuelle" est donc cassé en prod depuis le début, personne ne s'en était rendu compte. Migration à appliquer par l'utilisateur.
+- `AjouterArticleForm` réorganisé en deux onglets (Par lien / Saisie manuelle). Mise à jour du 17 août 2026 (décision utilisateur) : le lien produit n'est plus demandé en saisie manuelle — migration `0007_gift_items_source_url_optional.sql` rend `gift_items.source_url` nullable, il reste obligatoire uniquement dans l'onglet "Par lien". Dans l'onglet "Par lien", les champs titre/prix/image/précisions n'apparaissent qu'après avoir cliqué sur "Récupérer le cadeau" (avant, ils étaient visibles d'emblée dans les deux onglets). **Correction du 5 septembre 2026 : contrairement à ce qu'affirmait cette ligne, `0007` n'avait en réalité jamais été appliquée en prod** — découvert en marge du chantier extension navigateur (voir cette section plus bas), qui a besoin d'insérer sans `source_url`. L'onglet "Saisie manuelle" était donc cassé en prod depuis le début, personne ne s'en était rendu compte. **Appliquée par l'utilisateur le jour même sur dev et prod, re-vérifiée.**
 - Nouveau composant `GiftItemCard` : lecture / édition / confirmation de suppression, verrouillage en lecture seule avec le nom de l'invité qui a réservé (via `reservations.guest_name`) une fois `status != 'disponible'`. Le sélecteur de mode (`ModeSelect`) reste séparé de l'édition, comme précisé dans le cadrage.
 - Point laissé de côté délibérément : le bouton "Réglages de la liste" de la maquette n'a pas de comportement défini (ni dans le mock, ni ailleurs dans le produit) — non repris.
 
