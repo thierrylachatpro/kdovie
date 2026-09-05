@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createGiftItemCore } from "@/lib/create-gift-item";
 
 export async function createGiftItem(formData: FormData) {
   const supabase = await createClient();
@@ -23,41 +24,27 @@ export async function createGiftItem(formData: FormData) {
   const description = formData.get("description")?.toString().trim() || null;
   const priceRaw = formData.get("price")?.toString().trim();
 
-  if (!title || !eventId) {
-    redirect(`/compte/evenements/${slug}?erreur=champs_invalides`);
-  }
-
   let priceCents: number | null = null;
   if (priceRaw) {
     const value = parseFloat(priceRaw.replace(",", "."));
     priceCents = Number.isFinite(value) && value >= 0 ? Math.round(value * 100) : null;
   }
 
-  // Un nouveau cadeau se place en tête de liste (l'organisateur vient de
-  // l'ajouter, il veut le voir) — l'ordre étant désormais entièrement manuel,
-  // voir CLAUDE.md > "Glisser-déposer pour réordonner les cadeaux".
-  const { data: premier } = await supabase
-    .from("gift_items")
-    .select("position")
-    .eq("event_id", eventId)
-    .order("position", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-  const position = premier ? premier.position - 1 : 0;
-
-  const { error } = await supabase.from("gift_items").insert({
-    event_id: eventId,
+  // Cœur (calcul de position + insertion) partagé avec la route API de
+  // l'extension navigateur — voir CLAUDE.md > "Extension navigateur Chrome"
+  // et lib/create-gift-item.ts.
+  const { error } = await createGiftItemCore(supabase, {
+    eventId,
     title,
-    original_title: originalTitle,
-    source_url: sourceUrl,
-    image_url: imageUrl,
+    originalTitle,
+    sourceUrl,
+    imageUrl,
     description,
-    price_cents: priceCents,
-    position,
+    priceCents,
   });
 
   if (error) {
-    redirect(`/compte/evenements/${slug}?erreur=erreur_article`);
+    redirect(`/compte/evenements/${slug}?erreur=${error}`);
   }
 
   revalidatePath(`/compte/evenements/${slug}`);

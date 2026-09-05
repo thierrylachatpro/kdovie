@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Kdovie</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <header class="entete">
+      <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="logo">
+        <rect x="10" y="24" width="36" height="22" rx="2" fill="#E8734A" />
+        <rect x="7" y="16" width="42" height="10" rx="2" fill="#F5B942" />
+        <rect x="25" y="16" width="6" height="30" fill="#FFF8F0" />
+        <path d="M28 16C28 16 20 16 17 12C15 9.5 17 6 20 6C24 6 28 12 28 16Z" fill="#8BA888" />
+        <path d="M28 16C28 16 36 16 39 12C41 9.5 39 6 36 6C32 6 28 12 28 16Z" fill="#8BA888" />
+      </svg>
+      <span class="marque">kdovie</span>
+    </header>
+
+    <main id="etats">
+      <!-- Chargement -->
+      <section id="etat-chargement" class="etat">
+        <p class="texte-attente">Un instant…</p>
+      </section>
+
+      <!-- Non connecté -->
+      <section id="etat-non-connecte" class="etat" hidden>
+        <p>Connectez-vous d'abord sur Kdovie pour ajouter un cadeau à une de vos listes.</p>
+        <a class="bouton bouton-corail" id="lien-connexion" href="https://kdovie.com/connexion" target="_blank" rel="noopener noreferrer">
+          Se connecter sur kdovie.com
+        </a>
+      </section>
+
+      <!-- Formulaire -->
+      <section id="etat-formulaire" class="etat" hidden>
+        <div class="apercu">
+          <img id="apercu-image" alt="" hidden />
+          <div id="apercu-image-vide" class="apercu-image-vide">🎁</div>
+        </div>
+
+        <label class="champ">
+          <span>Titre</span>
+          <input type="text" id="champ-titre" placeholder="Nom du cadeau" />
+        </label>
+
+        <label class="champ">
+          <span>Prix</span>
+          <div class="champ-prix">
+            <input type="text" id="champ-prix" inputmode="decimal" placeholder="0,00" />
+            <span class="suffixe">€</span>
+          </div>
+        </label>
+
+        <label class="champ">
+          <span>Ajouter à</span>
+          <select id="champ-liste"></select>
+        </label>
+
+        <p id="erreur-formulaire" class="erreur" hidden></p>
+
+        <button type="button" id="bouton-ajouter" class="bouton bouton-corail bouton-pleine-largeur">
+          Ajouter à ma liste
+        </button>
+      </section>
+
+      <!-- Succès -->
+      <section id="etat-succes" class="etat" hidden>
+        <div class="icone-succes">🎉</div>
+        <p>Cadeau ajouté à votre liste !</p>
+        <a class="bouton bouton-corail" id="lien-voir-liste" href="#" target="_blank" rel="noopener noreferrer">
+          Voir dans Kdovie
+        </a>
+      </section>
+
+      <!-- Erreur bloquante (ex. aucune liste) -->
+      <section id="etat-erreur" class="etat" hidden>
+        <p id="texte-erreur-bloquante"></p>
+        <a class="bouton bouton-corail" href="https://kdovie.com/compte" target="_blank" rel="noopener noreferrer">
+          Ouvrir Kdovie
+        </a>
+      </section>
+    </main>
+
+    <script src="popup.js" type="module"></script>
+  </body>
+</html>

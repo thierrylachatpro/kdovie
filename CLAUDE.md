@@ -29,7 +29,9 @@ Différenciation vs le marché français existant (Mes Envies, Milirose, iKadoo,
 - Confidentialité : l'adresse du bénéficiaire n'est jamais transmise à un vendeur tiers
 
 **Hors périmètre v1 (backlog v2, ne pas développer maintenant) :**
-IA/suggestions, marketplace artisanale, app mobile native, offre B2B/comités d'entreprise, cercle social persistant entre événements, suivi de remerciements automatisé, seconde main, alertes de prix, extension navigateur dédiée.
+IA/suggestions, marketplace artisanale, app mobile native, offre B2B/comités d'entreprise, cercle social persistant entre événements, suivi de remerciements automatisé, seconde main, alertes de prix.
+
+~~Extension navigateur dédiée~~ **greenlightée le 5 septembre 2026** — voir "Extension navigateur Chrome — ajouter un cadeau depuis n'importe quel site" plus bas, ce n'est plus du backlog v2.
 
 ## Règle de gestion : réservation vs cotisation par article
 
@@ -211,7 +213,9 @@ Décision retenue à la place : passer par ScrapingAnt (scrapingant.com), qui pr
 
 ## Cagnotte et frais (tâche #18)
 
-Compte Stripe créé par l'utilisateur, Connect activé en mode **marketplace** (le modèle Kdovie correspond à ce cas Stripe : la plateforme collecte puis reverse à plusieurs bénéficiaires organisateurs, avec commission au passage — pas le cas "plateforme SaaS" où chaque compte connecté encaisse pour son propre compte). Clés de test posées en variables d'environnement Vercel : `STRIPE_SECRET_KEY` (`sk_test_...`) et `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` (`pk_test_...`, préfixe obligatoire pour l'exposition côté navigateur). Rester en mode test tant que le statut juridique (tâche #8, toujours en cours) n'est pas réglé — ne pas basculer en clés live avant.
+Compte Stripe créé par l'utilisateur, Connect activé en mode **marketplace** (le modèle Kdovie correspond à ce cas Stripe : la plateforme collecte puis reverse à plusieurs bénéficiaires organisateurs, avec commission au passage — pas le cas "plateforme SaaS" où chaque compte connecté encaisse pour son propre compte).
+
+**Mode live depuis le 31 août 2026** — met à jour ce paragraphe, écrit à l'origine en mode test uniquement, ne pas se fier à une version antérieure de ce fichier si elle traîne ailleurs. Compte Stripe Prowebia activé en production (accompagné pas à pas dans la conversation de cadrage), clés `STRIPE_SECRET_KEY`/`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` posées sur Vercel en **deux entrées séparées par variable** : scope **Production** = valeurs `sk_live_.../pk_live_...`, scope **Preview** = valeurs `sk_test_.../pk_test_...` restées inchangées (même schéma de séparation que les variables Supabase, voir "Environnements dev/prod séparés" plus bas — la branche `dev`/les previews restent en clés de test, jamais mélangées aux vraies transactions). Nouveau webhook live créé (Stripe Dashboard > Workbench > Webhooks, périmètre "Votre compte", événement `checkout.session.completed`, URL `https://kdovie.com/api/webhooks/stripe`), `STRIPE_WEBHOOK_SECRET` posé sur Vercel en Production. **Décision assumée par l'utilisateur : la bascule en live n'a pas attendu le règlement du statut juridique** (objet social/RC Pro/CGV, voir "Pages légales" plus bas — toujours ouverts à ce jour) ; le risque business déjà documenté là-bas reste entier, c'est un choix de l'utilisateur en connaissance de cause, pas une résolution du sujet juridique. **Reste à faire, pas encore fait** : une vraie petite transaction test en conditions live pour valider toute la chaîne (Checkout → webhook → `confirm_contribution` → réception par le compte connecté) avant une annonce publique large — voir `checklist-mise-en-production.md` à la racine du repo, qui garde le détail pas-à-pas de cette bascule.
 
 - Kdovie prend une commission de **1%** sur chaque contribution, prélevée via `application_fee_amount` de Stripe Connect (versée directement sur le compte Stripe de Kdovie, sans jamais transiter par un compte intermédiaire côté app — cohérent avec la contrainte ACPR déjà posée).
 - Les frais de traitement Stripe (1,5% + 0,25€ pour une carte UE, 2,5% + 0,25€ hors UE) ne sont pas absorbés par Kdovie.
@@ -342,8 +346,9 @@ redébattre :
 la création du compte au sens strict — l'auth.users est créé dès la demande du lien magique,
 avant toute vérification que l'email est bien le sien).
 
-- **Migration `0018_profiles_welcome_email_sent_at.sql`** (écrite, pas encore appliquée à la base
-  distante) : nouvelle colonne `profiles.welcome_email_sent_at` (timestamptz, nullable). Choix
+- **Migration `0018_profiles_welcome_email_sent_at.sql`** (écrite ; **appliquée depuis**, voir
+  "État des migrations Supabase — historique non fiable" plus bas, confirmée dans la plage
+  `0009` → `0023`) : nouvelle colonne `profiles.welcome_email_sent_at` (timestamptz, nullable). Choix
   délibéré plutôt qu'une heuristique sur `created_at`/`last_sign_in_at` du user Supabase (peu
   fiable selon le délai entre la demande du lien et son clic, et le Send Email Hook existant —
   qui intercepte déjà le lien magique lui-même — ne se déclenche qu'à la demande du lien, pas à
@@ -361,9 +366,9 @@ avant toute vérification que l'email est bien le sien).
   rappel que les proches n'ont pas besoin de compte, et **le rappel que les réservations restent
   floutées** (cohérent avec la décision ci-dessus d'avoir écarté les notifications immédiates) —
   puis un bouton vers la création de la première liste et un renvoi vers `/aide`.
-- **Testé** : `tsc`/`lint` propres. **Pas testé en conditions réelles** : bloqué tant que la
-  migration `0018` n'est pas appliquée à la base distante (comme les migrations précédentes en
-  attente).
+- **Testé** : `tsc`/`lint` propres à l'écriture. Migration `0018` appliquée depuis (voir "État des
+  migrations Supabase" plus bas) — le flux de bienvenue en conditions réelles n'a pas été revérifié
+  spécifiquement après coup, mais plus rien ne le bloque techniquement.
 
 ## Ajustements listes publique et gestion (18 août 2026)
 
@@ -411,7 +416,7 @@ Constat : certains sites (Amazon en particulier, mais pas uniquement) renvoient 
 - **Pas rétroactif** : ne s'applique qu'aux nouveaux articles ajoutés à partir de maintenant. Les articles déjà en base ne sont pas retouchés — l'organisateur peut toujours les raccourcir à la main via l'édition existante s'il le souhaite.
 - Le titre raccourci reste modifiable manuellement comme aujourd'hui (`GiftItemCard`) — ce raccourcissement automatique est un point de départ, pas une valeur figée.
 
-**Statut (18 août 2026)** : les deux morceaux sont développés. Composant "voir plus" — `components/gift-items/TitreArticle.tsx` (bouton natif, `aria-expanded`, libellé accessible explicite, jamais imbriqué dans le `<a>` du lien produit), posé sur `GiftItemCard` et la carte de `ListePubliqueClient`. Heuristique de raccourcissement — `shortenTitle` dans `lib/scrape-article.ts` (fonction pure, testée unitairement sur des titres réels de la base : Echo Show 5, Fire TV Stick, aspirateur — coupe au séparateur ou troncature au mot le plus proche selon le cas), appliquée dans `scrape-action.ts` juste après `parseArticleMetadata`, propagée via un champ caché `original_title` dans `AjouterArticleForm` (vidé si l'organisateur bascule sur l'onglet "Saisie manuelle") jusqu'à `createGiftItem`. Migration `0013_gift_items_original_title.sql` écrite, pas encore appliquée à la base distante — le raccourcissement automatique et le bouton "voir plus" n'auront donc d'effet visible qu'une fois la migration passée.
+**Statut (18 août 2026)** : les deux morceaux sont développés. Composant "voir plus" — `components/gift-items/TitreArticle.tsx` (bouton natif, `aria-expanded`, libellé accessible explicite, jamais imbriqué dans le `<a>` du lien produit), posé sur `GiftItemCard` et la carte de `ListePubliqueClient`. Heuristique de raccourcissement — `shortenTitle` dans `lib/scrape-article.ts` (fonction pure, testée unitairement sur des titres réels de la base : Echo Show 5, Fire TV Stick, aspirateur — coupe au séparateur ou troncature au mot le plus proche selon le cas), appliquée dans `scrape-action.ts` juste après `parseArticleMetadata`, propagée via un champ caché `original_title` dans `AjouterArticleForm` (vidé si l'organisateur bascule sur l'onglet "Saisie manuelle") jusqu'à `createGiftItem`. Migration `0013_gift_items_original_title.sql` écrite ; **confirmée appliquée dev + prod depuis** (voir "État des migrations Supabase — historique non fiable" plus bas, plage `0009` → `0023`) — le raccourcissement automatique et le bouton "voir plus" ont donc bien leur effet visible en production.
 
 ## Bloc "Ma cagnotte" sur /compte/profil (18 août 2026)
 
@@ -506,7 +511,7 @@ Reporté, à ne pas commencer maintenant — noté suite à une discussion sur l
 Extension du dashboard admin existant (`/admin`, listes supprimées) avec un CRUD organisateurs, sur demande explicite de l'utilisateur. Deux points tranchés avec lui avant l'implémentation, à ne pas redébattre :
 
 - **Pas de création de compte depuis ce dashboard.** Un organisateur se crée toujours lui-même via le lien magique, comme aujourd'hui.
-- **Pas de suppression réelle depuis ce dashboard.** À la place, une désactivation réversible (`profiles.disabled`, migration `0019_profiles_disabled.sql`, pas encore appliquée à la base distante) qui bloque la connexion sans rien supprimer. `cleanup-organizer.mjs` reste le seul moyen de suppression réelle et irréversible, réservé à un usage manuel en ligne de commande.
+- **Pas de suppression réelle depuis ce dashboard.** À la place, une désactivation réversible (`profiles.disabled`, migration `0019_profiles_disabled.sql`, **appliquée depuis sur les deux bases**, voir "Statut migration" plus bas dans cette même section) qui bloque la connexion sans rien supprimer. `cleanup-organizer.mjs` reste le seul moyen de suppression réelle et irréversible, réservé à un usage manuel en ligne de commande.
 
 **Implémentation** :
 - **`app/admin/organisateurs/page.tsx`** : même garde-fou que `/admin` (`isCurrentUserAdmin()`, 404 sinon). Liste tous les `profiles` (via `service_role`) croisés avec `supabase.auth.admin.listUsers({ perPage: 1000 })` pour récupérer email et dernière connexion (absents de `profiles`, uniquement dans `auth.users`) — une seule page de 1000 comptes maximum pour cette première version, pas de pagination : à revoir si le nombre d'organisateurs dépasse ce seuil un jour, pas un problème à l'échelle actuelle (bêta fermée).
@@ -694,6 +699,7 @@ Objectif : rendre ce manque visible à l'organisateur avant qu'un invité ne s'y
 - **Déclencheur affiné une seconde fois, sur retour d'usage (20 août 2026)** : pour le mode `auto` ("Cotisation et Réservation"), un article `status = 'disponible'` ne compte plus — tant qu'aucun invité n'a agi, il pourrait tout aussi bien être réservé directement, aucun risque avéré à ce stade. Ne compte désormais que si un invité a déjà choisi de cotiser (`status = 'cagnotte'`) ; `status = 'reserve'` reste exclu comme avant (option cotiser masquée pour les invités suivants une fois l'article verrouillé en réservation, voir "Règle de gestion : réservation vs cotisation par article"). Pour `cotisation_obligatoire` en revanche, le risque existe dès que l'article existe sur une liste ouverte, quel que soit son statut : c'est la seule action possible pour l'invité, pas d'alternative "réservation" pour absorber son intérêt en attendant. Logique vérifiée par script sur 6 cas (voir historique de session).
 - Bandeau placé juste sous le titre "Bonjour {prénom}", avant le reste du tableau de bord — mêmes couleurs que la carte "Ajouter un cadeau en un lien" déjà sur cette page (`bg-[#F5E3C9]`), cohérent avec le ton chaleureux demandé.
 - **Testé** : `tsc`/`lint`/`build` propres. Rendu des deux formulations (`"aucun"`/`"en_attente"`) vérifié par capture d'écran avec des données bouchon. **Pas testé en conditions réelles** : nécessiterait un compte organisateur avec un article en mode cotisation sur une liste ouverte et un statut Stripe non actif — pas de compte de test dans cet état actuellement (voir CRUD organisateurs, comptes de test précédents supprimés au fil de la session).
+- **Retouche du 31 août 2026 (`commit aba78c6`)** : le bouton du bandeau ("Activez votre cagnotte") pointe désormais vers `/compte/profil#cagnotte` (ancre posée sur `StripeStatusCard`) au lieu du haut de la page — défilement natif du navigateur, aucun JS ajouté.
 
 ## Onboarding Stripe Connect embarqué, sans quitter Kdovie (20 août 2026)
 
@@ -1438,8 +1444,8 @@ rayon de distance, tri des résultats par pertinence au-delà d'une correspondan
   filtre elle-même, indépendamment de toute policy RLS — aucune nouvelle colonne accordée à `anon`
   sur `profiles`, le risque de fuite est structurellement écarté plutôt que dépendant d'une
   combinaison de policies correcte.
-- **Migration `0021_profiles_search_fields.sql`** (écrite, pas encore appliquée à aucune des deux
-  bases) : `profiles.first_name`/`last_name`/`postal_code`/`city`/`searchable` (`searchable` défaut
+- **Migration `0021_profiles_search_fields.sql`** (écrite ; **appliquée depuis sur les deux
+  bases**, voir "Statut" plus bas dans cette même section) : `profiles.first_name`/`last_name`/`postal_code`/`city`/`searchable` (`searchable` défaut
   `false`), fonction `search_organizers(p_query, p_city)`.
 - **`components/ui/RechercheVille.tsx`** : composant partagé code postal + ville, réutilisé sur
   `/compte/profil` (`IdentiteCard`) et `/recherche`. Champs cachés pour un `<form>` natif (comme
@@ -1768,6 +1774,9 @@ périmètre de ce que Claude Code peut faire (pas d'accès à ce compte Google).
   vérifiée correcte à la lecture, mais le vrai tag `GTM-PT2M3BJZ` n'a pas été exercé en conditions
   réelles. Le tag GA4 à configurer dans l'interface Google Tag Manager (hors de ce que Claude Code
   peut faire) reste à vérifier par l'utilisateur.
+- **Reformulation du texte (31 août 2026, `commit 1d4b8b5`)** : texte du bandeau retouché sur retour
+  d'usage, contenu exact non re-détaillé ici — voir `components/ui/BandeauCookies.tsx` directement,
+  le comportement (symétrie des boutons, stockage, réouverture) est inchangé.
 
 ## Politique de confidentialité RGPD (25 août 2026)
 
@@ -2277,10 +2286,11 @@ de la migration, sans régression.
    Supabase directs en clé anon, `AbortSignal.timeout(3500)`, repli vignette générique sur toute
    erreur. `export const runtime = "nodejs"` explicite sur les deux routes OG.
 
-**Reste à faire (hors étapes 1-2)** : soumettre le sitemap dans Search Console (déjà vérifié par
-DNS TXT) ; mesures CWV terrain via `/seo google` une fois du trafic réel + une clé API Google
-posée ; plan éditorial via `/seo cluster` (M5) ; police custom sur les images OG si on veut la vraie
-typo Quicksand ; éventuellement CSP + Permissions-Policy (M1 étendu, à tester contre Stripe).
+**Reste à faire (hors étapes 1-2)** : ~~soumettre le sitemap dans Search Console~~ **fait (4
+septembre 2026)**, sitemap déposé par l'utilisateur (Search Console déjà vérifié par DNS TXT) ;
+mesures CWV terrain via `/seo google` une fois du trafic réel + une clé API Google posée ; plan
+éditorial via `/seo cluster` (M5) ; police custom sur les images OG si on veut la vraie typo
+Quicksand ; éventuellement CSP + Permissions-Policy (M1 étendu, à tester contre Stripe).
 
 ## Menu hamburger mobile pour la nav anonyme (4 septembre 2026)
 
@@ -2344,6 +2354,13 @@ reflète l'état au moment de l'écriture, pas l'état réel actuel**. Cas concr
 - **`0008_profiles_public_display_name.sql` : semble ne jamais avoir été appliquée en prod**
   (constaté via l'accès anon nul à `profiles`, voir "Fondations SEO" > bug prénom). Sans
   conséquence — `display_name` n'est plus lu publiquement.
+- **`0007_gift_items_source_url_optional.sql` : jamais appliquée en prod, découverte le 5 septembre
+  2026** en marge du chantier extension navigateur (voir cette section plus bas) — contrairement à
+  ce qu'affirmait à tort la note "appliquée depuis" ajoutée sur cette migration dans l'historique
+  ci-dessous. **Conséquence réelle, pas juste théorique** : l'onglet "Saisie manuelle" du formulaire
+  "Ajouter un cadeau" est cassé en prod (`gift_items.source_url` toujours `not null`, tout ajout
+  sans lien produit échoue). À appliquer par l'utilisateur : `alter table public.gift_items alter
+  column source_url drop not null;`
 
 **Migrations confirmées appliquées dev + prod à ce jour** (vérifiées par requête REST directe) :
 au moins `0009` → `0023` (colonnes `fee_mode`, `deleted_at`, `is_admin`, `is_priority`,
@@ -2359,6 +2376,242 @@ le monde, plus la page « bientôt disponible ». Les sections "Page d'attente e
 place et réactivable depuis `/admin` ; seul l'état courant a changé. Conséquence directe : tout
 merge sur `main` est immédiatement public, et le travail SEO (crawl Google, aperçus de partage)
 compte pour de vrai.
+
+## Extension navigateur Chrome — ajouter un cadeau depuis n'importe quel site (5 septembre 2026)
+
+Chantier greenlighté par l'utilisateur — **supersède la décision "hors périmètre v1"** de la
+section "Périmètre fonctionnel du MVP" en tête de fichier, qui listait "extension navigateur
+dédiée" comme backlog v2 (ligne mise à jour en conséquence). Décisions tranchées avec
+l'utilisateur, à ne pas redébattre :
+
+- **Extraction en lisant la page déjà ouverte (DOM), pas un nouvel appel serveur.** L'extension
+  tourne dans l'onglet actif de l'organisateur et lit le HTML déjà rendu par le navigateur (après
+  exécution du JavaScript du site) — contourne structurellement les blocages anti-bot qui
+  touchent aujourd'hui le pipeline serveur (Cloudflare/DataDome sur Décathlon, Sephora, Maisons du
+  Monde ; rendu 100 % client sur Fnac — voir "Fiabilisation du scraping multi-marchands"). Le
+  pipeline serveur existant (ScrapingAnt → Bright Data pour Amazon → fetch direct → saisie
+  manuelle) reste strictement inchangé pour le flux "coller une URL" déjà en place sur
+  `/compte/evenements/[slug]` — l'extension est un second canal d'ajout, pas un remplacement.
+- **Chrome uniquement (Manifest V3)** pour cette première version. Edge/Brave/Opera (même base
+  Chromium) en bénéficient gratuitement sans travail supplémentaire ; Firefox explicitement hors
+  périmètre pour l'instant (API WebExtensions différentes, pas à anticiper).
+- **Authentification par session partagée avec kdovie.com** : pas de connexion séparée dans
+  l'extension. Si l'organisateur est déjà connecté sur kdovie.com dans le même navigateur,
+  l'extension réutilise ce cookie de session (Supabase Auth) pour ses appels à l'API Kdovie. Si
+  aucune session active n'est détectée, le popup affiche simplement une invitation à se connecter
+  sur kdovie.com d'abord — pas de flux de connexion dupliqué à construire dans l'extension.
+
+### Parcours utilisateur
+
+1. L'organisateur navigue sur un site marchand quelconque, tombe sur un produit qu'il veut ajouter
+   à une de ses listes.
+2. Il clique sur l'icône de l'extension dans la barre d'outils Chrome.
+3. Le popup affiche un aperçu extrait de la page (titre, prix, image), **toujours modifiable avant
+   envoi** — même principe que le reste du produit : jamais de valeur inventée, l'organisateur
+   corrige à la main si l'extraction est imparfaite.
+4. Un sélecteur déroulant liste ses listes existantes (brouillon et ouvertes confondues,
+   `deleted_at is null` — aucune restriction de statut, cohérent avec le comportement déjà en
+   place sur la page de gestion). L'organisateur choisit la liste cible.
+5. Bouton "Ajouter à ma liste" → confirmation dans le popup + lien "Voir dans Kdovie" vers la page
+   de gestion de la liste concernée.
+
+### Extraction côté extension
+
+Un content script (ou une injection à la demande via `chrome.scripting.executeScript` au clic sur
+l'icône, voir "Permissions" ci-dessous) relit la page avec les APIs DOM natives du navigateur, en
+reprenant le même ordre de priorité déjà documenté dans "Scraping des métadonnées d'article" —
+mais implémenté nativement (`document.querySelector`, pas `cheerio`, puisqu'on lit un DOM déjà
+vivant, pas du HTML brut) :
+
+1. JSON-LD `Product`/`Offer` (`<script type="application/ld+json">`, y compris les nœuds imbriqués
+   sous `mainEntity`, comme déjà géré côté serveur).
+2. Balises Open Graph (`og:title`, `og:image`, `og:price:amount`/`product:price:amount`).
+3. Microdonnées schema.org (`itemprop="name"/"image"/"price"`).
+4. Repli générique sur des sélecteurs de prix visibles (même liste que
+   `GENERIC_PRICE_SELECTORS` documentée plus haut), et repli Amazon spécifique si le domaine est
+   `amazon.fr`.
+5. `<title>` en dernier recours pour le titre seul.
+6. Si aucun prix trouvé : champ laissé vide, jamais de prix inventé — comme partout ailleurs dans
+   l'app.
+
+**Ne pas dupliquer aveuglément `lib/scrape-article.ts`** (fonction cheerio, runtime Node) — écrire
+un parseur équivalent mais natif DOM dans le code de l'extension, les deux partageant la même
+logique de priorité documentée mais pas le même code (runtimes différents : cheerio côté serveur
+pour le flux "coller une URL", DOM natif côté extension). Garder les deux implémentations
+alignées manuellement si la logique évolue d'un côté.
+
+**Devise** : si un prix est trouvé mais que la devise détectée n'est pas EUR (rare sur un site
+`.fr`, mais possible), laisser le prix vide plutôt que de stocker un montant dans la mauvaise
+devise — même principe que le mapping Bright Data.
+
+**Lien affilié Amazon** : aucun changement — l'extension stocke `source_url` telle quelle (URL du
+produit, sans tag), le tag `AMAZON_ASSOCIATE_TAG` continue d'être appliqué à l'affichage côté
+serveur (`getAffiliateLink`, calculé à chaque rendu de `/liste/[slug]`), pas à l'ajout. Cohérent
+avec la note déjà actée dans "Liens d'affiliation" (rafraîchir plutôt que générer une fois).
+
+### Nouvelles routes API côté Kdovie (à construire)
+
+L'extension ne peut pas appeler une Server Action Next.js directement (cross-origin, pas de
+contexte de formulaire) — deux nouvelles Route Handlers, appelées en
+`fetch(..., { credentials: "include" })` depuis l'extension :
+
+- **`GET /api/extension/me`** : vérifie la session (même client Supabase serveur que le reste de
+  l'app), renvoie soit `{ connecte: false }` soit `{ connecte: true, listes: [{ id, slug, name,
+  status }] }` — la liste des événements de l'organisateur, `deleted_at is null`, triés par date
+  de création décroissante. Réutilise la même requête que `/compte` (dashboard), pas une nouvelle
+  logique de filtrage.
+- **`POST /api/extension/gift-items`** : crée l'article sur la liste choisie (`event_id`, `title`,
+  `price_cents`, `image_url`, `source_url`, `description` optionnelle). **Réutiliser la logique de
+  `createGiftItem`** (`app/compte/evenements/[slug]/gift-item-actions.ts`) plutôt que la réécrire —
+  factoriser le cœur de cette fonction (validation, insertion, `position = min - 1` pour placer en
+  tête, voir "Glisser-déposer pour réordonner les cadeaux") dans une fonction partagée appelée à la
+  fois par la Server Action existante et cette nouvelle route. Vérification `organizer_id =
+  user.id` sur la liste ciblée, comme partout ailleurs dans l'app — jamais de confiance aveugle
+  dans un `event_id` fourni par le client.
+
+**CORS/permissions à vérifier à l'implémentation, pas à supposer** : une extension Chrome avec
+`host_permissions` déclarant `https://kdovie.com/*` dans son manifest est en principe exemptée des
+restrictions CORS du navigateur pour ce domaine (comportement documenté des extensions Manifest
+V3) — mais à confirmer par un test réel plutôt qu'à assumer, avant de configurer quoi que ce soit
+côté `next.config.ts`/routes API. Si un souci CORS apparaît malgré tout, prévoir les en-têtes
+`Access-Control-Allow-Origin`/`Access-Control-Allow-Credentials` ciblant spécifiquement l'origine
+`chrome-extension://<id de l'extension publiée>` (pas un wildcard `*`, incompatible avec
+`credentials: "include"`).
+
+### Permissions du manifest (Manifest V3)
+
+- **`activeTab`** plutôt qu'un accès large `<all_urls>` permanent : l'extension n'agit que sur
+  l'onglet actif au moment où l'organisateur clique sur son icône — réduit la surface de
+  permission demandée à l'installation (meilleur pour la validation Chrome Web Store, plus
+  rassurant pour l'utilisateur), cohérent avec l'usage réel (jamais besoin de tourner en
+  arrière-plan sur tous les sites visités).
+- **`host_permissions` pour `https://kdovie.com/*`** uniquement (appels API + cookie de session),
+  pas plus large.
+- **`scripting`** pour injecter le parseur DOM à la demande dans l'onglet actif au clic sur
+  l'icône.
+- Pas de permission `cookies` explicite nécessaire si l'authentification passe par un simple
+  `fetch({ credentials: "include" })` depuis le background/popup vers `kdovie.com` — le navigateur
+  attache automatiquement le cookie de session existant sur les requêtes vers ce domaine, sans que
+  l'extension ait besoin de le lire elle-même.
+
+### Emplacement et outillage dans le repo
+
+- Nouveau dossier à la racine du repo, ex. `extension-chrome/` — à côté de l'app Next.js, pas
+  dedans. `package.json`/outillage séparés (pas de dépendance à Next.js, aucun conflit avec son
+  build) : TypeScript + un bundler léger (esbuild ou Vite en mode extension, à choisir à
+  l'implémentation) qui produit un dossier `dist/` avec le manifest, le popup (HTML/CSS/JS) et le
+  parseur DOM.
+- **Développement/test local, sans publication** : Chrome → `chrome://extensions` → mode
+  développeur activé → "Charger l'extension non empaquetée" en pointant sur
+  `extension-chrome/dist/` — permet de tester en conditions réelles contre de vrais sites
+  marchands et contre kdovie.com (ou l'alias `dev`, voir "Environnements dev/prod séparés", si on
+  veut tester sans toucher la prod) sans attendre une validation Chrome Web Store.
+- **Ne touche jamais au déploiement Vercel de l'app** : ce dossier n'est jamais buildé ni servi
+  par Next.js. Les deux seules parties qui vivent réellement dans l'app Next.js sont les
+  nouvelles routes API (`app/api/extension/me`, `app/api/extension/gift-items`) décrites plus
+  haut — elles se déploient normalement avec le reste du site à chaque push, comme n'importe
+  quelle autre route.
+- **Qui la code** : comme le reste du produit, Claude Code, dans une session ayant accès au repo
+  — cette section de CLAUDE.md est le brief à lui donner tel quel (ex. "Lis la section 'Extension
+  navigateur Chrome' de CLAUDE.md et commence l'implémentation"), pas un travail à faire depuis
+  Cowork.
+- **Publication réelle** : une fois testée en local, empaqueter (zip du dossier `dist/`) et
+  soumettre via le compte développeur Chrome Web Store de l'utilisateur (voir "Distribution"
+  ci-dessous) — étape manuelle côté utilisateur, pas automatisable depuis Claude Code.
+
+### Distribution
+
+Chrome Web Store — nécessite un compte développeur (frais unique, à créer par l'utilisateur,
+comme tous les comptes tiers du projet), icônes/captures d'écran, et une politique de
+confidentialité spécifique à l'extension : peut réutiliser `/politique-de-confidentialite`
+existante en y ajoutant un paragraphe dédié (données lues : contenu de la page active au moment
+du clic ; données envoyées : titre/prix/image/URL du produit vers l'API Kdovie, uniquement à
+l'initiative explicite de l'organisateur, jamais en arrière-plan).
+
+### Hors périmètre pour cette tâche
+
+- Firefox/Safari.
+- Connexion depuis l'extension elle-même (l'organisateur doit être déjà connecté sur le site).
+- Menu contextuel clic-droit ("Ajouter à ma liste Kdovie") — seule l'icône de la barre d'outils
+  pour cette première version, à étendre plus tard si utile.
+- Traçabilité "ajouté via extension vs via le site" — pas de colonne dédiée pour l'instant, pas
+  nécessaire au fonctionnement.
+- Gestion du compte Stripe/mode/cotisation depuis l'extension — l'ajout d'article seul, le reste
+  de la gestion (mode, prix, description) reste sur `/compte/evenements/[slug]` comme aujourd'hui.
+
+### Definition of done
+
+- Extension installable en local (mode développeur) qui extrait correctement titre/prix/image sur
+  un échantillon d'URLs réelles couvrant au moins les cas documentés comme problématiques côté
+  serveur : Décathlon, Fnac, Sephora, Maisons du Monde (voir "Fiabilisation du scraping
+  multi-marchands") — le point qui justifie ce chantier.
+- Popup affichant la session (connecté/non connecté), le sélecteur de listes, l'aperçu éditable,
+  et la confirmation d'ajout.
+- Article bien créé sur la bonne liste, visible immédiatement sur `/compte/evenements/[slug]` et
+  `/liste/[slug]`, en tête de liste (même comportement que `createGiftItem` aujourd'hui).
+- `npx tsc --noEmit`, `npm run lint`, `npm run build` propres côté app Next.js ; l'extension
+  elle-même testée manuellement (pas de build Next.js à vérifier pour son propre code).
+
+**Statut : implémentation initiale faite et testée dans la mesure du possible (5 septembre 2026),
+reste le test en conditions réelles (vrai Chrome) avant publication.**
+
+- **`lib/create-gift-item.ts`** (nouveau) : cœur partagé (`createGiftItemCore`) — calcul de
+  `position` + insertion, factorisé depuis `createGiftItem`
+  (`app/compte/evenements/[slug]/gift-item-actions.ts`, désormais un simple wrapper formulaire
+  autour de ce cœur). `lib/cors.ts` (nouveau) : en-têtes CORS ciblés sur une origine
+  `chrome-extension://` précise (jamais de wildcard), utilisés par les deux nouvelles routes.
+- **`app/api/extension/me/route.ts`** et **`app/api/extension/gift-items/route.ts`** : implémentées
+  exactement comme cadré — session via le client Supabase cookie-based habituel (pas
+  `service_role`), vérification explicite `organizer_id = user.id` sur la liste ciblée dans la
+  route d'ajout (défense en profondeur en plus de la policy RLS `gift_items_insert_own_event`).
+- **`extension/`** (nouveau dossier, hors de l'app Next.js — pas de build) : `manifest.json`
+  (`activeTab` + `scripting`, `host_permissions` limité à `https://kdovie.com/*`, pas de
+  `background`/service worker — le popup fait tout lui-même le temps de son ouverture), icônes
+  16/48/128 rendues depuis le SVG canonique du logo, `popup.html`/`.css`/`.js`,
+  `content/extract.js` (extraction DOM native, même ordre de priorité que
+  `lib/scrape-article.ts` mais implémentation distincte comme demandé — fonction unique
+  entièrement autonome, toutes les fonctions utilitaires imbriquées dedans, requis pour
+  l'injection via `chrome.scripting.executeScript({ func })`). `extension/README.md` : instructions
+  d'installation en mode développeur + détail de ce qui a été vérifié.
+- **Bug de production sans rapport découvert en testant** : `gift_items.source_url` a toujours sa
+  contrainte `not null` d'origine sur prod — **la migration `0007_gift_items_source_url_optional.sql`
+  n'a jamais été appliquée**, malgré ce que laissait penser sa mention dans l'historique de ce
+  fichier ("appliquée depuis" écrit à tort avant cette découverte, voir "État des migrations
+  Supabase — historique non fiable"). Concrètement : **l'onglet "Saisie manuelle" du formulaire
+  "Ajouter un cadeau" est cassé en prod aujourd'hui** (`source_url` vide → violation de contrainte
+  → "Cet article est verrouillé..." ou erreur généri­que selon le point d'entrée). Migration à
+  appliquer par l'utilisateur (SQL Editor, prod **et** dev) :
+  ```sql
+  alter table public.gift_items alter column source_url drop not null;
+  ```
+- **Testé, sans navigateur Chrome réel ni compte Chrome Web Store disponibles ici** (voir
+  `extension/README.md` pour le détail complet) :
+  - Extraction (`content/extract.js`) : 8 scénarios rejoués contre de vraies fixtures HTML via
+    interception réseau Playwright (`location.hostname` = un vrai domaine, dont `amazon.fr`, sans
+    toucher au vrai internet) — JSON-LD simple, JSON-LD imbriqué (`mainEntity` + `AggregateOffer`),
+    Open Graph, microdonnées, repli Amazon, repli générique sur prix visible (avec exclusion d'un
+    prix barré), devise non-EUR détectée → prix abandonné, page sans aucune donnée → tous corrects.
+  - Routes API : test de bout en bout avec un **vrai compte Supabase de test** (créé via
+    `admin.generateLink`, connecté pour de vrai via `/auth/confirmer` dans un navigateur Playwright,
+    supprimé ensuite) — session détectée, liste listée, cadeau créé et vérifié en base, un second
+    ajout se place bien en tête, tentative de cibler la liste d'un autre organisateur refusée en
+    404 (la défense en profondeur fonctionne, pas seulement la policy RLS), session anonyme bien
+    `connecte: false`.
+  - Popup (`popup.js`) : machine à états + intégration testées contre les vraies routes API
+    (même compte de test), `chrome.tabs`/`chrome.scripting` mockés avec un résultat d'extraction
+    canné (extraction déjà validée séparément) — formulaire pré-rempli, ajout réel, lien "Voir dans
+    Kdovie" correct.
+  - **Non vérifié, à faire en priorité par l'utilisateur en conditions réelles** : la session
+    partagée `chrome-extension://` → `kdovie.com` elle-même. Les tests ci-dessus prouvent que la
+    logique applicative est correcte dès qu'une session est disponible, mais ne prouvent **pas**
+    qu'un cookie de session Supabase Auth franchit tout seul un vrai contexte `chrome-extension://`
+    (politique `SameSite` du cookie — question de navigateur réel, impossible à reproduire
+    fidèlement dans ce sandbox). **Premier test à faire après chargement de l'extension en mode
+    développeur.** Si le popup affiche "non connecté" alors qu'une session kdovie.com est active
+    par ailleurs, c'est très probablement ça — sujet sensible (configuration des cookies d'auth de
+    tout le site), à remonter pour en discuter plutôt qu'à corriger seul.
+  - Non vérifié non plus : extraction sur les vrais sites marchands qui ont motivé ce chantier
+    (Décathlon, Fnac, Sephora, Maisons du Monde), et toute la partie publication Chrome Web Store.
 
 ## Points d'attention techniques
 
@@ -2380,7 +2633,7 @@ Création de liste par gabarit terminée (dashboard, formulaire de création, pa
 
 Ajout d'article multi-boutique terminé (scraping, formulaire d'ajout, sélecteur de mode, page publique `/liste/[slug]` en lecture seule).
 
-Réservation d'article par un invité terminée (bouton conditionnel, formulaire invité, synchronisation temps réel). Migration `0003_gift_items_realtime.sql` (ajout de `gift_items` à la publication `supabase_realtime`) écrite mais pas encore appliquée à la base distante — à faire manuellement via le SQL Editor Supabase, comme pour les migrations précédentes.
+Réservation d'article par un invité terminée (bouton conditionnel, formulaire invité, synchronisation temps réel). Migration `0003_gift_items_realtime.sql` (ajout de `gift_items` à la publication `supabase_realtime`) écrite ; **appliquée depuis** — la synchronisation temps réel fonctionne en production depuis des semaines, ce qui n'est possible que si cette migration est en place (voir "État des migrations Supabase — historique non fiable" plus bas, qui ne couvre explicitement que `0009` → `0023` mais confirme que ce genre de mention ancienne ne reflète plus l'état réel).
 
 Recadrage produit du 16 août 2026 : le type d'événement est devenu optionnel sur une liste (voir section "Recadrage" ci-dessus) — migration `0004_events_type_optional.sql` écrite (à appliquer manuellement via le SQL Editor Supabase, comme `0003`), `NouvelEvenementForm` et les fallbacks `eventTypeIcon`/`eventTypeLabel` mis à jour.
 
@@ -2395,7 +2648,7 @@ Page publique `/liste/[slug]` refaite depuis la maquette Claude Design `Liste pu
 Page de gestion `/compte/evenements/[slug]` refaite depuis la maquette Claude Design `Gestion liste.dc.html`, et modification/suppression des articles (voir section "Gestion des articles par l'organisateur" ci-dessus) développées en même temps :
 - Migration `0006_gift_items_lock_edit_delete.sql` écrite (à appliquer manuellement via le SQL Editor Supabase, comme les précédentes) : étend le trigger `protect_gift_item_mode` pour bloquer aussi title/price_cents/image_url une fois `status != 'disponible'`, et ajoute un trigger `gift_items_protect_delete` équivalent pour le delete.
 - Nouvelles actions serveur `updateGiftItem`/`deleteGiftItem`.
-- `AjouterArticleForm` réorganisé en deux onglets (Par lien / Saisie manuelle). Mise à jour du 17 août 2026 (décision utilisateur) : le lien produit n'est plus demandé en saisie manuelle — migration `0007_gift_items_source_url_optional.sql` (pas encore appliquée) rend `gift_items.source_url` nullable, il reste obligatoire uniquement dans l'onglet "Par lien". Dans l'onglet "Par lien", les champs titre/prix/image/précisions n'apparaissent qu'après avoir cliqué sur "Récupérer le cadeau" (avant, ils étaient visibles d'emblée dans les deux onglets).
+- `AjouterArticleForm` réorganisé en deux onglets (Par lien / Saisie manuelle). Mise à jour du 17 août 2026 (décision utilisateur) : le lien produit n'est plus demandé en saisie manuelle — migration `0007_gift_items_source_url_optional.sql` rend `gift_items.source_url` nullable, il reste obligatoire uniquement dans l'onglet "Par lien". Dans l'onglet "Par lien", les champs titre/prix/image/précisions n'apparaissent qu'après avoir cliqué sur "Récupérer le cadeau" (avant, ils étaient visibles d'emblée dans les deux onglets). **Correction du 5 septembre 2026 : contrairement à ce qu'affirmait cette ligne, `0007` n'a en réalité jamais été appliquée en prod** — découvert en marge du chantier extension navigateur (voir cette section plus bas), qui a besoin d'insérer sans `source_url`. L'onglet "Saisie manuelle" est donc cassé en prod depuis le début, personne ne s'en était rendu compte. Migration à appliquer par l'utilisateur.
 - Nouveau composant `GiftItemCard` : lecture / édition / confirmation de suppression, verrouillage en lecture seule avec le nom de l'invité qui a réservé (via `reservations.guest_name`) une fois `status != 'disponible'`. Le sélecteur de mode (`ModeSelect`) reste séparé de l'édition, comme précisé dans le cadrage.
 - Point laissé de côté délibérément : le bouton "Réglages de la liste" de la maquette n'a pas de comportement défini (ni dans le mock, ni ailleurs dans le produit) — non repris.
 
@@ -2403,13 +2656,13 @@ Maquette `Gestion liste.dc.html` mise à jour le 16 août 2026 : la maquette a �
 
 Maquette `Gestion liste.dc.html` mise à jour une seconde fois le 16 août 2026, avec plusieurs nouveautés développées dans la foulée :
 - **Édition de l'événement** (nom, type, date) directement depuis la page de gestion — nouveau composant `EnTeteListe` (lecture/édition) et action serveur `updateEvent`. Ne redéfinit rien de l'existant : mêmes règles que la création (type facultatif, date facultative), RLS `events_update_own` déjà en place.
-- **Champ "précisions" sur un cadeau** (taille, couleur, modèle…), affiché aux côtés du prix et éditable avec le reste. Utilise la colonne `gift_items.description`, déjà présente depuis la migration 0002 mais jamais exploitée jusqu'ici — aucune nouvelle migration nécessaire pour ce champ. La migration `0006` (pas encore appliquée) a été complétée pour verrouiller aussi `description` une fois l'article verrouillé, cohérent avec title/price/image.
+- **Champ "précisions" sur un cadeau** (taille, couleur, modèle…), affiché aux côtés du prix et éditable avec le reste. Utilise la colonne `gift_items.description`, déjà présente depuis la migration 0002 mais jamais exploitée jusqu'ici — aucune nouvelle migration nécessaire pour ce champ. La migration `0006` (**appliquée depuis**, le verrouillage à l'édition fonctionne en production) a été complétée pour verrouiller aussi `description` une fois l'article verrouillé, cohérent avec title/price/image.
 - **Nom du réservataire flouté par défaut**, révélable d'un clic (garde un peu de surprise pour l'organisateur lui-même). Pour les cagnottes, pas de noms de contributeurs affichés : cette donnée n'existe pas encore (tâche #18 pas construite).
 - **Montant de cagnotte affiché en euros réels** ("816,00 € sur 1 200,00 €") plutôt qu'en pourcentage seul.
 - **Panneau "Inviter mes proches"** (chips d'e-mails, message personnalisable, bouton Envoyer) : implémenté visuellement à l'identique de la maquette, mais **sans envoi réel** — décision explicite de l'utilisateur (aucune intégration Resend n'existe encore dans le projet, et faire croire à un envoi qui n'a pas lieu aurait été trompeur). L'état "Invitation envoyée" est purement local/optimiste. À câbler pour de vrai quand l'envoi transactionnel sera cadré.
 - Libellé de la nav "Mes événements" → "Voir toutes mes listes" ; badge verrouillé "Lecture seule" → "Non modifiable".
 
-Pseudo public sur la page liste du 17 août 2026 (voir section dédiée ci-dessus) : migration `0008_profiles_public_display_name.sql` écrite (pas encore appliquée) — accès `anon` à `profiles` restreint aux colonnes `id`/`display_name` uniquement (revoke + grant colonne, pas juste une policy RLS), policy `profiles_select_public_display_name`. `/liste/[slug]` affiche désormais "liste de {pseudo}" dans la ligne meta quand le pseudo est renseigné, rien sinon.
+Pseudo public sur la page liste du 17 août 2026 (voir section dédiée ci-dessus) : migration `0008_profiles_public_display_name.sql` écrite — accès `anon` à `profiles` restreint aux colonnes `id`/`display_name` uniquement (revoke + grant colonne, pas juste une policy RLS), policy `profiles_select_public_display_name`. `/liste/[slug]` affiche désormais "liste de {pseudo}" dans la ligne meta quand le pseudo est renseigné, rien sinon. **Statut réel, contrairement aux autres migrations de cette liste historique : `0008` semble n'avoir jamais été appliquée en prod**, constaté début septembre en diagnostiquant un bug sans rapport (voir "Fondations SEO" > bug prénom, et "État des migrations Supabase — historique non fiable" plus bas) — sans conséquence pratique aujourd'hui puisque `display_name` n'est plus lu nulle part côté public (remplacé par `first_name` via la migration `0021`/`0023`).
 
 Problème constaté en usage réel le 17 août 2026 : beaucoup de sites marchands bloquent les requêtes de scraping venant des IP Vercel/AWS (protection Cloudflare et consorts).
 
@@ -2427,7 +2680,7 @@ Nettoyage de l'URL avant scraping (17 août 2026, retour d'usage de l'utilisateu
 Spinner de chargement (17-18 août 2026, voir section "Identité visuelle" ci-dessus) : import de la maquette Claude Design "Logo animé.dc.html", nouveau composant `components/ui/KdovieSpinner.tsx`, posé sur les 8 boutons à état d'attente de l'app. Retouché deux fois sur retour d'usage (agrandi via `scale` sur le SVG interne, sans agrandir la boîte prise en compte par la mise en page du bouton parent — actuellement `scale-[2]`).
 
 Cagnotte Stripe Connect développée de bout en bout (tâche #18, 18 août 2026) :
-- Migration `0009_events_fee_mode.sql` (colonne `events.fee_mode`, défaut `frais_en_sus`) et `0010_organizer_stripe_accounts_public_status.sql` (ouvre la colonne `payouts_enabled` — uniquement elle, pas `stripe_account_id`/`organizer_id` — à `anon`, pour l'état "cagnotte en validation" côté invité) écrites, pas encore appliquées à la base distante — à faire manuellement via le SQL Editor Supabase, comme les précédentes (`0003` à `0008` toujours en attente elles aussi).
+- Migration `0009_events_fee_mode.sql` (colonne `events.fee_mode`, défaut `frais_en_sus`) et `0010_organizer_stripe_accounts_public_status.sql` (ouvre la colonne `payouts_enabled` — uniquement elle, pas `stripe_account_id`/`organizer_id` — à `anon`, pour l'état "cagnotte en validation" côté invité) écrites ; **`0009` confirmée appliquée dev + prod** (voir "État des migrations Supabase — historique non fiable" plus bas, qui couvre `0009` → `0023`).
 - Onboarding Stripe Connect Express sur `/compte/profil` (`StripeStatusCard`, action serveur `startStripeOnboarding`) : crée le compte connecté au premier clic, redirige vers l'Account Link hébergé, statut (non connecté / en attente / actif) rafraîchi en direct côté serveur tant que `payouts_enabled` n'est pas vrai en base.
 - Formulaire de cotisation invité sur `/liste/[slug]` (`ContributionModal`) : montant libre ou suggéré, détail des frais affiché en direct selon `fee_mode` de l'événement (formule exacte de la section "Cagnotte et frais" ci-dessus, dans `lib/fee-calculation.ts`, partagée client/serveur). "Je réserve" et "Je cotise" peuvent maintenant coexister sur un même article en mode `auto` (le premier geste d'un invité verrouille toujours le mode, cohérent avec la règle de gestion actée). **Paiement via Stripe Checkout** (page de paiement hébergée par Stripe, redirection complète — voir paragraphe dédié plus bas, ce point a changé depuis la première implémentation).
 - `transfer_data.destination` **+ `on_behalf_of`** vers le compte Connect de l'organisateur, et `application_fee_amount` posés côté serveur (`app/liste/[slug]/contribution-actions.ts`). **Correction du 19 août 2026, voir section "Bug frais Stripe absorbés par Kdovie" plus bas : l'hypothèse initiale ci-dessous était fausse.** ~~le `on_behalf_of` est nécessaire pour que les frais de traitement Stripe soient portés par l'organisateur et non par la plateforme (sinon Stripe les prélève par défaut sur le solde de la plateforme, ce qui contredirait "les frais Stripe ne sont pas absorbés par Kdovie").~~ En réalité, pour une **destination charge** (celle utilisée ici, via `transfer_data.destination`), Stripe prélève toujours ses propres frais de traitement sur le solde de la **plateforme**, quel que soit le réglage de `on_behalf_of` — confirmé par la documentation Stripe officielle (`docs.stripe.com/connect/charges`). `on_behalf_of` ne change que le pays de règlement, le relevé bancaire affiché et le délai de versement ; il ne bascule jamais la charge des frais Stripe vers le compte connecté pour ce type de charge (seules les **direct charges** permettent ce choix).
@@ -2452,7 +2705,7 @@ Paiement de la cotisation basculé sur Stripe Checkout (18 août 2026, retour d'
 - Testé de bout en bout contre les vraies données de l'utilisateur : Checkout Session créée avec un compte Connect actif réel, événement `checkout.session.completed` signé (`Stripe.webhooks.generateTestHeaderString`) envoyé au webhook local avec une contribution de test insérée en base — `confirm_contribution` appelée avec succès (statut "succeeded", article verrouillé en "cagnotte", `funded_amount_cents` incrémenté), puis état restauré à l'identique pour ne pas polluer les données de test de l'utilisateur.
 
 Ajustements listes publique et gestion développés (18 août 2026, voir sections dédiées ci-dessus pour le détail du cadrage) :
-- Migration `0011_gift_items_is_priority.sql` (colonne `gift_items.is_priority`, non verrouillée par le trigger existant) et `0012_guest_name_optional.sql` (`reservations.guest_name`/`contributions.guest_name` deviennent nullable) écrites, pas encore appliquées à la base distante.
+- Migration `0011_gift_items_is_priority.sql` (colonne `gift_items.is_priority`, non verrouillée par le trigger existant) et `0012_guest_name_optional.sql` (`reservations.guest_name`/`contributions.guest_name` deviennent nullable) écrites ; **confirmées appliquées dev + prod depuis** (voir "État des migrations Supabase — historique non fiable" plus bas, plage `0009` → `0023`).
 - `lib/gift-item-sort.ts` : logique de tri partagée (groupes 1 à 5 + sous-groupe prioritaires non terminés en tête), utilisée à l'identique sur `/liste/[slug]` (`ListePubliqueClient`) et `/compte/evenements/[slug]` (page de gestion) — `estAttenue`/`estTermine` exportées aussi pour le fond blanc/atténué des cartes.
 - Étoile de mise en avant sur `GiftItemCard` (nouvelle action serveur `updateGiftItemPriority`, jamais bloquée par le verrouillage), invisible côté invité.
 - Montant réel de cagnotte ("150,00 € sur 300,00 €") sur la page publique, cohérent avec la gestion. Floutage des contributeurs (gestion uniquement) sur le même modèle que le réservataire, gère le pluriel ("a" / "ont cotisé"). Titre cliquable vers `source_url` sur les deux pages. Lien "Aller l'acheter" après confirmation de réservation, si `source_url` renseignée.
@@ -2463,7 +2716,7 @@ Ajustements listes publique et gestion développés (18 août 2026, voir section
 - Vérifié : tri unitairement par script (ordre exact conforme au cadrage sur 8 cas de figure), rendu visuel des deux pages par capture d'écran (Playwright), et le parcours de réservation avec nom vide testé contre un vrai article de la base distante de l'utilisateur — a révélé que l'échec attendu (contrainte `not null` encore active tant que la migration `0012` n'est pas appliquée) remonte proprement une erreur, sans corrompre l'état de l'article (vérifié avant/après).
 
 Suppression d'une liste par l'organisateur développée (18 août 2026, voir section dédiée ci-dessus) :
-- Migrations `0014_events_deleted_at.sql` (colonne `events.deleted_at`) et `0015_profiles_is_admin.sql` (colonne `profiles.is_admin`, défaut `false`) écrites, pas encore appliquées à la base distante. Aucun changement nécessaire à la contrainte unique sur `slug` (posée en 0002) : c'est une contrainte de colonne classique déjà appliquée à toutes les lignes sans distinction de `deleted_at`.
+- Migrations `0014_events_deleted_at.sql` (colonne `events.deleted_at`) et `0015_profiles_is_admin.sql` (colonne `profiles.is_admin`, défaut `false`) écrites ; **confirmées appliquées dev + prod depuis** (voir "État des migrations Supabase — historique non fiable" plus bas, plage `0009` → `0023`). Aucun changement nécessaire à la contrainte unique sur `slug` (posée en 0002) : c'est une contrainte de colonne classique déjà appliquée à toutes les lignes sans distinction de `deleted_at`.
 - `SupprimerListeButton` (confirmation en deux temps, même mécanique que la suppression d'un article) posé en bas de `/compte/evenements/[slug]` ; action serveur `deleteEvent` (client authentifié normal, RLS `events_update_own` suffit puisque l'organisateur agit sur sa propre liste) qui pose `deleted_at` et redirige vers `/compte`.
 - Filtre `deleted_at is null` ajouté aux requêtes `events` de `/compte` (dashboard) et `/compte/evenements/[slug]` (gestion, une liste supprimée devient inatteignable même par URL directe). Sur `/liste/[slug]`, même filtre : une liste supprimée retombe naturellement sur l'écran "liste introuvable" déjà existant via le `if (!event) notFound()` déjà en place, sans nouvelle branche de code.
 - Dashboard super-administrateur sur `/admin` (`lib/admin-auth.ts` : `isCurrentUserAdmin`, re-vérifié à la fois dans `page.tsx` et dans l'action serveur `restoreEvent` — jamais la vérification page seule) : 404 (pas de redirection) pour un compte non-admin, afin de ne rien laisser deviner de cette route. Liste les événements avec `deleted_at` renseigné (tous organisateurs confondus) via le client `service_role`, bouton "Restaurer" (`deleted_at = null`). Aucun moyen de devenir admin depuis l'app — `profiles.is_admin` à activer manuellement en base après application de la migration `0015`.
@@ -2496,7 +2749,7 @@ Décision avec l'utilisateur pour se donner un environnement de test avant la b�
 - **Deux bases Supabase distinctes** : le projet Supabase existant reste la prod (celui déjà utilisé partout dans ce fichier), un second projet neuf `kdovie-dev` (ref `hvyinuoebkzghrbcbnqa`, à distinguer du ref de prod `ppsaiaesnvwnkzjisvdr` — cités ici comme simples repères, mots de passe/clés jamais consignés dans ce fichier versionné) reçoit les 18 migrations rejouées depuis le début via `supabase db push --db-url ...`, vérifiées avec `supabase migration list` (`local` = `remote` sur toute la ligne). Vraie isolation, pas de base partagée.
 - **Branches** : `main` reste la branche de prod, comportement et réglage Vercel inchangés ("Production Branch" = `main`, comme avant ce chantier). Nouvelle branche `dev` pour le travail en cours, fusionnée dans `main` seulement une fois une fonctionnalité validée.
 - **Plan B retenu pour Vercel, après avoir buté sur une limite réelle** : l'idée initiale (basculer la "branche de production" Vercel sur `dev` pour qu'elle hérite du domaine système `kdovie.vercel.app`, et épingler `kdovie.com` sur `main` via un domaine assigné à une branche précise) s'est heurtée à un mur : sur ce projet, l'assignation d'un domaine ne propose que les environnements globaux **Production** ou **Preview** — pas de branche précise — sauf à passer par les **Custom Environments**, une fonctionnalité Pro payante (50 $/mois par tranche de 5 environnements, confirmé dans le dashboard). Décision avec l'utilisateur : pas question de payer pour ça. **`main` reste donc la "Production Branch" Vercel**, comme il l'a toujours été — `kdovie.com` et `kdovie.vercel.app` continuent tous les deux de servir la prod exactement comme avant ce chantier, aucun changement de domaine. La branche `dev` reste une branche "Preview" ordinaire, accessible via son **alias stable** `https://kdovie-git-dev-thierrylachatpros-projects.vercel.app` (généré automatiquement par Vercel pour toute branche, régénéré au même endroit à chaque nouveau commit sur `dev` — pas besoin de le re-chercher).
-- **Variables d'environnement** : les 3 variables Supabase (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) existent maintenant en double dans Vercel pour chacune : l'entrée d'origine reste scopée **Production and Preview** avec les vraies valeurs de prod (sert de valeur par défaut pour `main` et pour toute autre branche/PR) ; une seconde entrée, ajoutée via "Add New" (jamais en éditant l'entrée existante — piège rencontré en le faisant : ça **remplace** l'entrée au lieu de la compléter, et prive `main` de toute valeur), scopée **Preview restreint à la branche `dev`**, porte les valeurs de `kdovie-dev`. Vercel fait prévaloir automatiquement la version restreinte à la branche pour les déploiements de `dev`. `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` ont "Sensitive" désactivé (elles sont conçues pour être exposées au navigateur, Vercel bloque sinon avec un message explicite) ; `SUPABASE_SERVICE_ROLE_KEY` garde "Sensitive" activé. Stripe reste en clés de test partagées entre les deux environnements pour l'instant (tout le produit est déjà en mode test, voir "Cagnotte et frais").
+- **Variables d'environnement** : les 3 variables Supabase (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) existent maintenant en double dans Vercel pour chacune : l'entrée d'origine reste scopée **Production and Preview** avec les vraies valeurs de prod (sert de valeur par défaut pour `main` et pour toute autre branche/PR) ; une seconde entrée, ajoutée via "Add New" (jamais en éditant l'entrée existante — piège rencontré en le faisant : ça **remplace** l'entrée au lieu de la compléter, et prive `main` de toute valeur), scopée **Preview restreint à la branche `dev`**, porte les valeurs de `kdovie-dev`. Vercel fait prévaloir automatiquement la version restreinte à la branche pour les déploiements de `dev`. `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` ont "Sensitive" désactivé (elles sont conçues pour être exposées au navigateur, Vercel bloque sinon avec un message explicite) ; `SUPABASE_SERVICE_ROLE_KEY` garde "Sensitive" activé. **Mise à jour du 31 août 2026** : Stripe suit désormais le même schéma à deux entrées que Supabase (`STRIPE_SECRET_KEY`/`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` en Production = clés live, en Preview = clés de test) — voir "Cagnotte et frais" plus haut, qui détaille la bascule live. Ce paragraphe décrivait un état antérieur (Stripe encore uniquement en test des deux côtés), gardé tel quel pour l'historique du montage Vercel, mais ne plus s'y fier pour le statut Stripe.
 - **`components/layout/BandeauEnvironnement.tsx`** : bandeau discret ajouté en haut de `app/layout.tsx`, visible uniquement quand `VERCEL_GIT_COMMIT_REF` (variable système Vercel, jamais présente en local) est renseignée et différente de `main` — donc sur l'alias `dev` et sur les previews de PR, jamais sur `kdovie.com`/`kdovie.vercel.app` ni en `npm run dev` local. N'a pas eu besoin d'être retouché malgré le changement de plan : il se base sur le nom de branche réel, pas sur les libellés Production/Preview de Vercel.
 - **Incident post-bascule, corrigé** : pendant la courte fenêtre où `dev` était temporairement configurée comme "Production Branch" (tentative du plan initial), un commit poussé sur `dev` à ce moment-là a été promu déploiement de production actif — remettre le réglage sur `main` ensuite n'a pas fait revenir automatiquement l'ancien déploiement en ligne. Corrigé via "Promote to Production" sur le dernier déploiement `main` dans l'onglet Deployments. Ce même commit `dev`, construit pendant cette fenêtre, avait aussi été bâti sous le type d'environnement "Production" (donc avec les vraies variables de prod, pas les overrides `kdovie-dev`) — corrigé en le reconstruisant via "Redeploy" en choisissant explicitement l'environnement **Preview**. Épisode ponctuel lié à la bascule temporaire, pas un problème structurel du montage final.
 
@@ -2539,11 +2792,11 @@ Décision : uniformiser en un seul comportement, pour un organisateur **connect�
 
 Demande de l'utilisateur : un bouton dans `/admin` pour passer le site en/hors maintenance, plutôt que de devoir aller changer `MAINTENANCE_MODE` sur Vercel et attendre un redéploiement (~1-2 min, pas instantané). Deux architectures possibles posées à l'utilisateur : appeler l'API Vercel pour modifier la variable d'environnement (nouveau secret `VERCEL_TOKEN`, effet différé), ou déplacer l'interrupteur en base Supabase (effet instantané, pas de nouveau secret). **Choix de l'utilisateur : l'indicateur en base.**
 
-- **Migration `0020_app_settings.sql`** (écrite, pas encore appliquée à la base distante — comme les migrations précédentes en attente) : nouvelle table `app_settings`, une seule ligne (`id` fixe à 1, contrainte `check (id = 1)`), colonne `maintenance_mode` (boolean, défaut `false`). RLS activée avec une seule policy, lecture publique (`using (true)`) — nécessaire puisque `proxy.ts` interroge cette table pour chaque visiteur anonyme, avant toute authentification. Aucune policy d'écriture pour `anon`/`authenticated` : seule la clé `service_role` (Server Action admin, re-vérifiant `is_admin`) peut modifier cette ligne. Réutilise le trigger `set_updated_at()` déjà défini en migration 0001.
+- **Migration `0020_app_settings.sql`** (écrite ; **appliquée depuis**, voir "Mode maintenance : coupé en prod" plus bas, qui dépend directement de cette table) : nouvelle table `app_settings`, une seule ligne (`id` fixe à 1, contrainte `check (id = 1)`), colonne `maintenance_mode` (boolean, défaut `false`). RLS activée avec une seule policy, lecture publique (`using (true)`) — nécessaire puisque `proxy.ts` interroge cette table pour chaque visiteur anonyme, avant toute authentification. Aucune policy d'écriture pour `anon`/`authenticated` : seule la clé `service_role` (Server Action admin, re-vérifiant `is_admin`) peut modifier cette ligne. Réutilise le trigger `set_updated_at()` déjà défini en migration 0001.
 - **`proxy.ts`** : `MAINTENANCE_MODE` (variable d'environnement) remplacé par une lecture de `app_settings.maintenance_mode` à chaque requête, via un simple `fetch` REST vers Supabase (clé anon, pas le client `@supabase/ssr` complet — inutile pour une lecture publique d'une seule colonne). Si l'appel échoue (Supabase injoignable), on retombe sur "site en ligne" plutôt que de risquer de bloquer tous les visiteurs par erreur. Le mécanisme de contournement (`?acces=<jeton>` → cookie `kdovie_acces`, `MAINTENANCE_BYPASS_TOKEN`) reste inchangé, toujours en variable d'environnement (c'est un secret, pas un interrupteur à basculer). Optimisation : les visiteurs déjà munis du cookie de contournement sautent l'appel à la base, la maintenance ne les concerne de toute façon pas.
 - **Isolation dev/prod obtenue sans code supplémentaire** : `app_settings` vit dans chaque base Supabase séparément (prod `ppsaiaesnvwnkzjisvdr` / dev `hvyinuoebkzghrbcbnqa`, voir "Environnements dev/prod séparés") — basculer la maintenance depuis `/admin` sur la prod n'affecte jamais l'environnement de dev, et inversement, par construction (contrairement à l'ancien `MAINTENANCE_MODE` qui nécessitait de bien le scoper "Production uniquement" sur Vercel pour obtenir cette isolation).
 - **`setMaintenanceMode(enabled)`** (`app/admin/actions.ts`) : re-vérifie `isCurrentUserAdmin()` (même pattern que `restoreEvent`), écrit via `service_role`. **`MaintenanceToggle`** (`components/admin/MaintenanceToggle.tsx`), posé en haut de `/admin` : affiche l'état courant (pastille + texte), bascule directe pour repasser en ligne, confirmation en deux temps uniquement pour activer la maintenance (action plus impactante, masque le site à tous les visiteurs) — même mécanique de confirmation que la désactivation d'un organisateur (`OrganisateurCard`).
-- **Testé** : `tsc`/`lint`/`build` propres. **Pas testé en conditions réelles** : bloqué tant que la migration `0020` n'est pas appliquée à la base distante (comme les migrations précédentes en attente) — `app_settings` n'existe donc encore nulle part, le bouton `/admin` échouera avec une erreur explicite tant que ce n'est pas fait.
+- **Testé** : `tsc`/`lint`/`build` propres à l'écriture. Migration `0020` appliquée depuis — le mécanisme est aujourd'hui la base même du mode maintenance en prod (voir "Mode maintenance : coupé en prod" plus bas), donc de facto exercé en conditions réelles.
 
 ## Workflow git
 
