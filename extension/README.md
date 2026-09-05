@@ -28,12 +28,29 @@ JavaScript côté client...), le formulaire reste utilisable : titre et prix
 sont à remplir à la main, exactement comme sur le formulaire "Saisie
 manuelle" du site.
 
+## Authentification : onglet relais invisible
+
+Le cookie de session Supabase Auth de kdovie.com est en `SameSite=Lax`
+(défaut de `@supabase/ssr`, jamais surchargé) — un `fetch` direct depuis le
+popup (origine `chrome-extension://…`) ne l'embarque jamais, **confirmé en
+conditions réelles**. Plutôt que d'assouplir ce cookie pour tout le site
+(ça aurait élargi la surface CSRF de kdovie.com entier pour ce seul usage),
+chaque appel à l'API passe par un **onglet caché** ouvert sur kdovie.com
+(`chrome.tabs.create({ url: 'https://kdovie.com/aide', active: false })`) :
+le `fetch` s'exécute *depuis cette page* via `chrome.scripting.executeScript`
+— donc same-origin, cookie intact — puis l'onglet se referme. Le popup ne
+manipule jamais le cookie lui-même. Voir `popup.js` (`appelerApiKdovie`) et
+CLAUDE.md > "Extension navigateur Chrome" > "Onglet relais invisible".
+
 ## Structure
 
 - `manifest.json` — permissions `activeTab` + `scripting`,
-  `host_permissions` limité à `https://kdovie.com/*`.
+  `host_permissions` limité à `https://kdovie.com/*` (suffisant pour
+  `chrome.tabs.create`/`get`/`remove` sur ce domaine sans la permission
+  `tabs`, plus large).
 - `popup.html`/`popup.css`/`popup.js` — l'interface, toute la logique
-  (vérification de session, déclenchement de l'extraction, soumission).
+  (vérification de session via l'onglet relais, déclenchement de
+  l'extraction, soumission).
 - `content/extract.js` — extraction DOM native (JSON-LD → Open Graph →
   microdonnées → repli Amazon → sélecteurs de prix visibles génériques →
   `<title>`), injectée à la demande dans l'onglet actif via
@@ -63,27 +80,27 @@ code a été écrit — vérifié autrement, sans rien supposer :
   un second ajout se place bien en tête de liste, une tentative de cibler
   la liste d'un autre organisateur est bien refusée en 404, une session
   anonyme reçoit bien `connecte: false`.
+- **Le mécanisme de l'onglet relais lui-même**, pas seulement supposé
+  correct : `chrome.tabs.create/get/remove` et
+  `chrome.scripting.executeScript` (côté onglet relais) pontés depuis une
+  page mockée vers un vrai second onglet Playwright — donc un *vrai*
+  onglet qui s'ouvre sur kdovie.com (localhost), y exécute un *vrai*
+  `fetch` avec la session réelle, se referme. Confirmé : session détectée
+  et cadeau créé en base **sans que le popup n'ait jamais eu accès au
+  cookie**, et aucun onglet relais ne reste ouvert après coup.
 - **Popup** (`popup.js`) : machine à états et intégration testées contre les
   vraies routes API (même compte de test que ci-dessus), `chrome.tabs` /
   `chrome.scripting` mockés avec un résultat d'extraction canné (l'extraction
   elle-même étant déjà validée séparément) — formulaire pré-rempli, ajout
   réel, état de succès avec le bon lien "Voir dans Kdovie".
 
-**Non vérifié, à faire par un vrai test en conditions réelles** (voir
-CLAUDE.md, qui anticipait déjà ce point avant toute implémentation) :
+**Non vérifié, à faire par un vrai test en conditions réelles** :
 
-- **La session partagée `chrome-extension://` → `kdovie.com` elle-même.**
-  Le test ci-dessus prouve que la logique applicative est correcte dès
-  qu'une session est disponible, mais **ne prouve pas** qu'un cookie de
-  session posé sur kdovie.com franchit tout seul un vrai contexte
-  `chrome-extension://` (question de politique `SameSite` du cookie
-  Supabase Auth, propre au navigateur réel — impossible à reproduire
-  fidèlement dans ce sandbox sans un vrai Chrome). **Premier test à faire à
-  l'installation locale.** Si le popup affiche "non connecté" alors qu'une
-  session kdovie.com est active dans un autre onglet, c'est très
-  probablement ça — à remonter plutôt qu'à re-débattre seul du correctif
-  (touche la configuration des cookies d'authentification du site entier,
-  sujet sensible).
+- **Que ce mécanisme se comporte pareil dans un vrai Chrome** avec une vraie
+  extension chargée et un vrai popup (barre d'outils, pas un onglet) — le
+  test ci-dessus prouve le principe (fetch same-origin depuis une page
+  kdovie.com réelle) avec de vrais onglets Playwright, mais pas encore
+  packagé dans le contexte exact d'une extension installée.
 - Extraction sur de vrais sites marchands (Décathlon, Fnac, Sephora,
   Maisons du Monde — les cas documentés comme problématiques côté serveur
   dans `CLAUDE.md` > "Fiabilisation du scraping multi-marchands", et la

@@ -1,10 +1,21 @@
 // Popup de l'extension Kdovie — voir CLAUDE.md > "Extension navigateur
-// Chrome". Authentification par session partagée avec kdovie.com (aucun
-// flux de connexion propre à l'extension) : si `/api/extension/me` répond
-// non connecté, on invite juste à se connecter sur le site.
+// Chrome" > "Onglet relais invisible pour l'authentification".
+//
+// Le cookie de session Supabase Auth du site est en SameSite=Lax (défaut de
+// @supabase/ssr, jamais surchargé côté Kdovie) — un fetch cross-site depuis
+// le popup (origine chrome-extension://) ne l'embarque jamais, confirmé en
+// conditions réelles. Plutôt que d'assouplir ce cookie pour tout le site,
+// chaque appel à l'API kdovie.com passe par un onglet caché sur
+// kdovie.com : le fetch s'y exécute depuis une vraie page du site (même
+// origine, cookie intact), le popup ne voit jamais le cookie lui-même.
 import { extractProductFromPage } from "./content/extract.js";
 
 const SITE_URL = "https://kdovie.com";
+// Page hôte de l'onglet relais : stable, publique (jamais de redirection
+// selon l'état de connexion, contrairement à `/`), légère. Son contenu
+// affiché n'a aucune importance — seul son origine (kdovie.com) compte,
+// pour que le fetch exécuté dedans soit same-site.
+const PAGE_RELAIS = `${SITE_URL}/aide`;
 
 const etats = {
   chargement: document.getElementById("etat-chargement"),
@@ -25,17 +36,70 @@ function afficherErreurBloquante(message) {
   afficherEtat("erreur");
 }
 
-// Onglet actif — sert à la fois pour l'injection de l'extraction et comme
-// repli de titre (l'onglet a toujours un titre, même sans données produit).
+// Onglet actif — celui de la fiche produit consultée, sert à l'extraction.
+// Rien à voir avec l'onglet relais ci-dessous (kdovie.com), toujours
+// distinct.
 async function ongletActif() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   return tab;
 }
 
-async function verifierSession() {
-  const res = await fetch(`${SITE_URL}/api/extension/me`, { credentials: "include" });
-  if (!res.ok) throw new Error("session_indisponible");
-  return res.json();
+function attendreChargementComplet(tabId) {
+  return new Promise((resolve) => {
+    function verifier() {
+      chrome.tabs.get(tabId, (tab) => {
+        if (chrome.runtime.lastError) {
+          resolve();
+          return;
+        }
+        if (tab.status === "complete") {
+          chrome.tabs.onUpdated.removeListener(ecouteur);
+          resolve();
+        }
+      });
+    }
+    function ecouteur(idMisAJour, changeInfo) {
+      if (idMisAJour === tabId && changeInfo.status === "complete") {
+        chrome.tabs.onUpdated.removeListener(ecouteur);
+        resolve();
+      }
+    }
+    chrome.tabs.onUpdated.addListener(ecouteur);
+    verifier();
+  });
+}
+
+// Fonction autonome (voir content/extract.js pour la même contrainte) :
+// injectée via chrome.scripting.executeScript dans l'onglet relais, elle
+// s'exécute donc dans le contexte de la page kdovie.com — un fetch vers un
+// chemin relatif y est same-origin, le cookie de session s'attache
+// normalement quel que soit son SameSite.
+function requeteDepuisLaPageKdovie(chemin, methode, corpsJson) {
+  return fetch(chemin, {
+    method: methode,
+    credentials: "same-origin",
+    headers: corpsJson ? { "Content-Type": "application/json" } : undefined,
+    body: corpsJson || undefined,
+  })
+    .then(async (res) => ({ status: res.status, body: await res.json().catch(() => null) }))
+    .catch((err) => ({ status: 0, body: null, erreurReseau: String(err) }));
+}
+
+// Ouvre l'onglet relais, y exécute la requête, le referme — toujours, même
+// en cas d'erreur (le `finally` ne doit jamais laisser un onglet fantôme).
+async function appelerApiKdovie(chemin, { methode = "GET", corps = null } = {}) {
+  const tab = await chrome.tabs.create({ url: PAGE_RELAIS, active: false });
+  try {
+    await attendreChargementComplet(tab.id);
+    const [{ result }] = await chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: requeteDepuisLaPageKdovie,
+      args: [chemin, methode, corps ? JSON.stringify(corps) : null],
+    });
+    return result;
+  } finally {
+    chrome.tabs.remove(tab.id).catch(() => {});
+  }
 }
 
 function formaterPrix(centimes) {
@@ -66,9 +130,10 @@ async function initFormulaire(listes, tab) {
 
   afficherEtat("formulaire");
 
-  // Extraction depuis la page déjà ouverte — jamais un nouvel appel serveur,
-  // voir CLAUDE.md. Repli sur le titre de l'onglet si l'injection échoue
-  // (page interne chrome://, PDF, etc.) plutôt que de bloquer le popup.
+  // Extraction depuis la page déjà ouverte (l'onglet actif, pas l'onglet
+  // relais) — jamais un nouvel appel serveur, voir CLAUDE.md. Repli sur le
+  // titre de l'onglet si l'injection échoue (page interne chrome://, PDF,
+  // etc.) plutôt que de bloquer le popup.
   let extrait = { title: tab?.title ?? "", priceCents: null, imageUrl: null, sourceUrl: tab?.url ?? "" };
   try {
     const [{ result }] = await chrome.scripting.executeScript({
@@ -77,8 +142,7 @@ async function initFormulaire(listes, tab) {
     });
     if (result) extrait = result;
   } catch {
-    // Page non injectable (chrome://, Web Store, PDF visualisé nativement…) —
-    // le formulaire reste utilisable, à remplir à la main.
+    // Page non injectable — le formulaire reste utilisable, à remplir à la main.
   }
 
   document.getElementById("champ-titre").value = extrait.title ?? "";
@@ -112,22 +176,19 @@ async function initFormulaire(listes, tab) {
 
     const optionChoisie = selectListe.options[selectListe.selectedIndex];
     try {
-      const res = await fetch(`${SITE_URL}/api/extension/gift-items`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      const reponse = await appelerApiKdovie("/api/extension/gift-items", {
+        methode: "POST",
+        corps: {
           eventId: selectListe.value,
           title: titre,
           priceCents: parsePrixEnCentimes(document.getElementById("champ-prix").value),
           imageUrl: extrait.imageUrl,
           sourceUrl: extrait.sourceUrl,
-        }),
+        },
       });
 
-      if (!res.ok) {
-        const corps = await res.json().catch(() => ({}));
-        throw new Error(corps.error || "erreur_inconnue");
+      if (!reponse || reponse.status !== 201) {
+        throw new Error(reponse?.body?.error || "erreur_inconnue");
       }
 
       document.getElementById("lien-voir-liste").href =
@@ -148,7 +209,9 @@ async function demarrer() {
 
   let session;
   try {
-    session = await verifierSession();
+    const reponse = await appelerApiKdovie("/api/extension/me");
+    if (!reponse || reponse.status !== 200) throw new Error("session_indisponible");
+    session = reponse.body;
   } catch {
     afficherErreurBloquante(
       "Impossible de contacter Kdovie pour le moment. Vérifiez votre connexion et réessayez.",

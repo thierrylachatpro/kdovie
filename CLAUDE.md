@@ -2601,17 +2601,62 @@ reste le test en conditions réelles (vrai Chrome) avant publication.**
     (même compte de test), `chrome.tabs`/`chrome.scripting` mockés avec un résultat d'extraction
     canné (extraction déjà validée séparément) — formulaire pré-rempli, ajout réel, lien "Voir dans
     Kdovie" correct.
-  - **Non vérifié, à faire en priorité par l'utilisateur en conditions réelles** : la session
-    partagée `chrome-extension://` → `kdovie.com` elle-même. Les tests ci-dessus prouvent que la
-    logique applicative est correcte dès qu'une session est disponible, mais ne prouvent **pas**
-    qu'un cookie de session Supabase Auth franchit tout seul un vrai contexte `chrome-extension://`
-    (politique `SameSite` du cookie — question de navigateur réel, impossible à reproduire
-    fidèlement dans ce sandbox). **Premier test à faire après chargement de l'extension en mode
-    développeur.** Si le popup affiche "non connecté" alors qu'une session kdovie.com est active
-    par ailleurs, c'est très probablement ça — sujet sensible (configuration des cookies d'auth de
-    tout le site), à remonter pour en discuter plutôt qu'à corriger seul.
-  - Non vérifié non plus : extraction sur les vrais sites marchands qui ont motivé ce chantier
-    (Décathlon, Fnac, Sephora, Maisons du Monde), et toute la partie publication Chrome Web Store.
+  - Non vérifié : extraction sur les vrais sites marchands qui ont motivé ce chantier (Décathlon,
+    Fnac, Sephora, Maisons du Monde), et toute la partie publication Chrome Web Store.
+
+### Bug confirmé en conditions réelles : session non détectée par le popup (5 septembre 2026)
+
+L'utilisateur a chargé l'extension en mode développeur (Chrome réel) et confirmé le risque déjà
+signalé plus haut : le popup ne détecte pas la session kdovie.com pourtant active. Cause
+**confirmée dans le code source de la dépendance**, pas une supposition :
+
+```
+node_modules/@supabase/ssr/dist/main/utils/constants.js:  sameSite: "lax",
+```
+
+Le cookie de session Supabase Auth de tout le site est en `SameSite=Lax` (défaut de
+`@supabase/ssr`, jamais surchargé dans `lib/supabase/server.ts`/`lib/supabase/middleware.ts`). Un
+cookie `Lax` n'est jamais envoyé sur un `fetch` cross-site — seulement sur une vraie navigation de
+page. Un `fetch()` depuis le popup (origine `chrome-extension://…`) vers `kdovie.com` est
+exactement ce cas : le cookie ne part jamais.
+
+**Trois options présentées à l'utilisateur, choix explicite fait avec lui** (sujet touchant la
+politique de cookie d'authentification de tout le site — pas tranché seul) :
+- A. Assouplir le cookie en `SameSite=None` — le plus simple, mais élargit la surface CSRF de
+  **tout le site** pour ce seul usage. Écarté.
+- B. Poignée de main via `externally_connectable` (mécanisme Chrome officiel pour un couple
+  site+extension) — nécessite qu'une page kdovie.com soit ouverte ou explicitement ouverte pour
+  l'appairage.
+- **C. Onglet relais invisible (retenu)** : le popup ouvre un onglet **caché**
+  (`chrome.tabs.create({ url: 'https://kdovie.com/aide', active: false })`), y exécute le `fetch`
+  via `chrome.scripting.executeScript` (donc depuis une vraie page kdovie.com — same-origin, cookie
+  intact), récupère le résultat, referme l'onglet. Le popup ne voit jamais le cookie. Aucune
+  permission supplémentaire au-delà de ce qui existe déjà (`scripting` + `host_permissions` sur
+  kdovie.com suffisent pour `chrome.tabs.create`/`get`/`remove` sur ce domaine précis — pas besoin
+  de la permission `tabs`, plus large).
+
+**Implémentation** :
+- `extension/popup.js` : `appelerApiKdovie(chemin, options)` remplace les `fetch` directs — ouvre
+  l'onglet relais (`PAGE_RELAIS = "https://kdovie.com/aide"`, choisie pour être stable et sans
+  redirection quel que soit l'état de connexion, contrairement à `/`), attend son chargement
+  complet (`chrome.tabs.onUpdated`), y injecte `requeteDepuisLaPageKdovie` (fonction autonome, même
+  contrainte que `content/extract.js`) qui fait le vrai `fetch` en `credentials: "same-origin"`,
+  referme l'onglet dans un `finally` (jamais d'onglet fantôme, même en cas d'erreur).
+- **`app/api/extension/me`/`gift-items` simplifiées** : plus aucun appel n'est jamais cross-origin
+  désormais (tout part de l'onglet relais, same-origin) — `lib/cors.ts` et toute la gestion CORS
+  (devenue inutile, potentiellement trompeuse) ont été **retirés**, les routes renvoient
+  directement `Response.json(...)`.
+- **Testé, mécanisme réel et pas seulement la logique applicative** (contrairement au premier tour
+  de tests) : pont `chrome.tabs.create/get/remove` + `chrome.scripting.executeScript` (côté onglet
+  relais) vers un vrai second onglet Playwright via `page.expose_function` (API asyncio requise —
+  la sync API de Playwright bloque si on rappelle des méthodes Playwright depuis un callback
+  `expose_function`, piège rencontré et contourné). Un **vrai** onglet s'ouvre sur kdovie.com
+  (localhost, vraie session posée juste avant via `/auth/confirmer`), y exécute un **vrai** `fetch`
+  avec la session réelle, se referme — confirmé : session détectée (`connecte: true` + la liste de
+  test), cadeau créé et vérifié en base, aucun onglet relais qui traîne après coup. Ce test prouve
+  le mécanisme lui-même (pas juste "la logique est correcte si une session existe" comme le premier
+  tour de tests) — reste à confirmer qu'un vrai Chrome avec l'extension réellement installée se
+  comporte identiquement (aucune raison qu'il en soit autrement, mais pas encore fait).
 
 ## Points d'attention techniques
 
