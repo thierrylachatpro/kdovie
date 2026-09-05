@@ -2661,6 +2661,45 @@ politique de cookie d'authentification de tout le site — pas tranché seul) :
   tour de tests) — reste à confirmer qu'un vrai Chrome avec l'extension réellement installée se
   comporte identiquement (aucune raison qu'il en soit autrement, mais pas encore fait).
 
+### Bug confirmé en conditions réelles : tous les états du popup affichés en même temps (5 septembre 2026)
+
+Après le correctif de l'onglet relais, l'utilisateur a retesté dans un vrai Chrome : l'onglet
+relais fonctionnait (le mécanisme d'auth marchait), mais **le popup affichait tous ses états à la
+fois** — "Un instant…", le message "Connectez-vous"/son bouton, le formulaire, "Cadeau ajouté à
+votre liste" (alors que rien n'était encore ajouté), et les deux boutons "Voir dans Kdovie"
+(succès) et "Ouvrir Kdovie" (erreur) simultanément.
+
+**Cause confirmée par contrôle négatif** (retirer le correctif reproduit exactement le bug décrit,
+remettre le correctif le fait disparaître — pas une supposition) : dans `popup.css`,
+`.etat { display: flex; … }` posait `display` sur les mêmes éléments que ceux basculés en `hidden`
+par `afficherEtat()` (`popup.js`). Une règle **d'auteur** (celle du CSS du projet) l'emporte
+toujours sur la règle de **feuille de style du navigateur** qui donne `display: none` à `[hidden]`
+— même à spécificité équivalente, l'origine « auteur » prime sur l'origine « navigateur » dans la
+cascade CSS. Résultat : l'attribut `hidden` ne cachait plus rien du tout, sur `.etat` **et** sur
+`.apercu-image-vide` (même piège, même correctif nécessaire). La propriété DOM `hidden` elle-même
+était pourtant correctement basculée par le JS — **c'est un piège purement visuel/CSS**, invisible
+aux tests du tour précédent qui vérifiaient `el.hidden` (correct) plutôt que le `display` réellement
+calculé à l'écran.
+
+**Correctif** : une règle unique et prioritaire en tête de `popup.css` —
+```css
+[hidden] {
+  display: none !important;
+}
+```
+— garantit que `hidden` gagne toujours, quelle que soit la règle `display` posée par ailleurs sur
+le même élément. Pattern classique (présent dans de nombreux resets CSS), à reproduire à l'identique
+si une nouvelle vue est ajoutée au produit avec des sections cachées via `hidden` + une classe qui
+pose `display`.
+
+**Testé, avec le bon outil cette fois** : nouveau test (`getComputedStyle(el).display`, pas
+`el.hidden`) sur le même harnais (onglet relais réel, vraie session, vrai ajout) — confirme qu'un
+seul état est visuellement affiché à la fois côté formulaire et côté succès, et que le repli image
+🎁 disparaît bien une fois une vraie image trouvée. **Contrôle négatif effectué** : le test échoue
+bien (les 5 états visibles en même temps, reproduisant exactement le rapport utilisateur) quand le
+correctif est temporairement retiré, et repasse au vert une fois remis — la couverture du test est
+donc confirmée pertinente, pas juste un test qui passerait de toute façon.
+
 ## Points d'attention techniques
 
 - Stripe Connect Express : l'onboarding KYC peut prendre plusieurs jours. L'invité peut cotiser même si l'organisateur n'a pas fini sa vérification (statut "en attente"), mais le reversement est bloqué jusqu'à validation. Prévoir un état d'UI "cagnotte en validation".

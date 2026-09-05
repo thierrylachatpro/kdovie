@@ -2,6 +2,15 @@
   box-sizing: border-box;
 }
 
+/* Priorité absolue à `hidden` : sans ça, une règle d'auteur qui pose
+   `display` sur le même élément (.etat, .apercu-image-vide…) l'emporte sur
+   le `display: none` par défaut du navigateur pour [hidden] — bug réel
+   rencontré ici (tous les états du popup s'affichaient superposés en même
+   temps), voir CLAUDE.md > "Extension navigateur Chrome". */
+[hidden] {
+  display: none !important;
+}
+
 body {
   margin: 0;
   width: 300px;
