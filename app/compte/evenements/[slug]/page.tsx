@@ -2,6 +2,8 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { stripe } from "@/lib/stripe";
+import { soldeEurCents } from "@/lib/stripe-balance";
 import type { EventStatus } from "@/lib/event-status";
 import { sortGiftItems } from "@/lib/gift-item-sort";
 import EnTeteListe from "@/components/evenements/EnTeteListe";
@@ -65,7 +67,7 @@ export default async function EvenementPage({
   const reservedIds = items.filter((i) => i.status === "reserve").map((i) => i.id);
   const cagnotteIds = items.filter((i) => i.status === "cagnotte").map((i) => i.id);
 
-  const [{ data: reservations }, { data: contributions }] = await Promise.all([
+  const [{ data: reservations }, { data: contributions }, { data: payouts }] = await Promise.all([
     reservedIds.length > 0
       ? supabase.from("reservations").select("gift_item_id, guest_name").in("gift_item_id", reservedIds)
       : Promise.resolve({ data: [] }),
@@ -74,6 +76,12 @@ export default async function EvenementPage({
           .from("contributions")
           .select("gift_item_id, guest_name")
           .eq("status", "succeeded")
+          .in("gift_item_id", cagnotteIds)
+      : Promise.resolve({ data: [] }),
+    cagnotteIds.length > 0
+      ? supabase
+          .from("gift_item_payouts")
+          .select("gift_item_id, amount_cents")
           .in("gift_item_id", cagnotteIds)
       : Promise.resolve({ data: [] }),
   ]);
@@ -86,6 +94,36 @@ export default async function EvenementPage({
   (contributions ?? []).forEach((c) => {
     (contributorNames[c.gift_item_id] ??= []).push(c.guest_name);
   });
+  const reversedByItem: Record<string, number> = {};
+  (payouts ?? []).forEach((p) => {
+    reversedByItem[p.gift_item_id] = (reversedByItem[p.gift_item_id] ?? 0) + p.amount_cents;
+  });
+
+  // Solde Stripe de l'organisateur — une seule lecture (le solde est
+  // fongible au niveau du compte, pas par cagnotte), utilisée par le bouton
+  // « Me reverser cette cagnotte » sur chaque article. Voir CLAUDE.md >
+  // "Reversement manuel de la cagnotte par article".
+  let stripeActif = false;
+  let soldeDisponibleCents = 0;
+  if (cagnotteIds.length > 0) {
+    const { data: stripeAccount } = await supabase
+      .from("organizer_stripe_accounts")
+      .select("stripe_account_id, payouts_enabled")
+      .eq("organizer_id", user.id)
+      .maybeSingle();
+    stripeActif = Boolean(stripeAccount?.payouts_enabled);
+    if (stripeActif && stripeAccount) {
+      try {
+        const balance = await stripe.balance.retrieve(undefined, {
+          stripeAccount: stripeAccount.stripe_account_id,
+        });
+        soldeDisponibleCents = soldeEurCents(balance).disponible;
+      } catch {
+        // Solde indisponible momentanément : le bouton s'affiche mais
+        // proposera « solde en cours de mise à jour » plutôt que de planter.
+      }
+    }
+  }
 
   const host = (await headers()).get("host");
   const protocol = host?.startsWith("localhost") ? "http" : "https";
@@ -180,6 +218,9 @@ export default async function EvenementPage({
               slug={event.slug}
               reservedNames={reservedNames}
               contributorNames={contributorNames}
+              reversedByItem={reversedByItem}
+              stripeActif={stripeActif}
+              soldeDisponibleCents={soldeDisponibleCents}
             />
           ) : (
             <p className="text-sm text-gris">Aucun cadeau ajouté pour l&apos;instant.</p>

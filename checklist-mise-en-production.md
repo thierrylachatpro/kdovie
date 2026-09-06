@@ -102,10 +102,23 @@ Le flux d'argent transite toujours directement via Stripe vers l'organisateur (d
    hébergé Stripe), gestion via le Dashboard Express, plateforme responsable des
    remboursements/contestations (inévitable avec les destination charges). Aucun correctif de code
    n'était nécessaire (le code était déjà correct, vérifié en mode test).
-8. ⬜ **Test réel avant diffusion large** : faire une vraie cotisation avec ta propre carte (petit
-   montant) pour confirmer que toute la chaîne fonctionne (Checkout → webhook →
-   `confirm_contribution` → réception effective par le compte connecté) avant d'annoncer publiquement
-   le lancement. Reste à faire.
+8. ✅ **Fait, confirmé par toi le 6 septembre 2026** — vraie cotisation testée en conditions live
+   (Checkout → webhook → `confirm_contribution` → réception par le compte connecté). CGV et case de
+   renonciation au droit de rétractation validées dans le même test (voir CLAUDE.md, section "Droit
+   de rétractation").
+9. ⬜ **Reversement manuel de la cagnotte (implémenté le 6 septembre 2026)** — voir CLAUDE.md,
+   section "Reversement manuel de la cagnotte par article". Les virements automatiques Stripe sont
+   remplacés par un bouton "Me reverser cette cagnotte" par article. Actions à faire :
+   - **(a)** appliquer la migration `0025_gift_item_payouts.sql` sur dev **et** prod ;
+   - **(b)** exécuter `scripts/basculer-payouts-manuel.mjs --confirm` une fois avec la config dev,
+     une fois avec la config prod (`STRIPE_SECRET_KEY=sk_live_…` + Supabase prod), pour basculer en
+     "manual" les comptes organisateurs déjà onboardés — sinon eux seuls continuent d'être virés
+     automatiquement ;
+   - **(c)** poser `CRON_SECRET` sur Vercel (scope Production) — protège la route cron
+     `/api/cron/rappel-reversement` (email de rappel du délai des 90 jours) ; le cron s'enregistre
+     tout seul au prochain déploiement de `main` (déclaré dans `vercel.json`) ;
+   - **(d)** après (a)+(b), faire un vrai reversement de test (petite cagnotte réelle) pour valider
+     `stripe.payouts.create` de bout en bout.
 
 ## 3. Base de données
 
@@ -114,6 +127,8 @@ Beaucoup de migrations ont été écrites au fil des sessions ; certaines ont é
 ## 4. Variables d'environnement à vérifier sur Vercel (scope Production)
 
 Déjà posées, à confirmer toujours valides : `RESEND_API_KEY`, `SCRAPINGANT_API_KEY`, `BRIGHTDATA_API_KEY`, `SUPABASE_SEND_EMAIL_HOOK_SECRET`.
+
+**Manquante, à poser** : `CRON_SECRET` (scope Production) — protège la route cron `/api/cron/rappel-reversement` (rappel du délai de reversement des 90 jours). Sans elle, la route reste appelable publiquement (risque faible : elle n'envoie qu'un email aux organisateurs ayant un solde ancien non reversé), mais à poser pour verrouiller proprement.
 
 **Manquante, à poser** : `NEXT_PUBLIC_GTM_ID` = `GTM-PT2M3BJZ` (scope Production uniquement) — sans elle, le conteneur Google Tag Manager ne se charge jamais, même si le code est prêt.
 
@@ -134,11 +149,10 @@ Le mode maintenance est un indicateur en base (pas un redéploiement) : connecte
 3. ✅ **Fait, confirmé par toi le 29 août** — balise GA4 vérifiée dans Google Tag Manager.
 4. ✅ **Fait, confirmé par toi le 29 août** — `dev` fusionnée dans `main`.
 5. ✅ **Fait, confirmé par toi le 29 août** — migrations vérifiées à jour sur la base de prod.
-6. 🔄 **Presque fini** — Stripe basculé en live : compte activé, clés live posées sur
-   Vercel, webhook live créé, domaine Connect embarqué vérifié, **(a) questionnaire de profil de
-   plateforme Connect en mode Live rempli le 6 septembre** (section 2 point 7). Reste : **(b) faire
-   une vraie petite transaction test** (Checkout → webhook → reversement au compte connecté) avant
-   toute annonce publique.
+6. ✅ **Fait, confirmé par toi le 6 septembre** — Stripe basculé en live : compte activé, clés live
+   posées sur Vercel, webhook live créé, domaine Connect embarqué vérifié, questionnaire de profil
+   de plateforme Connect en mode Live rempli (section 2 point 7), et vraie transaction test réussie
+   (point 8 ci-dessus).
 7. ⬜ Ouvrir la page de maintenance depuis `/admin`.
 8. ⬜ Communiquer / lancer.
 

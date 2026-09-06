@@ -5,6 +5,7 @@ import {
   deleteGiftItem,
   updateGiftItem,
 } from "@/app/compte/evenements/[slug]/gift-item-actions";
+import { reverserCagnotteArticle } from "@/app/compte/evenements/[slug]/reversement-actions";
 import Link from "next/link";
 import { formatPriceCents } from "@/lib/gift-item";
 import { estAttenue } from "@/lib/gift-item-sort";
@@ -40,6 +41,9 @@ export default function GiftItemCard({
   toneIndex,
   reservedByName,
   contributorNames,
+  reversedCents = 0,
+  stripeActif = false,
+  soldeDisponibleCents = 0,
   onEditingChange,
 }: {
   item: GiftItem;
@@ -47,9 +51,14 @@ export default function GiftItemCard({
   toneIndex: number;
   reservedByName: string | null;
   contributorNames: (string | null)[];
+  reversedCents?: number;
+  stripeActif?: boolean;
+  soldeDisponibleCents?: number;
   onEditingChange?: (editing: boolean) => void;
 }) {
-  const [mode, setModeState] = useState<"reading" | "editing" | "confirming">("reading");
+  const [mode, setModeState] = useState<
+    "reading" | "editing" | "confirming" | "reversing"
+  >("reading");
   const [draftTitle, setDraftTitle] = useState(item.title);
   const [draftPrice, setDraftPrice] = useState(
     item.price_cents !== null ? (item.price_cents / 100).toFixed(2) : "",
@@ -59,13 +68,39 @@ export default function GiftItemCard({
   const [erreur, setErreur] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [nomRevele, setNomRevele] = useState(false);
+  const [reverseMessage, setReverseMessage] = useState<string | null>(null);
 
   // Prévient le parent (GiftItemsList) pour qu'il désactive le glisser-déposer
-  // de cette carte pendant une édition/suppression en cours — éviter de perdre
-  // une saisie non enregistrée sur un revalidatePath déclenché par un drag.
-  function setMode(next: "reading" | "editing" | "confirming") {
+  // de cette carte pendant une édition/suppression/reversement en cours —
+  // éviter de perdre une saisie non enregistrée sur un revalidatePath
+  // déclenché par un drag.
+  function setMode(next: "reading" | "editing" | "confirming" | "reversing") {
     setModeState(next);
     onEditingChange?.(next !== "reading");
+  }
+
+  // Reversement manuel de la cagnotte, article par article — voir CLAUDE.md >
+  // "Reversement manuel de la cagnotte par article".
+  const montantRestantCents = Math.max(0, item.funded_amount_cents - reversedCents);
+  const montantAVirerCents = Math.min(montantRestantCents, soldeDisponibleCents);
+  const peutReverser =
+    item.status === "cagnotte" && montantRestantCents > 0 && stripeActif;
+
+  async function handleConfirmReverser() {
+    setErreur(null);
+    setIsPending(true);
+    const result = await reverserCagnotteArticle(item.id, slug);
+    setIsPending(false);
+    if (result.error) {
+      setErreur(result.error);
+      return;
+    }
+    setReverseMessage(
+      `Virement de ${formatPriceCents(
+        result.montantCents ?? 0,
+      )} lancé — il devrait arriver sur votre compte bancaire sous 2 jours ouvrés.`,
+    );
+    setMode("reading");
   }
 
   const locked = item.status !== "disponible";
@@ -87,12 +122,19 @@ export default function GiftItemCard({
     setDraftImage(item.image_url ?? "");
     setDraftDescription(item.description ?? "");
     setErreur(null);
+    setReverseMessage(null);
     setMode("editing");
   }
 
   function cancel() {
     setErreur(null);
     setMode("reading");
+  }
+
+  function ouvrirReversement() {
+    setErreur(null);
+    setReverseMessage(null);
+    setMode("reversing");
   }
 
   async function handleSave() {
@@ -127,7 +169,7 @@ export default function GiftItemCard({
   return (
     <article
       className={`rounded-[26px] border-2 p-6 ${
-        mode === "confirming"
+        mode === "confirming" || mode === "reversing"
           ? "border-corail"
           : attenue
             ? "border-[#EFE3D4] bg-[#FDF3E9]"
@@ -152,7 +194,7 @@ export default function GiftItemCard({
         )}
 
         <div className="min-w-60 flex-1">
-          {mode === "reading" || mode === "confirming" ? (
+          {mode !== "editing" ? (
             <div>
               <div className="mb-1.5 flex flex-wrap items-center gap-2.5">
                 <h3 className="contents">
@@ -194,6 +236,12 @@ export default function GiftItemCard({
                     {formatPriceCents(item.funded_amount_cents)} sur{" "}
                     {formatPriceCents(item.price_cents)}
                   </div>
+                  {reversedCents > 0 && (
+                    <div className="mt-1 text-sm font-semibold text-[#2F4A2C]">
+                      {formatPriceCents(reversedCents)} déjà reversés sur{" "}
+                      {formatPriceCents(item.funded_amount_cents)} cotisés
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -207,6 +255,41 @@ export default function GiftItemCard({
                     invités.
                   </p>
                 </div>
+              )}
+
+              {mode === "reversing" && (
+                <div className="mt-4 rounded-[18px] bg-[#EEF3EC] p-4.5">
+                  <div className="font-heading mb-1.5 text-[17px] font-bold text-[#2F4A2C]">
+                    Me reverser cette cagnotte
+                  </div>
+                  {montantAVirerCents > 0 ? (
+                    <p className="text-[15px] leading-relaxed text-[#3E5A3A]">
+                      <strong>{formatPriceCents(montantAVirerCents)}</strong> vont être virés
+                      vers votre compte bancaire.
+                      {montantAVirerCents < montantRestantCents && (
+                        <>
+                          {" "}
+                          Le reste ({formatPriceCents(montantRestantCents - montantAVirerCents)})
+                          n&apos;est pas encore disponible : Stripe finalise les paiements les
+                          plus récents, comptez quelques jours ouvrés avant de pouvoir le
+                          reverser.
+                        </>
+                      )}
+                    </p>
+                  ) : (
+                    <p className="text-[15px] leading-relaxed text-[#3E5A3A]">
+                      Le montant de cette cagnotte n&apos;est pas encore disponible : Stripe
+                      finalise les paiements les plus récents. Réessayez d&apos;ici quelques
+                      jours ouvrés.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {reverseMessage && mode === "reading" && (
+                <p className="mt-3.5 max-w-130 rounded-[14px] bg-[#DCE7DA] px-3.5 py-3 text-[15px] leading-relaxed text-[#2F4A2C]">
+                  {reverseMessage}
+                </p>
               )}
 
               {item.status === "reserve" && (
@@ -312,12 +395,44 @@ export default function GiftItemCard({
             </>
           )}
           {mode === "reading" && locked && (
-            <span
-              title="Ce cadeau ne peut plus être modifié : un proche l'a déjà réservé ou a commencé à cotiser dessus."
-              className="cursor-help rounded-2xl bg-[#F7E7D6] px-4.5 py-3 text-[15px] font-semibold text-[#8A7263]"
-            >
-              Non modifiable
-            </span>
+            <>
+              <span
+                title="Ce cadeau ne peut plus être modifié : un proche l'a déjà réservé ou a commencé à cotiser dessus."
+                className="cursor-help rounded-2xl bg-[#F7E7D6] px-4.5 py-3 text-[15px] font-semibold text-[#8A7263]"
+              >
+                Non modifiable
+              </span>
+              {peutReverser && (
+                <button
+                  type="button"
+                  onClick={ouvrirReversement}
+                  className="font-heading rounded-2xl bg-sauge px-5 py-3 text-[15px] font-bold text-[#F7FBF6] hover:bg-[#79997A]"
+                >
+                  Me reverser cette cagnotte
+                </button>
+              )}
+            </>
+          )}
+          {mode === "reversing" && (
+            <>
+              <button
+                type="button"
+                onClick={handleConfirmReverser}
+                disabled={isPending || montantAVirerCents <= 0}
+                className="font-heading inline-flex items-center gap-2 rounded-2xl bg-sauge px-5 py-3 text-[15px] font-bold text-[#F7FBF6] hover:bg-[#79997A] disabled:opacity-60"
+              >
+                {isPending && <KdovieSpinner className="h-4 w-4" variant="dark" />}
+                {isPending ? "Virement en cours…" : "Confirmer le virement"}
+              </button>
+              <button
+                type="button"
+                onClick={cancel}
+                disabled={isPending}
+                className="px-3 py-3 text-[15px] font-semibold text-[#8A7263]"
+              >
+                Annuler
+              </button>
+            </>
           )}
           {mode === "editing" && (
             <>
@@ -363,7 +478,7 @@ export default function GiftItemCard({
           )}
         </div>
       </div>
-      {mode === "confirming" && erreur && (
+      {(mode === "confirming" || mode === "reversing") && erreur && (
         <p className="mt-3 text-sm text-corail-dark">{erreur}</p>
       )}
     </article>

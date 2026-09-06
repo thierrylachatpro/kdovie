@@ -194,10 +194,44 @@ export type Database = {
           },
         ]
       }
+      gift_item_payouts: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          gift_item_id: string
+          id: string
+          stripe_payout_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          gift_item_id: string
+          id?: string
+          stripe_payout_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          gift_item_id?: string
+          id?: string
+          stripe_payout_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gift_item_payouts_gift_item_id_fkey"
+            columns: ["gift_item_id"]
+            isOneToOne: false
+            referencedRelation: "gift_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       organizer_stripe_accounts: {
         Row: {
           created_at: string
           id: string
+          last_payout_at: string | null
+          last_payout_reminder_at: string | null
           organizer_id: string
           payouts_enabled: boolean
           stripe_account_id: string
@@ -206,6 +240,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          last_payout_at?: string | null
+          last_payout_reminder_at?: string | null
           organizer_id: string
           payouts_enabled?: boolean
           stripe_account_id: string
@@ -214,6 +250,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          last_payout_at?: string | null
+          last_payout_reminder_at?: string | null
           organizer_id?: string
           payouts_enabled?: boolean
           stripe_account_id?: string

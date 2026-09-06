@@ -101,11 +101,17 @@ export default function GiftItemsList({
   slug,
   reservedNames,
   contributorNames,
+  reversedByItem,
+  stripeActif,
+  soldeDisponibleCents,
 }: {
   items: Item[];
   slug: string;
   reservedNames: Record<string, string | null>;
   contributorNames: Record<string, (string | null)[]>;
+  reversedByItem: Record<string, number>;
+  stripeActif: boolean;
+  soldeDisponibleCents: number;
 }) {
   const [items, setItems] = useState(initialItems);
   const [prevInitial, setPrevInitial] = useState(initialItems);
@@ -211,6 +217,9 @@ export default function GiftItemsList({
                   toneIndex={index}
                   reservedByName={reservedNames[item.id] ?? null}
                   contributorNames={contributorNames[item.id] ?? []}
+                  reversedCents={reversedByItem[item.id] ?? 0}
+                  stripeActif={stripeActif}
+                  soldeDisponibleCents={soldeDisponibleCents}
                   onEditingChange={(editing) => handleEditingChange(item.id, editing)}
                 />
               </SortableRow>

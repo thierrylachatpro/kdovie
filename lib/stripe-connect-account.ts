@@ -53,6 +53,15 @@ export async function ensureOrganizerStripeAccount(
       product_description:
         "Cagnotte cadeau pour un événement personnel (naissance, mariage, anniversaire, etc.)",
     },
+    // Virements en mode manuel : Stripe ne reverse plus jamais
+    // automatiquement, l'organisateur déclenche chaque reversement
+    // article par article depuis la page de gestion — voir CLAUDE.md >
+    // "Reversement manuel de la cagnotte par article". Les comptes
+    // onboardés avant ce changement sont basculés par le script
+    // scripts/basculer-payouts-manuel.mjs.
+    settings: {
+      payouts: { schedule: { interval: "manual" } },
+    },
   });
   stripeAccountId = account.id;
 
