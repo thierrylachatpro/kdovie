@@ -1,20 +1,20 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
-import { SITE_URL } from "@/lib/site-url";
-import { ensureOrganizerStripeAccount } from "@/lib/stripe-connect-account";
 
-// Conservé uniquement pour le statut "actif" (bouton "Gérer mon compte
-// Stripe") — les statuts "aucun"/"en_attente" passent désormais par
-// l'onboarding embarqué (StripeEmbeddedOnboarding + app/api/stripe/account-session,
-// jamais de redirection hors de kdovie.com), voir CLAUDE.md > "Onboarding
-// Stripe Connect embarqué, sans quitter Kdovie". La création de compte est
-// partagée avec ce nouveau flux via ensureOrganizerStripeAccount, pas
-// dupliquée ici.
-export async function startStripeOnboarding() {
+// Ouvre le Dashboard Express de l'organisateur (solde, versements à venir,
+// coordonnées bancaires, historique) via un lien de connexion à usage
+// unique — réservé au statut "actif" du bloc "Ma cagnotte".
+//
+// Les statuts "aucun"/"en_attente" passent par l'onboarding embarqué
+// (StripeEmbeddedOnboarding + app/api/stripe/account-session), jamais par
+// ici — voir CLAUDE.md > "Onboarding Stripe Connect embarqué". D'où la
+// suppression de l'ancien startStripeOnboarding (Account Link
+// `type: "account_onboarding"`), qui renvoyait toujours vers le formulaire
+// de configuration, jamais vers le solde.
+export async function openStripeExpressDashboard() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -24,40 +24,23 @@ export async function startStripeOnboarding() {
     redirect("/connexion");
   }
 
-  const host = (await headers()).get("host");
-  const protocol = host?.startsWith("localhost") ? "http" : "https";
-
-  // business_profile.url à partir de SITE_URL, jamais de l'en-tête `host` :
-  // Stripe rejette `http://localhost:3000` (`url_invalid`) — voir
-  // app/api/stripe/account-session/route.ts et CLAUDE.md (incident du
-  // 6 septembre 2026). Le returnUrl ci-dessous, lui, reste basé sur `host`
-  // (on veut revenir sur l'environnement d'où vient l'organisateur).
-  const { data: firstEvent } = await supabase
-    .from("events")
-    .select("slug")
+  const { data: stripeAccount } = await supabase
+    .from("organizer_stripe_accounts")
+    .select("stripe_account_id")
     .eq("organizer_id", user.id)
-    .order("created_at", { ascending: true })
-    .limit(1)
     .maybeSingle();
-  const businessUrl = firstEvent
-    ? `${SITE_URL}/liste/${firstEvent.slug}`
-    : SITE_URL;
 
-  let stripeAccountId: string;
-  try {
-    stripeAccountId = await ensureOrganizerStripeAccount(user.id, user.email, businessUrl);
-  } catch {
+  if (!stripeAccount) {
     redirect("/compte/profil?erreur=stripe_compte");
   }
 
-  const returnUrl = `${protocol}://${host}/compte/profil`;
+  let url: string;
+  try {
+    const loginLink = await stripe.accounts.createLoginLink(stripeAccount.stripe_account_id);
+    url = loginLink.url;
+  } catch {
+    redirect("/compte/profil?erreur=stripe_dashboard");
+  }
 
-  const accountLink = await stripe.accountLinks.create({
-    account: stripeAccountId,
-    refresh_url: returnUrl,
-    return_url: returnUrl,
-    type: "account_onboarding",
-  });
-
-  redirect(accountLink.url);
+  redirect(url);
 }

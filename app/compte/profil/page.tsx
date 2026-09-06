@@ -56,8 +56,8 @@ export default async function ProfilPage() {
         // Le compte référencé en base peut être devenu inaccessible
         // (supprimé côté Stripe, accès révoqué...) — ne jamais planter toute
         // la page pour ça, rester sur "en attente" plutôt. Relancer
-        // l'onboarding depuis ce statut détecte ce cas et repart à zéro,
-        // voir startStripeOnboarding.
+        // l'onboarding embarqué depuis ce statut détecte ce cas et repart à
+        // zéro, voir ensureOrganizerStripeAccount.
       }
     }
     stripeStatus = deriveOrganizerStripeStatus({ payouts_enabled: payoutsEnabled });
