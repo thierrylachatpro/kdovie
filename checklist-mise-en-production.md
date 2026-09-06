@@ -90,7 +90,17 @@ Le flux d'argent transite toujours directement via Stripe vers l'organisateur (d
 6. **Tous les comptes Stripe Connect organisateurs créés en test ne comptent pas en live.** N'importe
    quel organisateur ayant déjà fait l'onboarding pendant les tests devra recommencer une fois
    basculé en live — à prévoir dans ta communication si des organisateurs de test existent encore.
-7. ⬜ **Test réel avant diffusion large** : faire une vraie cotisation avec ta propre carte (petit
+7. ⬜ **Questionnaire de profil de plateforme Connect (mode Live)** — découvert le 6 septembre 2026
+   en testant l'activation d'une cagnotte sur `kdovie.com` : `stripe.accounts.create` échoue en live
+   avec *"You must complete your platform profile to use Connect and create live connected
+   accounts"* tant que ce questionnaire n'est pas rempli. Distinct de l'activation du compte (point 1)
+   : c'est spécifique à Connect (rôle de la plateforme dans le flux d'argent, responsabilité
+   litiges/pertes/remboursements, PCI…). À faire :
+   `https://dashboard.stripe.com/connect/accounts/overview` en **mode Live** → répondre au
+   questionnaire. **Bloque toute cotisation réelle** — aucun organisateur ne peut connecter sa
+   cagnotte tant que ce n'est pas fait. Aucun correctif de code n'y changera rien (le code est
+   correct, vérifié en mode test).
+8. ⬜ **Test réel avant diffusion large** : faire une vraie cotisation avec ta propre carte (petit
    montant) pour confirmer que toute la chaîne fonctionne (Checkout → webhook →
    `confirm_contribution` → réception effective par le compte connecté) avant d'annoncer publiquement
    le lancement. Reste à faire.
@@ -123,8 +133,10 @@ Le mode maintenance est un indicateur en base (pas un redéploiement) : connecte
 4. ✅ **Fait, confirmé par toi le 29 août** — `dev` fusionnée dans `main`.
 5. ✅ **Fait, confirmé par toi le 29 août** — migrations vérifiées à jour sur la base de prod.
 6. 🔄 **Presque fini (31 août)** — Stripe basculé en live : compte activé, clés live posées sur
-   Vercel, webhook live créé, domaine Connect embarqué vérifié (rien à faire de ce côté). Reste
-   uniquement : faire une vraie petite transaction test avant toute annonce publique.
+   Vercel, webhook live créé, domaine Connect embarqué vérifié (rien à faire de ce côté). Reste :
+   **(a) remplir le questionnaire de profil de plateforme Connect en mode Live** (section 2 point 7 —
+   bloque toute cotisation, découvert le 6 septembre), puis **(b) faire une vraie petite transaction
+   test** avant toute annonce publique.
 7. ⬜ Ouvrir la page de maintenance depuis `/admin`.
 8. ⬜ Communiquer / lancer.
 

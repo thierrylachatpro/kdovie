@@ -478,6 +478,17 @@ Déclenché par l'obligation Amazon Partenaires de mentionner "En tant que Parte
 - **Hors périmètre pour cette tâche** : une politique de confidentialité RGPD dédiée (distincte des CGU) est nécessaire mais pas encore rédigée — à traiter séparément.
 - Email de contact dans les mentions légales et le CGV : `contact@kdovie.com`.
 
+## CGV : publication maintenant, sans attendre le médiateur de la consommation (6 septembre 2026)
+
+Décision de l'utilisateur, en marge de "Pages légales" ci-dessus (qui laissait volontairement la page `/cgv` en "en cours de rédaction" tant que le médiateur de la consommation n'était pas souscrit) : **ne plus attendre**, publier une vraie page `/cgv` dès maintenant, avec une mention transitoire sur le médiateur plutôt qu'une page non rédigée.
+
+- **Contexte factuel établi avec l'utilisateur avant cette décision** (pas un avis juridique, juste ce qui a été vérifié) : la mention du médiateur de la consommation (coordonnées + accès) est une obligation légale inconditionnelle (art. L.616-1/R.616-1 du Code de la consommation), sanctionnable par la DGCCRF jusqu'à 15 000 € pour une société — mais le coût de s'y conformer est modeste (de l'ordre de 50 à 100 € la première année selon le médiateur choisi, ex. CM2C, inscription en ligne via formulaire professionnel, attestation délivrée à la fin) et le risque réel d'être audité à ce stade (bêta fermée, faible volume) est jugé faible par l'utilisateur.
+- **Une formule du type "médiateur en cours de désignation" ne met pas légalement en conformité** — clairement établi avec l'utilisateur, pas présenté comme une zone grise sûre. C'est un choix assumé en connaissance de cause (même catégorie de risque que l'objet social/RC Pro déjà documentés dans "Pages légales"), pas une solution qui ferme le sujet.
+- **Mention transitoire à poser dans le texte des CGV**, à l'endroit où les coordonnées du médiateur seraient normalement données : *"Kdovie procède actuellement à la désignation d'un médiateur de la consommation conformément à l'article L.616-1 du Code de la consommation ; ses coordonnées seront ajoutées ici dès finalisation de cette démarche."* — à ajuster librement à l'implémentation, l'utilisateur pourra retoucher le wording.
+- **Une fois l'utilisateur réellement inscrit auprès d'un médiateur** (démarche qu'il compte faire séparément, hors de ce chantier technique), cette phrase transitoire devra être remplacée par les vraies coordonnées (nom du médiateur, adresse, site web) — à traiter comme une simple mise à jour de contenu sur `/cgv`, pas un nouveau chantier.
+- **Point encore ouvert pour un texte de CGV complet, pas tranché ici** : le droit de rétractation (voir "Pages légales" ci-dessus, zone grise sur son applicabilité à une cagnotte cadeau) reste à trancher avec l'utilisateur pour finaliser le texte — la politique de remboursement, elle, est déjà actée ailleurs dans ce fichier ("pas de remboursement, pas de plafond", voir "Règle de gestion : réservation vs cotisation par article" en tête de fichier) et peut être reprise telle quelle dans les CGV.
+- **Ne remplace pas la décision de fond sur l'objet social/RC Pro** (voir "Pages légales" et la checklist de mise en production) : ce sont des sujets distincts, cette section ne concerne que le contenu de `/cgv` et le point spécifique du médiateur.
+
 ## Backlog produit : pages "À propos", "Aide" (19 août 2026)
 
 Constaté en vérifiant la cohérence de la page d'accueil : le pied de page (`components/accueil/AccueilClient.tsx`) contient des liens "À propos" et "Aide" qui ne mènent nulle part (`href="#"`), en plus des trois pages légales déjà construites (mentions légales, CGU, CGV) et du lien "Confidentialité" — celui-ci restera un lien mort tant que la politique de confidentialité RGPD elle-même n'est pas rédigée (déjà noté comme hors périmètre dans "Pages légales" ci-dessus). Décision du 19 août 2026 : reporté, à recadrer plus tard (contenu à définir : une vraie page "À propos", une FAQ/aide dédiée ou un renvoi vers `contact@kdovie.com`) — ne pas construire ces pages sans en rediscuter d'abord.
@@ -846,9 +857,26 @@ affiche son erreur d'authentification générique. Reproduit puis corrigé.
   supprimé (`stripe.accounts.del`).
 - **Si l'utilisateur teste sur une URL déployée** (`kdovie.com`, alias preview) et pas en local :
   `businessUrl` valait déjà `https://…`, donc l'erreur venait d'ailleurs — dans ce cas le
-  `console.error` sur Vercel montrera la vraie cause (typiquement : `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
-  d'un compte/mode différent de `STRIPE_SECRET_KEY`, ou config Connect live incomplète côté dashboard
-  Stripe).
+  `console.error` sur Vercel montre la vraie cause.
+
+**Cause réelle de l'incident sur `kdovie.com`, identifiée via le log Vercel (6 septembre 2026) —
+100 % côté Stripe, aucun code en cause** :
+
+```
+You must complete your platform profile to use Connect and create live connected accounts.
+Visit your dashboard at https://dashboard.stripe.com/connect/accounts/overview to answer the questionnaire.
+```
+
+Le compte Stripe **live** de Prowebia (`acct_1U5fymBbsisT0OhX`, la plateforme) n'avait pas rempli le
+**questionnaire de profil de plateforme Connect** en mode live. Stripe l'exige avant d'autoriser la
+création du moindre compte connecté en live — `stripe.accounts.create` renvoie un 400 tant que ce
+n'est pas fait. En mode test ce questionnaire n'est pas demandé (d'où le succès du test avec
+`sk_test`). **Action utilisateur uniquement** : dashboard Stripe en mode Live →
+`https://dashboard.stripe.com/connect/accounts/overview` → répondre au questionnaire (rôle dans les
+transactions, responsabilité litiges/remboursements, PCI…). Le code n'a pas de correctif à recevoir
+pour ça. **À ajouter à `checklist-mise-en-production.md`** : "profil de plateforme Connect complété
+en mode Live" est un prérequis avant toute cotisation réelle, au même titre que la petite
+transaction test déjà listée.
 
 ## Prix Amazon réactivé (20 août 2026)
 
