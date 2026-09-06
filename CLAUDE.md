@@ -956,6 +956,44 @@ pour ça. **À ajouter à `checklist-mise-en-production.md`** : "profil de plate
 en mode Live" est un prérequis avant toute cotisation réelle, au même titre que la petite
 transaction test déjà listée.
 
+### Statut "actif" passé lui aussi en embarqué (6 septembre 2026)
+
+Le "hors périmètre" ci-dessus (statut `"actif"` → redirection vers le Dashboard Express externe) est
+levé : l'organisateur ne quitte plus jamais kdovie.com. Motivé par un retour d'usage — la
+redirection puis l'ouverture dans un nouvel onglet (essayée entre-temps) étaient toutes deux
+mauvaises (bloqueur de pop-up, risque de "perdre" l'organisateur sur le Dashboard Stripe).
+
+- **`app/compte/profil/stripe-actions.ts` supprimé** — `startStripeOnboarding` (Account Link
+  `type: "account_onboarding"`, renvoyait toujours vers le formulaire de config) puis
+  `openStripeExpressDashboard` (`createLoginLink`, nouvel onglet) sont tous deux retirés. Plus aucune
+  Server Action pour ce bouton.
+- **`lib/stripe-account-session.ts`** : `emettreAccountSession(components)` — partie commune des
+  routes de session (auth, `businessUrl` via `SITE_URL`, `ensureOrganizerStripeAccount`,
+  `stripe.accountSessions.create`, `console.error` du vrai message d'erreur).
+- **Deux routes** : `app/api/stripe/account-session/route.ts` (inchangée fonctionnellement —
+  `account_onboarding` seul, pour aucun/en_attente) et **`app/api/stripe/account-session-gestion/route.ts`**
+  (nouvelle — `payouts` + `account_management`). Séparées plutôt qu'une seule route à composants
+  variables : pas de risque qu'activer `payouts` casse la session d'onboarding d'un compte pas encore
+  vérifié.
+- **`components/compte/use-stripe-connect.ts`** : hook `useStripeConnectInstance(endpoint)` —
+  `loadConnectAndInitialize` + thème Kdovie, factorisé (était dupliqué). Prend l'endpoint de session
+  en paramètre.
+- **`components/compte/StripeEmbeddedGestion.tsx`** (nouveau) : `ConnectPayouts` +
+  `ConnectAccountManagement` dans la carte "Ma cagnotte". `ConnectPayouts` affiche le solde et
+  l'historique des versements **sans bouton de virement** : `standard_payouts` / `instant_payouts` /
+  `edit_payout_schedule` à `false` dans la session (les virements se font uniquement article par
+  article via le reversement manuel, sinon la compta par cadeau serait cassée) ;
+  `external_account_collection: true` pour que l'organisateur puisse gérer son IBAN.
+- **`components/compte/StripeStatusCard.tsx`** : `"actif"` → bouton "Voir mon solde et mes
+  versements" qui déplie `StripeEmbeddedGestion` dans la carte (même patron que l'onboarding pour
+  aucun/en_attente) + bouton "Fermer" qui `router.refresh()`.
+- **Testé** : `tsc`/`lint`/`build` propres. `stripe.accountSessions.create` avec les composants
+  `payouts` + `account_management` et ces feature flags accepté par l'API Stripe (test réel, clé
+  test → `client_secret accs_secret_…`). Rendu du dépliement vérifié par capture (le composant Stripe
+  affiche son erreur d'auth native faute de session valide en page de preview, comme l'onboarding —
+  comportement documenté). **Pas exercé avec un vrai organisateur actif connecté**, même limite que
+  l'onboarding embarqué.
+
 ## Prix Amazon réactivé (20 août 2026)
 
 Décision du 17 août ("pas de repli prix pour Amazon") inversée sur demande de l'utilisateur, après
