@@ -40,6 +40,7 @@ export type Database = {
           guest_email: string | null
           guest_name: string | null
           id: string
+          retractation_renoncee_at: string | null
           status: string
           stripe_payment_intent_id: string | null
         }
@@ -50,6 +51,7 @@ export type Database = {
           guest_email?: string | null
           guest_name?: string | null
           id?: string
+          retractation_renoncee_at?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
         }
@@ -60,6 +62,7 @@ export type Database = {
           guest_email?: string | null
           guest_name?: string | null
           id?: string
+          retractation_renoncee_at?: string | null
           status?: string
           stripe_payment_intent_id?: string | null
         }

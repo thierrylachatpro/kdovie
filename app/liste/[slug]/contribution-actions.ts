@@ -23,6 +23,7 @@ export async function createContribution(
   guestName: string,
   guestEmail: string,
   montantNetCents: number,
+  retractationRenoncee: boolean,
 ): Promise<{ error: string | null; checkoutUrl?: string }> {
   // Prénom/nom facultatif depuis le 18 août 2026 (voir CLAUDE.md >
   // "Ajustements listes publique et gestion") — "Anonyme" affiché côté app
@@ -30,6 +31,20 @@ export async function createContribution(
   const nom = guestName.trim();
   if (!Number.isFinite(montantNetCents) || montantNetCents < 100) {
     return { error: "Le montant minimum est de 1 €." };
+  }
+
+  // Renonciation expresse au droit de rétractation (art. L221-28 du Code de
+  // la consommation) — voir CLAUDE.md > "Droit de rétractation : renonciation
+  // expresse à la cotisation". Validation bloquante côté serveur, jamais une
+  // case cochée seulement côté UI : sans cet accord exprès et préalable,
+  // aucune Checkout Session n'est créée. L'horodatage est posé sur la ligne
+  // contributions (colonne retractation_renoncee_at) pour pouvoir prouver, en
+  // cas de litige, que la case a été cochée AVANT paiement.
+  if (retractationRenoncee !== true) {
+    return {
+      error:
+        "Pour cotiser, vous devez accepter l'exécution immédiate de votre cotisation et la renonciation à votre droit de rétractation.",
+    };
   }
 
   const admin = createAdminClient();
@@ -102,6 +117,7 @@ export async function createContribution(
       guest_email: guestEmail.trim() || null,
       amount_cents: montantNetCents,
       status: "pending",
+      retractation_renoncee_at: new Date().toISOString(),
     })
     .select("id")
     .single();

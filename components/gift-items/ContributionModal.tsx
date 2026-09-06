@@ -35,6 +35,7 @@ export default function ContributionModal({
   const [montant, setMontant] = useState("");
   const [nom, setNom] = useState("");
   const [email, setEmail] = useState("");
+  const [retractationRenoncee, setRetractationRenoncee] = useState(false);
   const [touched, setTouched] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
@@ -57,13 +58,20 @@ export default function ContributionModal({
 
   async function handleSubmitMontant(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!montantValide) {
+    if (!montantValide || !retractationRenoncee) {
       setTouched(true);
       return;
     }
     setErreur(null);
     setIsPending(true);
-    const result = await createContribution(item.id, slug, nom, email, montantNetCents);
+    const result = await createContribution(
+      item.id,
+      slug,
+      nom,
+      email,
+      montantNetCents,
+      retractationRenoncee,
+    );
     if (result.error || !result.checkoutUrl) {
       setIsPending(false);
       setErreur(result.error ?? "Impossible de préparer la cotisation, réessayez.");
@@ -271,6 +279,25 @@ export default function ContributionModal({
                 className="w-full rounded-[18px] border-2 border-[#F2DFC9] bg-white px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:ring-2 focus:ring-jaune"
               />
             </label>
+
+            <label className="flex gap-3 rounded-2xl border-2 border-[#F2DFC9] bg-white p-3.5 text-[14px] leading-relaxed text-[#5C4436]">
+              <input
+                type="checkbox"
+                checked={retractationRenoncee}
+                onChange={(event) => setRetractationRenoncee(event.target.checked)}
+                className="mt-0.5 h-5 w-5 flex-none accent-corail"
+              />
+              <span>
+                Je demande que ma cotisation soit exécutée immédiatement et je reconnais
+                qu&apos;en la validant, je renonce à mon droit de rétractation de 14 jours
+                applicable aux achats à distance.
+              </span>
+            </label>
+            {touched && !retractationRenoncee && (
+              <span className="text-sm text-corail-dark">
+                Vous devez cocher cette case pour pouvoir cotiser.
+              </span>
+            )}
 
             {erreur && <p className="text-sm text-corail-dark">{erreur}</p>}
 
