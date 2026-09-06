@@ -16,11 +16,19 @@ export const metadata: Metadata = pageMetadata({
 // cohérent d'un endroit à l'autre, et en ajoute d'autres pour couvrir des cas
 // concrets déjà construits dans le produit (annulation, suppression de
 // liste, sur-financement d'une cagnotte...).
-function Question({ question, children }: { question: string; children: React.ReactNode }) {
+function Question({
+  question,
+  id,
+  children,
+}: {
+  question: string;
+  id?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <div className="flex flex-col gap-2">
+    <div id={id} className="flex scroll-mt-24 flex-col gap-2">
       <h3 className="font-heading text-lg font-bold text-[#4A3529]">{question}</h3>
-      <p className="text-[16px] leading-relaxed text-[#5C4436]">{children}</p>
+      <div className="text-[16px] leading-relaxed text-[#5C4436]">{children}</div>
     </div>
   );
 }
@@ -115,6 +123,37 @@ export default async function AidePage() {
           une seule fois, puis l&apos;argent de toutes vos cagnottes vous est versé directement.
           Tant que la vérification n&apos;est pas terminée, les cotisations restent possibles mais
           le versement est différé le temps qu&apos;elle aboutisse.
+        </Question>
+        <Question
+          id="delais-de-versement"
+          question="Quand et à quel rythme vais-je recevoir l'argent ?"
+        >
+          <span className="block">
+            Chaque cotisation part vers votre compte Stripe au moment où elle est faite, sans
+            attendre la fin de la cagnotte. Ensuite, Stripe reverse cet argent sur votre compte
+            bancaire automatiquement — vous n&apos;avez rien à déclencher.
+          </span>
+          <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5">
+            <li>
+              <strong>Premier versement</strong> : Stripe applique un délai de sécurité sur les
+              comptes récents, en général de l&apos;ordre d&apos;une à deux semaines après la
+              première cotisation reçue.
+            </li>
+            <li>
+              <strong>Ensuite</strong> : les versements se font automatiquement et régulièrement
+              (tous les quelques jours), au fil des cotisations, avec quelques jours ouvrés de délai
+              entre une cotisation et son arrivée sur votre compte.
+            </li>
+            <li>
+              Condition : votre compte Stripe doit être entièrement vérifié. Tant que la
+              vérification est en cours, les cotisations continuent d&apos;être collectées mais le
+              versement attend qu&apos;elle aboutisse.
+            </li>
+          </ul>
+          <span className="mt-2 block">
+            Vous pouvez suivre votre solde et le détail de chaque versement à tout moment depuis
+            « Mon compte », bouton « Gérer mon compte Stripe ».
+          </span>
         </Question>
         <Question question="Que se passe-t-il si la cagnotte dépasse le prix du cadeau ?">
           Il n&apos;y a pas de plafond ni de remboursement : le surplus reste acquis, comme un
