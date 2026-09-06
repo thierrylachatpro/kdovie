@@ -1,27 +1,27 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 
-// Ouvre le Dashboard Express de l'organisateur (solde, versements à venir,
-// coordonnées bancaires, historique) via un lien de connexion à usage
-// unique — réservé au statut "actif" du bloc "Ma cagnotte".
+// Émet un lien de connexion à usage unique vers le Dashboard Express de
+// l'organisateur (solde, versements, coordonnées bancaires, historique) —
+// réservé au statut "actif" du bloc "Ma cagnotte". Retourne l'URL plutôt
+// que de rediriger : le composant client l'ouvre dans un nouvel onglet.
 //
 // Les statuts "aucun"/"en_attente" passent par l'onboarding embarqué
 // (StripeEmbeddedOnboarding + app/api/stripe/account-session), jamais par
-// ici — voir CLAUDE.md > "Onboarding Stripe Connect embarqué". D'où la
-// suppression de l'ancien startStripeOnboarding (Account Link
-// `type: "account_onboarding"`), qui renvoyait toujours vers le formulaire
-// de configuration, jamais vers le solde.
-export async function openStripeExpressDashboard() {
+// ici — voir CLAUDE.md > "Onboarding Stripe Connect embarqué".
+export async function openStripeExpressDashboard(): Promise<{
+  error: string | null;
+  url?: string;
+}> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/connexion");
+    return { error: "Votre session a expiré, reconnectez-vous." };
   }
 
   const { data: stripeAccount } = await supabase
@@ -31,16 +31,13 @@ export async function openStripeExpressDashboard() {
     .maybeSingle();
 
   if (!stripeAccount) {
-    redirect("/compte/profil?erreur=stripe_compte");
+    return { error: "Aucun compte Stripe n'est associé à votre compte." };
   }
 
-  let url: string;
   try {
     const loginLink = await stripe.accounts.createLoginLink(stripeAccount.stripe_account_id);
-    url = loginLink.url;
+    return { error: null, url: loginLink.url };
   } catch {
-    redirect("/compte/profil?erreur=stripe_dashboard");
+    return { error: "Impossible d'ouvrir votre compte Stripe, réessayez dans un instant." };
   }
-
-  redirect(url);
 }

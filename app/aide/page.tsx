@@ -113,46 +113,50 @@ export default async function AidePage() {
       <section className="flex flex-col gap-5">
         <h2 className="font-heading text-2xl font-bold text-corail">Cagnottes et paiement</h2>
         <Question question="Comment fonctionne l'argent d'une cagnotte ?">
-          Chaque participation part directement vers vous via Stripe, notre partenaire de
-          paiement, sans attendre la fin de la cagnotte. Si elle n&apos;atteint pas son objectif,
-          vous recevez quand même ce qui a été collecté — il n&apos;y a pas de remboursement
+          Chaque participation est encaissée pour vous via Stripe, notre partenaire de paiement,
+          sans attendre la fin de la cagnotte. Si elle n&apos;atteint pas son objectif, vous
+          récupérez quand même ce qui a été collecté — il n&apos;y a pas de remboursement
           automatique.
         </Question>
         <Question question="Comment recevoir l'argent d'une cagnotte ?">
           Depuis « Mon compte », connectez votre compte Stripe : quelques informations à renseigner
-          une seule fois, puis l&apos;argent de toutes vos cagnottes vous est versé directement.
-          Tant que la vérification n&apos;est pas terminée, les cotisations restent possibles mais
-          le versement est différé le temps qu&apos;elle aboutisse.
+          une seule fois. Ensuite, vous récupérez l&apos;argent de vos cagnottes quand vous le
+          souhaitez, cadeau par cadeau (voir ci-dessous). Tant que la vérification de votre compte
+          n&apos;est pas terminée, les cotisations restent possibles mais le versement attend
+          qu&apos;elle aboutisse.
         </Question>
         <Question
           id="delais-de-versement"
           question="Quand et à quel rythme vais-je recevoir l'argent ?"
         >
           <span className="block">
-            Chaque cotisation part vers votre compte Stripe au moment où elle est faite, sans
-            attendre la fin de la cagnotte. Ensuite, Stripe reverse cet argent sur votre compte
-            bancaire automatiquement — vous n&apos;avez rien à déclencher.
+            C&apos;est vous qui décidez. L&apos;argent n&apos;est jamais viré automatiquement : il
+            reste sur votre compte Stripe jusqu&apos;à ce que vous demandiez son versement.
           </span>
           <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5">
             <li>
-              <strong>Premier versement</strong> : Stripe applique un délai de sécurité sur les
-              comptes récents, en général de l&apos;ordre d&apos;une à deux semaines après la
-              première cotisation reçue.
+              Sur la page de gestion de votre liste, chaque cadeau ayant reçu au moins une
+              cotisation affiche un bouton <strong>« Me reverser cette cagnotte »</strong>.
             </li>
             <li>
-              <strong>Ensuite</strong> : les versements se font automatiquement et régulièrement
-              (tous les quelques jours), au fil des cotisations, avec quelques jours ouvrés de délai
-              entre une cotisation et son arrivée sur votre compte.
+              Une fenêtre vous confirme le montant qui sera viré. Après validation, il arrive sur
+              votre compte bancaire sous environ <strong>2 jours ouvrés</strong>.
             </li>
             <li>
-              Condition : votre compte Stripe doit être entièrement vérifié. Tant que la
-              vérification est en cours, les cotisations continuent d&apos;être collectées mais le
-              versement attend qu&apos;elle aboutisse.
+              Si une partie des cotisations est trop récente, seul le montant déjà disponible est
+              proposé — le reste pourra être reversé quelques jours plus tard. Vous pouvez donc
+              reverser une même cagnotte en plusieurs fois.
+            </li>
+            <li>
+              Vous pouvez attendre la fin de la cagnotte ou vous reverser au fil de l&apos;eau,
+              comme vous préférez. Pensez simplement à ne pas laisser l&apos;argent dormir trop
+              longtemps : passé quelques mois sans aucun versement, notre partenaire Stripe peut en
+              restreindre l&apos;accès (nous vous envoyons un rappel par e-mail bien avant).
             </li>
           </ul>
           <span className="mt-2 block">
             Vous pouvez suivre votre solde et le détail de chaque versement à tout moment depuis
-            « Mon compte », bouton « Gérer mon compte Stripe ».
+            « Mon compte », bouton « Voir mon solde et mes versements ».
           </span>
         </Question>
         <Question question="Que se passe-t-il si la cagnotte dépasse le prix du cadeau ?">

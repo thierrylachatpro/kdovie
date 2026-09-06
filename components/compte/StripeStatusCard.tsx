@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useFormStatus } from "react-dom";
 import { openStripeExpressDashboard } from "@/app/compte/profil/stripe-actions";
 import StripeEmbeddedOnboarding from "@/components/compte/StripeEmbeddedOnboarding";
 import KdovieSpinner from "@/components/ui/KdovieSpinner";
@@ -20,26 +19,11 @@ const STATUS_CLASS: Record<OrganizerStripeStatus, string> = {
   actif: "bg-[#DCE7DA] text-[#2F4A2C]",
 };
 
-// Statut "actif" uniquement — ouvre le Dashboard Express (solde, versements),
-// pas le formulaire de configuration. Voir CLAUDE.md > "Onboarding Stripe
-// Connect embarqué, sans quitter Kdovie".
-function GererCompteButton() {
-  const { pending } = useFormStatus();
-  return (
-    <button
-      type="submit"
-      disabled={pending}
-      className="font-heading inline-flex items-center gap-2.5 rounded-2xl bg-corail px-6 py-3.5 text-[16px] font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
-    >
-      {pending && <KdovieSpinner className="h-4.5 w-4.5" variant="dark" />}
-      {pending ? "Ouverture…" : "Voir mon solde et mes versements"}
-    </button>
-  );
-}
-
 export default function StripeStatusCard({ status }: { status: OrganizerStripeStatus }) {
   const router = useRouter();
   const [onboardingOuvert, setOnboardingOuvert] = useState(false);
+  const [dashboardPending, setDashboardPending] = useState(false);
+  const [dashboardErreur, setDashboardErreur] = useState<string | null>(null);
 
   // Aucune redirection ici : l'organisateur ne quitte jamais la page tant
   // qu'il reste sur aucun/en_attente. Le statut Stripe n'est rafraîchi qu'à
@@ -48,6 +32,25 @@ export default function StripeStatusCard({ status }: { status: OrganizerStripeSt
   function handleExit() {
     setOnboardingOuvert(false);
     router.refresh();
+  }
+
+  // Ouvre le Dashboard Express dans un nouvel onglet. La fenêtre est ouverte
+  // de façon synchrone dans le gestionnaire de clic (sinon les bloqueurs de
+  // pop-up la refusent après le await), puis pointée vers l'URL du lien de
+  // connexion une fois celui-ci émis côté serveur.
+  async function handleOuvrirDashboard() {
+    setDashboardErreur(null);
+    setDashboardPending(true);
+    const onglet = window.open("", "_blank", "noopener,noreferrer");
+    const result = await openStripeExpressDashboard();
+    setDashboardPending(false);
+    if (result.error || !result.url) {
+      onglet?.close();
+      setDashboardErreur(result.error ?? "Impossible d'ouvrir votre compte Stripe.");
+      return;
+    }
+    if (onglet) onglet.location.href = result.url;
+    else window.open(result.url, "_blank", "noopener,noreferrer");
   }
 
   return (
@@ -68,14 +71,23 @@ export default function StripeStatusCard({ status }: { status: OrganizerStripeSt
             {status === "en_attente" &&
               "Votre compte Stripe est créé, il ne reste qu'à confirmer votre identité — une formalité de sécurité de quelques minutes. En attendant, vos invités peuvent déjà cotiser normalement."}
             {status === "actif" &&
-              "Tout est en ordre : l'argent de vos cagnottes est versé directement et en toute sécurité sur votre compte en banque, tant que votre compte Stripe reste correctement configuré (identité vérifiée, coordonnées bancaires à jour)."}
+              "Tout est en ordre : vous pouvez vous reverser l'argent de vos cagnottes quand vous le souhaitez, directement et en toute sécurité sur votre compte en banque, tant que votre compte Stripe reste correctement configuré (identité vérifiée, coordonnées bancaires à jour)."}
           </p>
+          {dashboardErreur && (
+            <p className="mt-2 text-sm text-corail-dark">{dashboardErreur}</p>
+          )}
         </div>
 
         {status === "actif" ? (
-          <form action={openStripeExpressDashboard}>
-            <GererCompteButton />
-          </form>
+          <button
+            type="button"
+            onClick={handleOuvrirDashboard}
+            disabled={dashboardPending}
+            className="font-heading inline-flex items-center gap-2.5 rounded-2xl bg-corail px-6 py-3.5 text-[16px] font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
+          >
+            {dashboardPending && <KdovieSpinner className="h-4.5 w-4.5" variant="dark" />}
+            {dashboardPending ? "Ouverture…" : "Voir mon solde et mes versements"}
+          </button>
         ) : (
           !onboardingOuvert && (
             <button

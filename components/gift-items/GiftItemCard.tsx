@@ -6,7 +6,6 @@ import {
   updateGiftItem,
 } from "@/app/compte/evenements/[slug]/gift-item-actions";
 import { reverserCagnotteArticle } from "@/app/compte/evenements/[slug]/reversement-actions";
-import Link from "next/link";
 import { formatPriceCents } from "@/lib/gift-item";
 import { estAttenue } from "@/lib/gift-item-sort";
 import ModeSelect from "@/components/gift-items/ModeSelect";
@@ -308,30 +307,22 @@ export default function GiftItemCard({
                 </p>
               )}
               {item.status === "cagnotte" && (
-                <div className="mt-3.5 max-w-130 border-l-[3px] border-jaune pl-3">
-                  <p className="text-[15px] leading-relaxed text-[#7A6354]">
-                    <button
-                      type="button"
-                      onClick={() => setNomRevele((v) => !v)}
-                      title={nomRevele ? "Masquer" : "Afficher"}
-                      className={`font-heading font-semibold text-[#5C4436] ${
-                        nomRevele ? "" : "cursor-pointer blur-[5px] select-none"
-                      }`}
-                    >
-                      {contributorNames.length > 0
-                        ? contributorNames.map((n) => n ?? "Anonyme").join(", ")
-                        : "Des invités"}
-                    </button>{" "}
-                    {contributorNames.length === 1 ? "a" : "ont"} cotisé sur ce cadeau : il
-                    n&apos;est plus modifiable ni supprimable.
-                  </p>
-                  <Link
-                    href="/aide#delais-de-versement"
-                    className="mt-1 inline-block text-[13px] text-[#9A8574] underline decoration-[#D9C4AD] underline-offset-2 hover:text-corail"
+                <p className="mt-3.5 max-w-130 border-l-[3px] border-jaune pl-3 text-[15px] leading-relaxed text-[#7A6354]">
+                  <button
+                    type="button"
+                    onClick={() => setNomRevele((v) => !v)}
+                    title={nomRevele ? "Masquer" : "Afficher"}
+                    className={`font-heading font-semibold text-[#5C4436] ${
+                      nomRevele ? "" : "cursor-pointer blur-[5px] select-none"
+                    }`}
                   >
-                    Quand vais-je recevoir cet argent ?
-                  </Link>
-                </div>
+                    {contributorNames.length > 0
+                      ? contributorNames.map((n) => n ?? "Anonyme").join(", ")
+                      : "Des invités"}
+                  </button>{" "}
+                  {contributorNames.length === 1 ? "a" : "ont"} cotisé sur ce cadeau : il
+                  n&apos;est plus modifiable ni supprimable.
+                </p>
               )}
             </div>
           ) : (
