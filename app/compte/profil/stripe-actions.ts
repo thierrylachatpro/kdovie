@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
+import { SITE_URL } from "@/lib/site-url";
 import { ensureOrganizerStripeAccount } from "@/lib/stripe-connect-account";
 
 // Conservé uniquement pour le statut "actif" (bouton "Gérer mon compte
@@ -26,6 +27,11 @@ export async function startStripeOnboarding() {
   const host = (await headers()).get("host");
   const protocol = host?.startsWith("localhost") ? "http" : "https";
 
+  // business_profile.url à partir de SITE_URL, jamais de l'en-tête `host` :
+  // Stripe rejette `http://localhost:3000` (`url_invalid`) — voir
+  // app/api/stripe/account-session/route.ts et CLAUDE.md (incident du
+  // 6 septembre 2026). Le returnUrl ci-dessous, lui, reste basé sur `host`
+  // (on veut revenir sur l'environnement d'où vient l'organisateur).
   const { data: firstEvent } = await supabase
     .from("events")
     .select("slug")
@@ -34,8 +40,8 @@ export async function startStripeOnboarding() {
     .limit(1)
     .maybeSingle();
   const businessUrl = firstEvent
-    ? `${protocol}://${host}/liste/${firstEvent.slug}`
-    : `${protocol}://${host}`;
+    ? `${SITE_URL}/liste/${firstEvent.slug}`
+    : SITE_URL;
 
   let stripeAccountId: string;
   try {

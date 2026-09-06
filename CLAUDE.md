@@ -813,6 +813,43 @@ Aucune migration de schéma nécessaire, `organizer_stripe_accounts` reste ident
   vérification), qui nécessiterait une session authentifiée réelle non disponible dans cet
   environnement.
 
+### Incident : "Une erreur est survenue lors de l'authentification" à l'activation de la cagnotte (6 septembre 2026)
+
+L'utilisateur a tenté d'activer sa cagnotte et a eu l'erreur native du composant Stripe embarqué
+("Un problème est survenu. Une erreur est survenue lors de l'authentification."). Ce message
+apparaît dès que `fetchClientSecret` échoue ou renvoie autre chose qu'un `client_secret` valide.
+
+**Cause trouvée** — l'erreur Stripe réelle n'était **jamais loggée** (`catch {}` muet dans
+`app/api/stripe/account-session/route.ts`), donc invisible. Après ajout d'un `console.error`, la
+vraie erreur est apparue :
+
+```
+business_profile[url] : "Not a valid URL" (url_invalid)
+```
+
+`ensureOrganizerStripeAccount` (et `startStripeOnboarding`) construisaient `business_profile.url`
+à partir de l'en-tête `host` de la requête — en local ça donne `http://localhost:3000`, que Stripe
+refuse (`url_invalid`), ce qui faisait échouer `stripe.accounts.create` → 500 → le composant
+affiche son erreur d'authentification générique. Reproduit puis corrigé.
+
+**Correctif** :
+- `app/api/stripe/account-session/route.ts` **et** `app/compte/profil/stripe-actions.ts` : le
+  `businessUrl` passé à Stripe vient désormais de `SITE_URL` (`lib/site-url.ts`, `https://kdovie.com`
+  ou `NEXT_PUBLIC_SITE_URL`), jamais de l'en-tête `host` — toujours une URL publique valide, quel que
+  soit l'environnement. Le `returnUrl` de `startStripeOnboarding` (Account Link) reste basé sur
+  `host`, lui (on veut revenir sur l'environnement d'origine).
+- Le `console.error("[account-session] échec:", error)` est **gardé** — indispensable pour
+  diagnostiquer la prochaine fois (visible dans les logs de fonction Vercel).
+- **Testé** : `/api/stripe/account-session` appelé avec une vraie session (compte de test Supabase
+  créé puis supprimé) + clés Stripe **test** → renvoie bien un `client_secret` `accs_secret_…`
+  valide (échouait avant sur `url_invalid`). Compte Stripe Connect de test créé au passage bien
+  supprimé (`stripe.accounts.del`).
+- **Si l'utilisateur teste sur une URL déployée** (`kdovie.com`, alias preview) et pas en local :
+  `businessUrl` valait déjà `https://…`, donc l'erreur venait d'ailleurs — dans ce cas le
+  `console.error` sur Vercel montrera la vraie cause (typiquement : `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`
+  d'un compte/mode différent de `STRIPE_SECRET_KEY`, ou config Connect live incomplète côté dashboard
+  Stripe).
+
 ## Prix Amazon réactivé (20 août 2026)
 
 Décision du 17 août ("pas de repli prix pour Amazon") inversée sur demande de l'utilisateur, après
@@ -2394,9 +2431,17 @@ l'utilisateur, à ne pas redébattre :
   pipeline serveur existant (ScrapingAnt → Bright Data pour Amazon → fetch direct → saisie
   manuelle) reste strictement inchangé pour le flux "coller une URL" déjà en place sur
   `/compte/evenements/[slug]` — l'extension est un second canal d'ajout, pas un remplacement.
-- **Chrome uniquement (Manifest V3)** pour cette première version. Edge/Brave/Opera (même base
-  Chromium) en bénéficient gratuitement sans travail supplémentaire ; Firefox explicitement hors
-  périmètre pour l'instant (API WebExtensions différentes, pas à anticiper).
+- **Chrome (Manifest V3) reste la base de code unique.** Edge/Brave/Opera (même moteur Chromium)
+  en bénéficient gratuitement sans travail supplémentaire au-delà d'un dépôt séparé sur leur store
+  respectif — voir "Extension pour Microsoft Edge" plus bas, greenlightée le 6 septembre 2026.
+  **Safari également greenlighté le 6 septembre 2026** — voir "Extension pour Safari" plus bas,
+  effort de portage distinct assumé par l'utilisateur (Xcode, compte Apple Developer payant,
+  99 $/an). Firefox reste hors périmètre pour l'instant (API WebExtensions différentes, pas
+  demandé par l'utilisateur) — à reconsidérer séparément si besoin un jour.
+- **Décision du 6 septembre 2026 : l'utilisateur veut couvrir les principaux navigateurs et est
+  prêt à payer les frais nécessaires côté Microsoft et Apple.** Séquencement assumé : Chrome
+  d'abord (déjà codé, reste à publier), Edge et Safari ensuite, une fois l'extension Chrome
+  validée et stable en usage réel — pas les trois en parallèle dès le départ.
 - **Authentification par session partagée avec kdovie.com** : pas de connexion séparée dans
   l'extension. Si l'organisateur est déjà connecté sur kdovie.com dans le même navigateur,
   l'extension réutilise ce cookie de session (Supabase Auth) pour ses appels à l'API Kdovie. Si
@@ -2520,19 +2565,71 @@ côté `next.config.ts`/routes API. Si un souci CORS apparaît malgré tout, pr�
 - **Publication réelle** : une fois testée en local, empaqueter (zip du dossier `dist/`) et
   soumettre via le compte développeur Chrome Web Store de l'utilisateur (voir "Distribution"
   ci-dessous) — étape manuelle côté utilisateur, pas automatisable depuis Claude Code.
+- **Safari** : le projet Xcode généré par le convertisseur Apple (voir "Extension pour Safari"
+  plus bas) vit dans un nouveau dossier séparé à la racine du repo, ex. `extension-safari/` —
+  distinct de `extension-chrome/`, généré une fois à partir de son `dist/` puis maintenu à part
+  (ce n'est plus de simples fichiers JS/HTML/CSS mais un vrai projet Xcode). Compilation/signature
+  uniquement possible sur un Mac avec Xcode installé — pas faisable depuis l'environnement Linux
+  habituel de Claude Code, cette étape se fait sur la machine de l'utilisateur.
 
-### Distribution
+### Distribution — Chrome Web Store
 
-Chrome Web Store — nécessite un compte développeur (frais unique, à créer par l'utilisateur,
-comme tous les comptes tiers du projet), icônes/captures d'écran, et une politique de
-confidentialité spécifique à l'extension : peut réutiliser `/politique-de-confidentialite`
-existante en y ajoutant un paragraphe dédié (données lues : contenu de la page active au moment
-du clic ; données envoyées : titre/prix/image/URL du produit vers l'API Kdovie, uniquement à
-l'initiative explicite de l'organisateur, jamais en arrière-plan).
+Nécessite un compte développeur (frais unique, à créer par l'utilisateur, comme tous les comptes
+tiers du projet), icônes/captures d'écran, et une politique de confidentialité spécifique à
+l'extension : peut réutiliser `/politique-de-confidentialite` existante en y ajoutant un
+paragraphe dédié (données lues : contenu de la page active au moment du clic ; données envoyées :
+titre/prix/image/URL du produit vers l'API Kdovie, uniquement à l'initiative explicite de
+l'organisateur, jamais en arrière-plan). Ces icônes/captures/texte de confidentialité sont
+réutilisés tels quels pour Edge et Safari ci-dessous, pas à refaire trois fois.
+
+### Extension pour Microsoft Edge (greenlightée le 6 septembre 2026)
+
+Edge tourne sur Chromium et supporte Manifest V3 nativement — **aucun portage de code
+nécessaire**, le même paquet que celui soumis à Chrome fonctionne tel quel.
+
+- **Nouveau compte développeur Microsoft Partner Center** : frais unique (de l'ordre de 19 $,
+  pas d'abonnement récurrent contrairement à Apple ci-dessous) — à créer par l'utilisateur, comme
+  tous les comptes tiers du projet.
+- **Soumission** : le même zip que celui déposé sur le Chrome Web Store (`extension-chrome/dist/`
+  empaqueté), déposé sur le Microsoft Edge Add-ons store — fiche produit séparée (Microsoft ne
+  reprend pas automatiquement la fiche Chrome), mais icônes/captures/texte de confidentialité
+  réutilisés à l'identique.
+- **Aucun code spécifique à écrire** : uniquement une démarche de soumission côté utilisateur, une
+  fois l'extension Chrome validée et stable en usage réel — pas de chantier de développement à
+  part pour Edge.
+
+### Extension pour Safari (greenlightée le 6 septembre 2026)
+
+Contrairement à Edge, Safari nécessite un vrai portage — Apple n'accepte pas un paquet Manifest V3
+brut :
+
+- **Conversion via l'outil officiel Apple** `safari-web-extension-converter` (CLI fournie avec
+  Xcode) : enveloppe le code JS/HTML/CSS existant dans un vrai projet Xcode, qui génère une petite
+  app conteneur macOS + l'extension elle-même. Nécessite un Mac avec Xcode — à faire sur la
+  machine de l'utilisateur, pas dans l'environnement Claude Code habituel.
+- **Compte Apple Developer Program** : 99 $/an, récurrent (contrairement au frais unique
+  Chrome/Microsoft) — décision déjà actée que l'utilisateur est prêt à payer.
+- **Publication** : via l'App Store (Mac App Store), revue Apple classique (délais variables,
+  plus lents que Chrome/Edge). Alternative possible : distribution directe signée/notariée hors
+  App Store (permis depuis Safari 14+), mais plus contraignante à maintenir (mises à jour
+  manuelles côté utilisateur) — à trancher au moment de la publication, pas figé ici.
+- **Adaptations attendues à l'implémentation, pas à supposer réglées d'avance** :
+  - Le manifest et le popup doivent être adaptés au format attendu par le convertisseur (quelques
+    différences de structure vs Chrome). L'API WebExtensions est largement compatible depuis
+    Safari 15/16+, mais `chrome.scripting`/`chrome.tabs` (utilisées par le popup et l'onglet
+    relais, voir "Bug confirmé en conditions réelles : session non détectée" plus haut) sont à
+    revérifier une par une, pas supposées identiques sans test réel.
+  - **L'onglet relais (contournement `SameSite=Lax`) est à revalider spécifiquement sous Safari** :
+    Safari a ses propres règles de cookies inter-site (ITP, Intelligent Tracking Prevention),
+    historiquement plus strictes que Chrome — ne pas supposer que le même mécanisme fonctionne à
+    l'identique sans un test réel dans Safari.
+- Icônes/captures d'écran/politique de confidentialité réutilisés tels quels (voir Chrome
+  Web Store ci-dessus).
 
 ### Hors périmètre pour cette tâche
 
-- Firefox/Safari.
+- Firefox (API WebExtensions différentes, pas demandé par l'utilisateur — à reconsidérer
+  séparément si besoin un jour).
 - Connexion depuis l'extension elle-même (l'organisateur doit être déjà connecté sur le site).
 - Menu contextuel clic-droit ("Ajouter à ma liste Kdovie") — seule l'icône de la barre d'outils
   pour cette première version, à étendre plus tard si utile.
