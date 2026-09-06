@@ -54,7 +54,7 @@ export default function ReversementModal({
           </>
         ) : (
           <>
-            <h2 className="font-heading mb-1.5 text-2xl font-bold text-[#2F4A2C]">
+            <h2 className="font-heading mb-1.5 text-2xl font-bold text-[#4A3529]">
               Me reverser cette cagnotte
             </h2>
             <p className="mb-5 text-base text-[#7A6354]">{titre}</p>
@@ -73,9 +73,11 @@ export default function ReversementModal({
                 )}
               </p>
             ) : (
-              <p className="mb-6 rounded-2xl bg-[#EEF3EC] px-4.5 py-4 text-[15px] leading-relaxed text-[#3E5A3A]">
-                Le montant de cette cagnotte n&apos;est pas encore disponible : Stripe finalise les
-                paiements les plus récents. Réessayez d&apos;ici quelques jours ouvrés.
+              <p className="mb-6 rounded-2xl bg-[#F5E3C9] px-4.5 py-4 text-[15px] leading-relaxed text-[#7A5A16]">
+                Pas encore disponible au virement. Les cotisations peuvent mettre quelques jours
+                avant d&apos;être validées par notre partenaire de paiement Stripe. Pour un tout
+                premier virement, un délai de sécurité s&apos;ajoute d&apos;environ 1 à 2 semaines.
+                Revenez un peu plus tard.
               </p>
             )}
 
