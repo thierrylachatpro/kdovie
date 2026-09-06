@@ -106,19 +106,19 @@ Le flux d'argent transite toujours directement via Stripe vers l'organisateur (d
    (Checkout → webhook → `confirm_contribution` → réception par le compte connecté). CGV et case de
    renonciation au droit de rétractation validées dans le même test (voir CLAUDE.md, section "Droit
    de rétractation").
-9. ⬜ **Reversement manuel de la cagnotte (implémenté le 6 septembre 2026)** — voir CLAUDE.md,
+9. 🔄 **Reversement manuel de la cagnotte (implémenté le 6 septembre 2026)** — voir CLAUDE.md,
    section "Reversement manuel de la cagnotte par article". Les virements automatiques Stripe sont
-   remplacés par un bouton "Me reverser cette cagnotte" par article. Actions à faire :
-   - **(a)** appliquer la migration `0025_gift_item_payouts.sql` sur dev **et** prod ;
-   - **(b)** exécuter `scripts/basculer-payouts-manuel.mjs --confirm` une fois avec la config dev,
-     une fois avec la config prod (`STRIPE_SECRET_KEY=sk_live_…` + Supabase prod), pour basculer en
-     "manual" les comptes organisateurs déjà onboardés — sinon eux seuls continuent d'être virés
-     automatiquement ;
-   - **(c)** poser `CRON_SECRET` sur Vercel (scope Production) — protège la route cron
-     `/api/cron/rappel-reversement` (email de rappel du délai des 90 jours) ; le cron s'enregistre
-     tout seul au prochain déploiement de `main` (déclaré dans `vercel.json`) ;
-   - **(d)** après (a)+(b), faire un vrai reversement de test (petite cagnotte réelle) pour valider
-     `stripe.payouts.create` de bout en bout.
+   remplacés par un bouton "Me reverser cette cagnotte" par article.
+   - **(a)** ⬜ appliquer la migration `0025_gift_item_payouts.sql` sur dev **et** prod ;
+   - **(b)** ✅ **fait le 6 septembre** — comptes existants passés en "manual" : le compte de test
+     par le script (`scripts/basculer-payouts-manuel.mjs`), le compte live (`tlachat@gmail.com`) à
+     la main depuis son Dashboard Express. (Si d'autres organisateurs onboardent avant le merge de
+     cette branche, ils sont déjà créés en "manual" par le code — rien à refaire.) ;
+   - **(c)** ✅ **fait le 6 septembre** — `CRON_SECRET` posée sur Vercel (Production). Le cron
+     `/api/cron/rappel-reversement` s'enregistre au prochain déploiement de `main`
+     (déclaré dans `vercel.json`) ;
+   - **(d)** ⬜ après (a) et le merge, faire un vrai reversement de test (petite cagnotte réelle)
+     pour valider `stripe.payouts.create` de bout en bout.
 
 ## 3. Base de données
 
