@@ -90,16 +90,18 @@ Le flux d'argent transite toujours directement via Stripe vers l'organisateur (d
 6. **Tous les comptes Stripe Connect organisateurs créés en test ne comptent pas en live.** N'importe
    quel organisateur ayant déjà fait l'onboarding pendant les tests devra recommencer une fois
    basculé en live — à prévoir dans ta communication si des organisateurs de test existent encore.
-7. ⬜ **Questionnaire de profil de plateforme Connect (mode Live)** — découvert le 6 septembre 2026
+7. ✅ **Questionnaire de profil de plateforme Connect (mode Live)** — découvert le 6 septembre 2026
    en testant l'activation d'une cagnotte sur `kdovie.com` : `stripe.accounts.create` échoue en live
    avec *"You must complete your platform profile to use Connect and create live connected
    accounts"* tant que ce questionnaire n'est pas rempli. Distinct de l'activation du compte (point 1)
    : c'est spécifique à Connect (rôle de la plateforme dans le flux d'argent, responsabilité
-   litiges/pertes/remboursements, PCI…). À faire :
-   `https://dashboard.stripe.com/connect/accounts/overview` en **mode Live** → répondre au
-   questionnaire. **Bloque toute cotisation réelle** — aucun organisateur ne peut connecter sa
-   cagnotte tant que ce n'est pas fait. Aucun correctif de code n'y changera rien (le code est
-   correct, vérifié en mode test).
+   litiges/pertes/remboursements, PCI…). **Rempli par l'utilisateur le 6 septembre 2026** via
+   `https://dashboard.stripe.com/connect/accounts/overview` en mode Live. Architecture réelle à
+   refléter dans les réponses : destination charges + `on_behalf_of` (chaque organisateur a son
+   propre versement), création de compte via l'API + onboarding par composants Connect intégrés (pas
+   hébergé Stripe), gestion via le Dashboard Express, plateforme responsable des
+   remboursements/contestations (inévitable avec les destination charges). Aucun correctif de code
+   n'était nécessaire (le code était déjà correct, vérifié en mode test).
 8. ⬜ **Test réel avant diffusion large** : faire une vraie cotisation avec ta propre carte (petit
    montant) pour confirmer que toute la chaîne fonctionne (Checkout → webhook →
    `confirm_contribution` → réception effective par le compte connecté) avant d'annoncer publiquement
@@ -132,11 +134,11 @@ Le mode maintenance est un indicateur en base (pas un redéploiement) : connecte
 3. ✅ **Fait, confirmé par toi le 29 août** — balise GA4 vérifiée dans Google Tag Manager.
 4. ✅ **Fait, confirmé par toi le 29 août** — `dev` fusionnée dans `main`.
 5. ✅ **Fait, confirmé par toi le 29 août** — migrations vérifiées à jour sur la base de prod.
-6. 🔄 **Presque fini (31 août)** — Stripe basculé en live : compte activé, clés live posées sur
-   Vercel, webhook live créé, domaine Connect embarqué vérifié (rien à faire de ce côté). Reste :
-   **(a) remplir le questionnaire de profil de plateforme Connect en mode Live** (section 2 point 7 —
-   bloque toute cotisation, découvert le 6 septembre), puis **(b) faire une vraie petite transaction
-   test** avant toute annonce publique.
+6. 🔄 **Presque fini** — Stripe basculé en live : compte activé, clés live posées sur
+   Vercel, webhook live créé, domaine Connect embarqué vérifié, **(a) questionnaire de profil de
+   plateforme Connect en mode Live rempli le 6 septembre** (section 2 point 7). Reste : **(b) faire
+   une vraie petite transaction test** (Checkout → webhook → reversement au compte connecté) avant
+   toute annonce publique.
 7. ⬜ Ouvrir la page de maintenance depuis `/admin`.
 8. ⬜ Communiquer / lancer.
 
@@ -147,6 +149,6 @@ Le mode maintenance est un indicateur en base (pas un redéploiement) : connecte
 ✅ Search Console déjà vérifié (DNS TXT).
 ✅ `NEXT_PUBLIC_GTM_ID` posée sur Vercel + balise GA4 vérifiée dans GTM.
 ✅ Migrations vérifiées à jour sur la base de prod, `dev` fusionnée dans `main`.
-🔄 Stripe live : compte activé, clés + webhook posés (31 août) — reste le test réel et la
-   vérification du domaine Connect embarqué.
+🔄 Stripe live : compte activé, clés + webhook posés (31 août), questionnaire de profil de
+   plateforme Connect rempli (6 septembre) — reste le test réel (une vraie petite cotisation).
 ⚠️ Toujours ouvert, sans avancée signalée : objet social, RC Pro, CGV (section 1).
