@@ -2,8 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useFormStatus } from "react-dom";
+import { openStripeExpressDashboard } from "@/app/compte/profil/stripe-actions";
 import StripeEmbeddedOnboarding from "@/components/compte/StripeEmbeddedOnboarding";
-import StripeEmbeddedGestion from "@/components/compte/StripeEmbeddedGestion";
+import KdovieSpinner from "@/components/ui/KdovieSpinner";
 import type { OrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 
 const STATUS_LABEL: Record<OrganizerStripeStatus, string> = {
@@ -18,22 +20,33 @@ const STATUS_CLASS: Record<OrganizerStripeStatus, string> = {
   actif: "bg-[#DCE7DA] text-[#2F4A2C]",
 };
 
+// Statut "actif" uniquement — ouvre le Dashboard Express (solde, versements),
+// pas le formulaire de configuration. Voir CLAUDE.md > "Onboarding Stripe
+// Connect embarqué, sans quitter Kdovie".
+function GererCompteButton() {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="font-heading inline-flex items-center gap-2.5 rounded-2xl bg-corail px-6 py-3.5 text-[16px] font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
+    >
+      {pending && <KdovieSpinner className="h-4.5 w-4.5" variant="dark" />}
+      {pending ? "Ouverture…" : "Voir mon solde et mes versements"}
+    </button>
+  );
+}
+
 export default function StripeStatusCard({ status }: { status: OrganizerStripeStatus }) {
   const router = useRouter();
   const [onboardingOuvert, setOnboardingOuvert] = useState(false);
-  const [gestionOuverte, setGestionOuverte] = useState(false);
 
-  // Aucune redirection nulle part : l'organisateur ne quitte jamais
-  // kdovie.com, ni pour l'onboarding, ni pour consulter son solde / ses
-  // versements. Le statut Stripe est relu au rechargement du server
-  // component (router.refresh() relance sa logique de poll payouts_enabled).
-  function fermerOnboarding() {
+  // Aucune redirection ici : l'organisateur ne quitte jamais la page tant
+  // qu'il reste sur aucun/en_attente. Le statut Stripe n'est rafraîchi qu'à
+  // la sortie du composant embarqué (router.refresh() relance le server
+  // component et sa logique existante de poll payouts_enabled, inchangée).
+  function handleExit() {
     setOnboardingOuvert(false);
-    router.refresh();
-  }
-
-  function fermerGestion() {
-    setGestionOuverte(false);
     router.refresh();
   }
 
@@ -60,15 +73,9 @@ export default function StripeStatusCard({ status }: { status: OrganizerStripeSt
         </div>
 
         {status === "actif" ? (
-          !gestionOuverte && (
-            <button
-              type="button"
-              onClick={() => setGestionOuverte(true)}
-              className="font-heading inline-flex items-center gap-2.5 rounded-2xl bg-corail px-6 py-3.5 text-[16px] font-bold text-creme hover:bg-[#D45F37]"
-            >
-              Voir mon solde et mes versements
-            </button>
-          )
+          <form action={openStripeExpressDashboard}>
+            <GererCompteButton />
+          </form>
         ) : (
           !onboardingOuvert && (
             <button
@@ -82,22 +89,7 @@ export default function StripeStatusCard({ status }: { status: OrganizerStripeSt
         )}
       </div>
 
-      {onboardingOuvert && status !== "actif" && (
-        <StripeEmbeddedOnboarding onExit={fermerOnboarding} />
-      )}
-
-      {gestionOuverte && status === "actif" && (
-        <>
-          <StripeEmbeddedGestion />
-          <button
-            type="button"
-            onClick={fermerGestion}
-            className="mt-3 text-[15px] font-semibold text-[#8A7263] hover:text-corail"
-          >
-            Fermer
-          </button>
-        </>
-      )}
+      {onboardingOuvert && status !== "actif" && <StripeEmbeddedOnboarding onExit={handleExit} />}
     </section>
   );
 }

@@ -856,10 +856,9 @@ Aucune migration de schéma nécessaire, `organizer_stripe_accounts` reste ident
 ### Hors périmètre pour cette tâche
 
 - **Statut `"actif"`** : le bouton "Gérer mon compte Stripe" (lien vers le Dashboard Express externe)
-  reste inchangé pour l'instant. Stripe propose aussi un composant "Account management" embarqué pour
-  ce cas (gestion du compte déjà vérifié, coordonnées bancaires, etc.) — pas construit maintenant,
-  scope volontairement limité à l'onboarding initial (aucun / en attente), à reprendre plus tard si
-  utile.
+  reste inchangé pour l'instant *(repris le 6 septembre 2026 — voir "### Statut 'actif' : bouton
+  'Voir mon solde et mes versements'" à la fin de cette section)*. Stripe propose aussi un composant
+  "Account management" embarqué pour ce cas — pas construit (jugé trop lourd, voir même mise à jour).
 - **Pas de fallback vers l'ancienne redirection** : l'ancien mécanisme (Account Link + redirect) peut
   être entièrement retiré plutôt que gardé en secours — la doc Stripe indique au contraire que
   l'onboarding hébergé classique ne fonctionne pas dans certains contextes (webview mobile/desktop)
@@ -956,43 +955,26 @@ pour ça. **À ajouter à `checklist-mise-en-production.md`** : "profil de plate
 en mode Live" est un prérequis avant toute cotisation réelle, au même titre que la petite
 transaction test déjà listée.
 
-### Statut "actif" passé lui aussi en embarqué (6 septembre 2026)
+### Statut "actif" : bouton "Voir mon solde et mes versements" (6 septembre 2026)
 
-Le "hors périmètre" ci-dessus (statut `"actif"` → redirection vers le Dashboard Express externe) est
-levé : l'organisateur ne quitte plus jamais kdovie.com. Motivé par un retour d'usage — la
-redirection puis l'ouverture dans un nouvel onglet (essayée entre-temps) étaient toutes deux
-mauvaises (bloqueur de pop-up, risque de "perdre" l'organisateur sur le Dashboard Stripe).
+Le "hors périmètre" ci-dessus est repris, mais **sans embarqué** — décision tranchée après avoir
+essayé puis écarté deux alternatives :
 
-- **`app/compte/profil/stripe-actions.ts` supprimé** — `startStripeOnboarding` (Account Link
-  `type: "account_onboarding"`, renvoyait toujours vers le formulaire de config) puis
-  `openStripeExpressDashboard` (`createLoginLink`, nouvel onglet) sont tous deux retirés. Plus aucune
-  Server Action pour ce bouton.
-- **`lib/stripe-account-session.ts`** : `emettreAccountSession(components)` — partie commune des
-  routes de session (auth, `businessUrl` via `SITE_URL`, `ensureOrganizerStripeAccount`,
-  `stripe.accountSessions.create`, `console.error` du vrai message d'erreur).
-- **Deux routes** : `app/api/stripe/account-session/route.ts` (inchangée fonctionnellement —
-  `account_onboarding` seul, pour aucun/en_attente) et **`app/api/stripe/account-session-gestion/route.ts`**
-  (nouvelle — `payouts` + `account_management`). Séparées plutôt qu'une seule route à composants
-  variables : pas de risque qu'activer `payouts` casse la session d'onboarding d'un compte pas encore
-  vérifié.
-- **`components/compte/use-stripe-connect.ts`** : hook `useStripeConnectInstance(endpoint)` —
-  `loadConnectAndInitialize` + thème Kdovie, factorisé (était dupliqué). Prend l'endpoint de session
-  en paramètre.
-- **`components/compte/StripeEmbeddedGestion.tsx`** (nouveau) : `ConnectPayouts` +
-  `ConnectAccountManagement` dans la carte "Ma cagnotte". `ConnectPayouts` affiche le solde et
-  l'historique des versements **sans bouton de virement** : `standard_payouts` / `instant_payouts` /
-  `edit_payout_schedule` à `false` dans la session (les virements se font uniquement article par
-  article via le reversement manuel, sinon la compta par cadeau serait cassée) ;
-  `external_account_collection: true` pour que l'organisateur puisse gérer son IBAN.
-- **`components/compte/StripeStatusCard.tsx`** : `"actif"` → bouton "Voir mon solde et mes
-  versements" qui déplie `StripeEmbeddedGestion` dans la carte (même patron que l'onboarding pour
-  aucun/en_attente) + bouton "Fermer" qui `router.refresh()`.
-- **Testé** : `tsc`/`lint`/`build` propres. `stripe.accountSessions.create` avec les composants
-  `payouts` + `account_management` et ces feature flags accepté par l'API Stripe (test réel, clé
-  test → `client_secret accs_secret_…`). Rendu du dépliement vérifié par capture (le composant Stripe
-  affiche son erreur d'auth native faute de session valide en page de preview, comme l'onboarding —
-  comportement documenté). **Pas exercé avec un vrai organisateur actif connecté**, même limite que
-  l'onboarding embarqué.
+- ~~ouverture du Dashboard Express dans un **nouvel onglet**~~ : bloqueur de pop-up, et l'organisateur
+  peut fermer l'onglet et se retrouver sur Stripe sans retour évident vers Kdovie.
+- ~~composants **embarqués** (`ConnectPayouts` + `ConnectAccountManagement`) dans la carte~~ : jugé
+  trop lourd par l'utilisateur ("ça complexifie Kdovie"). Retiré.
+
+**Retenu : redirection dans le même onglet**, comme avant. `app/compte/profil/stripe-actions.ts`
+→ `openStripeExpressDashboard` : `stripe.accounts.createLoginLink(stripeAccountId)` puis
+`redirect(loginLink.url)` — le lien de connexion à usage unique ouvre le Dashboard Express (solde,
+historique des versements, coordonnées bancaires). L'ancien `startStripeOnboarding` (Account Link
+`type: "account_onboarding"`, qui renvoyait toujours vers le formulaire de config au lieu du solde)
+est remplacé par celui-ci. `StripeStatusCard` "actif" : `<form action={openStripeExpressDashboard}>`
++ bouton "Voir mon solde et mes versements".
+
+Le composant `ConnectAccountManagement` embarqué reste une piste possible plus tard si l'utilisateur
+change d'avis — pas construit, ne pas le reproposer sans nouveau feu vert explicite.
 
 ## Prix Amazon réactivé (20 août 2026)
 
