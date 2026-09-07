@@ -560,11 +560,11 @@ Aujourd'hui, l'argent cotisé transite automatiquement du solde Stripe du compte
 
 - **Bascule payout manuel** :
   - Nouveaux comptes : `settings.payouts.schedule.interval: "manual"` posé dans `stripe.accounts.create` (`lib/stripe-connect-account.ts`).
-  - Comptes existants : `scripts/basculer-payouts-manuel.mjs` (dry-run par défaut, `--confirm` pour appliquer ; lit `.env.local`, override possible en ligne pour viser la prod). **À exécuter par l'utilisateur, une fois sur dev puis sur prod** — sans ça les comptes déjà onboardés restent en `daily`. Dry-run vérifié : liste bien les comptes, saute ceux déjà en manuel ou inaccessibles.
+  - Comptes existants : `scripts/basculer-payouts-manuel.mjs` (dry-run par défaut, `--confirm` pour appliquer ; lit `.env.local`, override possible en ligne pour viser la prod). Dry-run vérifié : liste bien les comptes, saute ceux déjà en manuel ou inaccessibles. **Basculé le 7 septembre 2026** : un seul compte Stripe Connect existait en prod (pas de compte dev à traiter séparément à ce stade) — l'utilisateur l'a basculé directement dans le dashboard Stripe (`settings.payouts.schedule.interval = "manual"`) plutôt que via le script, résultat équivalent. Plus rien en attente sur ce point ; le script reste disponible pour tout futur compte existant qui échapperait au réglage posé à la création (`ensureOrganizerStripeAccount`).
 - **Migration `0025_gift_item_payouts.sql`** : table `gift_item_payouts` (`gift_item_id`, `stripe_payout_id` unique, `amount_cents`, `created_at`), RLS lecture pour l'organisateur propriétaire (même schéma que `contributions_select_organizer`), écriture service_role only. + colonnes `organizer_stripe_accounts.last_payout_at` / `last_payout_reminder_at`. `lib/supabase/types.ts` mis à jour à la main. **À appliquer par l'utilisateur (dev + prod).**
 - **Reversement** : `app/compte/evenements/[slug]/reversement-actions.ts` → `reverserCagnotteArticle(giftItemId, slug)`. Re-vérifie session + propriété de la liste + `status = 'cagnotte'` + compte Stripe actif. Recalcule **côté serveur** `montantRestant = funded_amount_cents − Σ(gift_item_payouts)` puis `montant = min(montantRestant, solde disponible EUR)` (`stripe.balance.retrieve`, `available` seulement). `stripe.payouts.create(..., { stripeAccount })`, insertion `gift_item_payouts`, `last_payout_at = now()`. Échec d'insertion après virement réussi → loggé pour rattrapage manuel (jamais avalé).
 - **UI (`GiftItemCard` via `GiftItemsList` + page)** : bouton « Me reverser cette cagnotte » (vert sauge) sur chaque article `status = 'cagnotte'` avec montant restant > 0 et compte Stripe actif. La confirmation se fait dans une **modale** (`components/gift-items/ReversementModal.tsx`, même habillage que `ReservationModal`/`ContributionModal` — retour d'usage du 6 septembre, la première version était un panneau inline dans la carte) : montant qui sera viré + explication si plafonné par le disponible (« Le reste (X €) n'est pas encore disponible… »), puis vue « succès » dans la même modale (« Virement de X € lancé — sous 2 jours ouvrés »). Le `mode = "reversing"` de `GiftItemCard` ne sert plus qu'à afficher la modale et geler le glisser-déposer. Badge « X € déjà reversés sur Y € cotisés » sous la barre de cagnotte. Le solde Stripe est lu **une fois** par chargement de page (fongible au niveau du compte), passé à toutes les cartes.
-- **Email de rappel (filet 90 jours)** : `components/emails/RappelReversementEmail.tsx` + route cron `app/api/cron/rappel-reversement/route.ts` (déclarée dans `vercel.json`, `0 8 * * *`). Parcourt les comptes actifs sans virement (`last_payout_at`) depuis > 70 jours et sans rappel (`last_payout_reminder_at`) depuis > 14 jours, vérifie un solde Stripe non nul, envoie l'email, met à jour `last_payout_reminder_at`. Auth par `Authorization: Bearer $CRON_SECRET` si la variable est posée. **Actions utilisateur : poser `CRON_SECRET` sur Vercel (Production), et le cron s'enregistre au prochain déploiement de `main`.**
+- **Email de rappel (filet 90 jours)** : `components/emails/RappelReversementEmail.tsx` + route cron `app/api/cron/rappel-reversement/route.ts` (déclarée dans `vercel.json`, `0 8 * * *`). Parcourt les comptes actifs sans virement (`last_payout_at`) depuis > 70 jours et sans rappel (`last_payout_reminder_at`) depuis > 14 jours, vérifie un solde Stripe non nul, envoie l'email, met à jour `last_payout_reminder_at`. Auth par `Authorization: Bearer $CRON_SECRET` si la variable est posée. **`CRON_SECRET` posée sur Vercel (Production) le 7 septembre 2026.** **Cron confirmé actif** : capture d'écran Vercel → Observability → Cron Jobs du 7 septembre 2026, route `/api/cron/rappel-reversement` bien enregistrée (`0 8 * * *`, scope Production, 1 invocation sur les 12 dernières heures, P75 1,29 s — pas d'erreur visible sur cette exécution). **Reste à confirmer** : que cette exécution a réellement identifié un compte concerné et envoyé l'email de rappel (le tableau de bord montre juste que la route s'exécute sans erreur, pas son résultat métier) — à vérifier via les logs de fonction Vercel ou en conditions réelles avec un compte organisateur au solde disponible non nul depuis > 70 jours sans virement. **Non testable pour l'instant (7 septembre 2026)** : les comptes Stripe Connect existants n'ont que quelques jours d'ancienneté — le seuil de 70 jours sans virement ne peut mécaniquement pas être atteint avant plusieurs semaines. Pas un point bloquant ni un bug, juste une vérification à reporter naturellement dans le temps. Revenir dessus une fois qu'un compte réel dépasse ce délai sans reversement.
 - **Testé** : `tsc`/`lint`/`build` propres. Rendu du bouton, du badge « déjà reversé » et du panneau de confirmation (montant plafonné + non plafonné) vérifié par capture (page de prévisualisation temporaire, supprimée). Script `basculer-payouts-manuel.mjs` exécuté en dry-run. **Pas exercé en conditions réelles** : le virement Stripe lui-même (`payouts.create`) et le cron nécessitent un compte connecté onboardé avec un solde disponible — à vérifier par l'utilisateur après application de la migration et exécution du script de bascule.
 
 ## Backlog produit : pages "À propos", "Aide" (19 août 2026)
@@ -609,7 +609,7 @@ Extension du dashboard admin existant (`/admin`, listes supprimées) avec un CRU
 - **Application du blocage** : vérifié dans `app/auth/callback/route.ts`, juste après `exchangeCodeForSession` — c'est le seul point de passage obligé pour obtenir une session (contrairement au Send Email Hook, qui n'intercepte que l'envoi du lien et ne bloquerait pas un lien déjà reçu avant la désactivation). Si `profiles.disabled = true`, déconnexion immédiate (`auth.signOut()`) et redirection vers `/connexion?erreur=compte_desactive`, message dédié dans `ConnexionForm.tsx`. **Limite connue, acceptable pour cette première version** : une session déjà active au moment de la désactivation n'est pas coupée en cours de route par ce mécanisme — seule la connexion suivante est bloquée.
 - Pas de gestion de `profiles.is_admin` depuis cette interface (promotion/rétrogradation) — reste une opération manuelle en base, cohérent avec la décision déjà actée dans la section "Suppression d'une liste par l'organisateur" ci-dessus ("Aucun moyen de devenir admin depuis l'app").
 
-**Testé** : `tsc`/`lint`/`build` propres. Rendu vérifié par capture d'écran avec des données bouchon (liste, édition de pseudo, confirmation de désactivation) — conforme. **Statut migration (20 août 2026)** : `0019_profiles_disabled.sql` appliquée sur les deux bases, `profiles.disabled` confirmée présente par requête REST directe sur la base de dev (`hvyinuoebkzghrbcbnqa`, historique de migration réparé via `supabase migration repair` après une première application manuelle par l'utilisateur via le SQL Editor) et sur la base de prod (`ppsaiaesnvwnkzjisvdr`). **Pas encore testé en conditions réelles** : le dashboard `/admin/organisateurs` lui-même (liste, édition de pseudo, désactivation) et le blocage de connexion dans le callback n'ont pas été exercés contre de vraies données/un vrai compte — la colonne existe, mais le flux complet reste à vérifier.
+**Testé** : `tsc`/`lint`/`build` propres. Rendu vérifié par capture d'écran avec des données bouchon (liste, édition de pseudo, confirmation de désactivation) — conforme. **Statut migration (20 août 2026)** : `0019_profiles_disabled.sql` appliquée sur les deux bases, `profiles.disabled` confirmée présente par requête REST directe sur la base de dev (`hvyinuoebkzghrbcbnqa`, historique de migration réparé via `supabase migration repair` après une première application manuelle par l'utilisateur via le SQL Editor) et sur la base de prod (`ppsaiaesnvwnkzjisvdr`). **Vérifié en conditions réelles par l'utilisateur le 7 septembre 2026** (voir "Refonte du dashboard super-administrateur" plus bas, qui couvre tout `/admin/*`) : le dashboard `/admin/organisateurs` fonctionne correctement. Seul le blocage de connexion dans le callback (`profiles.disabled = true` → déconnexion + redirection) n'a pas été spécifiquement confirmé au passage, pas de détail remonté à ce stade.
 
 ## Refonte du dashboard super-administrateur (20 août 2026)
 
@@ -765,8 +765,9 @@ badge de statut si utile d'afficher aussi pending/failed — à l'appréciation 
   conditions réelles** : pas de session admin active dans cet environnement pour exercer
   `/admin/*` avec de vraies données (filtre, bascule de statut, suppression réelle, aperçu admin
   d'une liste brouillon/supprimée) — la logique repose sur les mêmes patterns déjà éprouvés
-  ailleurs (CRUD organisateurs, `MaintenanceToggle`), mais le flux complet reste à vérifier par
-  l'utilisateur.
+  ailleurs (CRUD organisateurs, `MaintenanceToggle`). **Vérifié en conditions réelles par
+  l'utilisateur le 7 septembre 2026 : tout `/admin/*` fonctionne correctement** (pas de détail
+  supplémentaire remonté par l'utilisateur à ce stade).
 
 ## Bandeau d'incitation à activer sa cagnotte Stripe sur /compte (20 août 2026)
 
@@ -951,9 +952,10 @@ n'est pas fait. En mode test ce questionnaire n'est pas demandé (d'où le succ�
 `sk_test`). **Action utilisateur uniquement** : dashboard Stripe en mode Live →
 `https://dashboard.stripe.com/connect/accounts/overview` → répondre au questionnaire (rôle dans les
 transactions, responsabilité litiges/remboursements, PCI…). Le code n'a pas de correctif à recevoir
-pour ça. **À ajouter à `checklist-mise-en-production.md`** : "profil de plateforme Connect complété
-en mode Live" est un prérequis avant toute cotisation réelle, au même titre que la petite
-transaction test déjà listée.
+pour ça. **Confirmé résolu le 7 septembre 2026** : l'utilisateur a réussi à créer un compte Stripe
+Connect en mode live sans erreur — puisque `stripe.accounts.create` bloque précisément tant que ce
+questionnaire n'est pas répondu (voir l'erreur ci-dessus), une création réussie prouve que le
+questionnaire est bien complété. Plus un point ouvert.
 
 ### Statut "actif" : bouton "Voir mon solde et mes versements" (6 septembre 2026)
 
@@ -2846,6 +2848,78 @@ titre/prix/image/URL du produit vers l'API Kdovie, uniquement à l'initiative ex
 l'organisateur, jamais en arrière-plan). Ces icônes/captures/texte de confidentialité sont
 réutilisés tels quels pour Edge et Safari ci-dessous, pas à refaire trois fois.
 
+**Action à faire, bloquante pour la soumission (7 septembre 2026)** : ce paragraphe dédié n'a
+**jamais été ajouté** sur `/politique-de-confidentialite` en prod — confirmé par l'utilisateur en
+préparant la soumission réelle sur le Chrome Web Store. Le store impose une URL de politique de
+confidentialité valide au moment du dépôt de la fiche, donc c'est un prérequis avant de pouvoir
+finaliser la soumission (pas juste "à faire un jour"). À ajouter dans
+`app/politique-de-confidentialite/page.tsx`, section "4. À qui transmettons-nous vos données ?"
+(ou une nouvelle sous-section dédiée juste après) — texte du paragraphe déjà rédigé ci-dessus,
+reprendre tel quel plutôt qu'en improviser un autre : *"L'extension navigateur Kdovie lit le
+contenu de la page active uniquement au moment où vous cliquez sur son icône, et n'envoie que le
+titre, le prix, l'image et l'URL du produit détecté vers l'API Kdovie — uniquement à votre
+initiative explicite, jamais en arrière-plan ni sans action de votre part."* (formulation à
+ajuster librement, le fond doit couvrir : quand la lecture a lieu, quelles données sont envoyées,
+et le caractère explicite/non automatique de l'envoi).
+
+**Précision sur l'emplacement réel de l'extension, pour ne pas se fier au brief initial** : le
+dossier dans le repo s'appelle `extension/` (pas `extension-chrome/` comme supposé plus haut dans
+cette section) et **ne contient pas de dossier `dist/`** — pas de vraie étape de build utilisée au
+final (JS/HTML/CSS directement à la racine du dossier : `content/`, `icons/`, `manifest.json`,
+`popup.css`/`popup.html`/`popup.js`, `README.md`). Le zip à soumettre au Chrome Web Store est donc
+directement le contenu de `extension/` (moins `README.md`, ignoré sans conséquence), zippé avec
+`manifest.json` à la racine de l'archive — pas de `extension/dist/` à chercher, ce chemin n'existe
+pas. **Confirmé par l'utilisateur (7 septembre 2026) : le zip a déjà été constitué ainsi**
+(`content/`, `icons/`, `manifest.json`, `popup.css/html/js` à la racine de l'archive), déposé dans
+le Developer Dashboard.
+
+### Brief pour Claude Code : finaliser les prérequis de soumission (7 septembre 2026)
+
+L'utilisateur est en train de soumettre pour de vrai sur le Chrome Web Store et a demandé ce
+brief — deux tâches concrètes, dans cet ordre (la première bloque la soumission, la seconde
+l'accompagne) :
+
+**1. Ajouter le paragraphe de confidentialité dédié à l'extension** (voir "Action à faire,
+bloquante" juste au-dessus) — texte déjà rédigé, à intégrer dans
+`app/politique-de-confidentialite/page.tsx`. Prérequis strict : le Chrome Web Store exige une URL
+de politique de confidentialité valide au moment du dépôt de la fiche.
+
+**2. Générer de vraies captures d'écran du popup pour la fiche produit** (1280×800 ou 640×400,
+au moins 1 obligatoire, jusqu'à 5 acceptées) — réutiliser exactement la méthode Playwright déjà
+employée pour tester ce même popup (voir "Bug confirmé en conditions réelles : session non
+détectée"/"tous les états du popup affichés en même temps" plus haut dans cette section : onglet
+relais réel + vraie session Supabase de test, `chrome.tabs`/`chrome.scripting` mockés avec un
+résultat d'extraction canné pour l'état formulaire) — pas une page de prévisualisation générique,
+le vrai `popup.html`/`popup.js` du dossier `extension/`. Capturer au moins ces 3 états, chacun en
+image séparée :
+   - État "non connecté" (invitation à se connecter sur kdovie.com).
+   - État formulaire rempli (aperçu titre/prix/image éditable + sélecteur de liste) — utiliser un
+     produit de démonstration réaliste (ex. un des exemples déjà testés : Echo Dot, aspirateur
+     robot) plutôt qu'un lorem ipsum, pour que la capture soit présentable publiquement.
+   - État succès ("Cadeau ajouté à votre liste" + lien "Voir dans Kdovie").
+   Exporter ces 3 images en PNG dans un dossier temporaire, puis les livrer à l'utilisateur (ex.
+   via l'outil de partage de fichiers habituel de la session) — compte de test supprimé ensuite
+   comme d'habitude, ne rien laisser en base.
+
+**Pas à faire dans ce brief** (déjà en place ou hors périmètre) : les icônes 16/48/128 existent
+déjà (`extension/icons/`, rendues depuis le SVG canonique du logo) — aucun travail supplémentaire
+dessus. Le texte de la fiche produit (titre, description courte/longue, catégorie) a été rédigé
+côté Cowork et communiqué directement à l'utilisateur — pas à régénérer ici, sauf si l'utilisateur
+demande un ajustement.
+
+**Statut : les deux tâches faites le 7 septembre 2026.**
+1. Nouvelle section 5 « L'extension navigateur Kdovie » dans
+   `app/politique-de-confidentialite/page.tsx` (renumérotation 5→8, référence « section 6 »
+   corrigée dans la section 2, date de mise à jour au 7 septembre). Texte : lecture de la page
+   active au clic uniquement, envoi limité à titre/prix/image/URL + liste choisie, à l'initiative
+   explicite de l'organisateur, rien à des tiers. Commité sur `dev` — **à merger sur `main` puis
+   déployer avant de finaliser la fiche du store** (l'URL doit être valide au dépôt).
+2. 3 captures 1280×800 PNG livrées à l'utilisateur (non connecté / formulaire pré-rempli avec un
+   aspirateur robot / succès), générées depuis le **vrai** `extension/popup.html` + `popup.js`
+   servi en local, `chrome.*` entièrement mocké (résultats cannés, **aucune requête réseau, aucune
+   donnée en base** — pas de compte de test nécessaire avec l'approche mock). Script :
+   `scratchpad/capture-popup.py` (jetable, pas commité).
+
 ### Extension pour Microsoft Edge (greenlightée le 6 septembre 2026)
 
 Edge tourne sur Chromium et supporte Manifest V3 nativement — **aucun portage de code
@@ -2965,8 +3039,14 @@ reste le test en conditions réelles (vrai Chrome) avant publication.**
     (même compte de test), `chrome.tabs`/`chrome.scripting` mockés avec un résultat d'extraction
     canné (extraction déjà validée séparément) — formulaire pré-rempli, ajout réel, lien "Voir dans
     Kdovie" correct.
-  - Non vérifié : extraction sur les vrais sites marchands qui ont motivé ce chantier (Décathlon,
-    Fnac, Sephora, Maisons du Monde), et toute la partie publication Chrome Web Store.
+  - **Extraction sur les 4 sites qui ont motivé ce chantier (Décathlon, Fnac, Sephora, Maisons du
+    Monde) : rejouée par l'utilisateur le 7 septembre 2026 via le même harnais synthétique
+    (Playwright + fixtures HTML, `location.hostname` réglé sur le vrai domaine) que les 8
+    scénarios déjà documentés ci-dessus — ça marche pour l'essentiel** (retour de l'utilisateur,
+    sans détail par site à ce stade). **Reste non vérifié : un vrai Chrome + les vrais sites en
+    direct** (pas seulement des fixtures HTML les imitant) et toute la partie publication Chrome
+    Web Store — ne pas confondre ce test synthétique avec un test en conditions réelles sur
+    internet.
 
 ### Bug confirmé en conditions réelles : session non détectée par le popup (5 septembre 2026)
 
