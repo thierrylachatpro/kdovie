@@ -2630,7 +2630,8 @@ conversation de cadrage, **à exécuter dans Claude Code** :
 réconciliation de la table de suivi CLI reste bloquée faute d'outillage.**
 
 - **Schéma PROD (`ppsaiaesnvwnkzjisvdr`) vérifié migration par migration via REST** (service_role +
-  anon, `scratchpad/probe-schema.mjs`, aucune écriture) : **les 25 migrations `0001`→`0025` ont
+  anon, `scripts/verifier-schema.mjs` — réutilisable, lit `.env.local` ou un autre fichier d'env
+  passé en argument, aucune écriture) : **les 25 migrations `0001`→`0025` ont
   bien leur effet en place** — chaque colonne (`fee_mode`, `deleted_at`, `is_admin`, `is_priority`,
   `original_title`, `disabled`, `welcome_email_sent_at`, `searchable`/`first_name`/…, `position`,
   `retractation_renoncee_at`, `last_payout_at`/`last_payout_reminder_at`…), table (`app_settings`,
