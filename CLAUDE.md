@@ -2626,36 +2626,42 @@ conversation de cadrage, **à exécuter dans Claude Code** :
   migration list` sur la base concernée en tout début de tâche, pour repartir d'un état vérifié
   plutôt que de la mémoire de ce fichier.
 
-**Statut : partiellement exécuté le 7 septembre 2026 — schéma prod vérifié complet, mais la
-réconciliation de la table de suivi CLI reste bloquée faute d'outillage.**
+**Statut : réconciliation exécutée le 7 septembre 2026 (CLI installée + `supabase login` par
+l'utilisateur). DEV entièrement réconcilié. PROD réconcilié à 24/25 — reste `0006`, jamais
+réellement appliquée en prod, décision utilisateur en attente.**
 
-- **Schéma PROD (`ppsaiaesnvwnkzjisvdr`) vérifié migration par migration via REST** (service_role +
-  anon, `scripts/verifier-schema.mjs` — réutilisable, lit `.env.local` ou un autre fichier d'env
-  passé en argument, aucune écriture) : **les 25 migrations `0001`→`0025` ont
-  bien leur effet en place** — chaque colonne (`fee_mode`, `deleted_at`, `is_admin`, `is_priority`,
-  `original_title`, `disabled`, `welcome_email_sent_at`, `searchable`/`first_name`/…, `position`,
-  `retractation_renoncee_at`, `last_payout_at`/`last_payout_reminder_at`…), table (`app_settings`,
-  `gift_item_payouts`), fonction RPC (`reserve_gift_item`, `confirm_contribution`,
-  `cancel_reservation`, `search_organizers`, `get_list_organizer_first_name`) et grant anon
-  (`profiles.display_name` via 0008, `organizer_stripe_accounts.payouts_enabled` via 0010)
-  répondent présents. Les colonnes rendues nullables (`events.type` 0004, `gift_items.source_url`
-  0007, `reservations`/`contributions.guest_name` 0012) confirmées nullables par sonde d'insert
-  (échec sur la FK, plus sur le NOT NULL). Non vérifiables par REST, mais documentés fonctionnels
-  en prod : 0003 (réplication temps réel), 0006 (fonction/trigger `protect_gift_item_delete` —
-  return type `trigger`, non exposé en RPC), 0016 (corps de `confirm_contribution`).
-  **Conclusion : le schéma prod est correct, la réconciliation ne touchera QUE la table de suivi
-  (`supabase migration repair --status applied …`), pas le schéma — risque nul.**
-- **Bloqué pour finir** : `supabase migration list` / `repair` / `db push` exigent la CLI Supabase
-  (absente de la machine) **plus** soit un `SUPABASE_ACCESS_TOKEN`, soit l'URL de connexion DB
-  (avec mot de passe). Ni l'un ni l'autre disponible. **Aucun accès du tout à la base dev**
-  (`hvyinuoebkzghrbcbnqa`) : ni clé, ni URL — dev n'a pas pu être sondée.
-- **Pour débloquer, l'utilisateur fournit l'un de :** (a) la CLI installée (`brew install
-  supabase/tap/supabase`) + un access token perso (`supabase login`, ou `SUPABASE_ACCESS_TOKEN`
-  dans l'env) — le projet prod est déjà lié (`supabase/.temp/`), il faudra lier dev en plus ; ou
-  (b) les deux URLs de connexion DB directes (`postgresql://postgres:<pwd>@…`, dev et prod) pour
-  un `supabase … --db-url`. Ensuite : `supabase migration list` sur chaque base, `repair` pour
-  chaque version présente en schéma mais absente du suivi, `db push` uniquement si une version
-  s'avérait vraiment manquante en schéma (peu probable vu la vérif ci-dessus, côté prod au moins).
+Méthode : `supabase link` sur chaque projet → `supabase migration list --linked` pour l'état de la
+table de suivi CLI → `supabase db dump --linked` pour vérifier le **schéma réel** (fonctions,
+triggers, policies, colonnes) → `supabase migration repair --status applied <versions>` pour
+chaque version dont le schéma confirme la présence mais que le suivi ignorait (application manuelle
+passée, non trackée). Aucune écriture de schéma, sauf `db push` là où une version manque
+réellement.
+
+- **DEV (`hvyinuoebkzghrbcbnqa`)** : le suivi CLI connaissait `0001`→`0019` ; `db dump` confirme
+  que `0020`→`0025` sont bien en place dans le schéma. `repair --status applied 0020…0025` →
+  **`supabase migration list` : `Local = Remote` sur toute la ligne. Réconcilié.**
+- **PROD (`ppsaiaesnvwnkzjisvdr`)** : le suivi CLI ne connaissait que `0001`/`0002` (tout le reste
+  appliqué à la main dans le SQL Editor, jamais tracké). `db dump` confirme que le schéma a bien
+  l'effet de **toutes les migrations sauf `0006`** — colonnes, tables, fonctions RPC, grants anon,
+  colonnes rendues nullables (`0004`/`0007`/`0012`), publication temps réel (`0003`), corps
+  idempotent de `confirm_contribution` (`0016`) : tous présents. `repair --status applied` passé
+  pour ces 22 versions (`0003`–`0005`, `0007`–`0025`). Reste `0006`.
+- **`0006` : jamais appliquée en prod — confirmé par `db dump`.** La fonction
+  `protect_gift_item_delete` et le trigger `gift_items_protect_delete` sont **absents** ; la
+  fonction `protect_gift_item_mode` en prod est la version `0002` (ne bloque que `mode`, pas
+  title/price_cents/image_url/description). **La note "0006 appliquée depuis, le verrouillage à
+  l'édition fonctionne en production" ailleurs dans ce fichier est donc fausse** — ce qui
+  "fonctionne en prod" c'est le `disabled` côté UI, pas le garde-fou Postgres. **Décision en
+  attente de l'utilisateur** avant `supabase db push` de `0006` sur prod : le trigger
+  `gift_items_protect_delete` (BEFORE DELETE) ferait aussi échouer le hard-delete d'une liste via
+  `/admin` si elle contient un cadeau réservé/en cagnotte (le trigger se déclenche sur les
+  suppressions en cascade). Dev a ce trigger depuis des semaines sans incident signalé, mais le
+  hard-delete admin n'y a jamais été exercé sur une liste avec activité. Options : (a) `db push`
+  de `0006` tel quel ; (b) nouvelle migration qui ajuste `protect_gift_item_delete` pour tolérer
+  la cascade / le `service_role` avant de l'appliquer ; (c) laisser prod sans `0006` et le
+  documenter comme divergence assumée.
+- **`supabase migration list` reste l'outil de vérité** une fois `0006` tranché : `Local = Remote`
+  partout = réconcilié.
 
 ## Mode maintenance : coupé en prod (depuis ~début septembre 2026)
 
@@ -3090,7 +3096,7 @@ Maquette `Gestion liste.dc.html` mise à jour le 16 août 2026 : la maquette a �
 
 Maquette `Gestion liste.dc.html` mise à jour une seconde fois le 16 août 2026, avec plusieurs nouveautés développées dans la foulée :
 - **Édition de l'événement** (nom, type, date) directement depuis la page de gestion — nouveau composant `EnTeteListe` (lecture/édition) et action serveur `updateEvent`. Ne redéfinit rien de l'existant : mêmes règles que la création (type facultatif, date facultative), RLS `events_update_own` déjà en place.
-- **Champ "précisions" sur un cadeau** (taille, couleur, modèle…), affiché aux côtés du prix et éditable avec le reste. Utilise la colonne `gift_items.description`, déjà présente depuis la migration 0002 mais jamais exploitée jusqu'ici — aucune nouvelle migration nécessaire pour ce champ. La migration `0006` (**appliquée depuis**, le verrouillage à l'édition fonctionne en production) a été complétée pour verrouiller aussi `description` une fois l'article verrouillé, cohérent avec title/price/image.
+- **Champ "précisions" sur un cadeau** (taille, couleur, modèle…), affiché aux côtés du prix et éditable avec le reste. Utilise la colonne `gift_items.description`, déjà présente depuis la migration 0002 mais jamais exploitée jusqu'ici — aucune nouvelle migration nécessaire pour ce champ. La migration `0006` a été complétée pour verrouiller aussi `description` une fois l'article verrouillé, cohérent avec title/price/image. **⚠️ Correctif du 7 septembre 2026 : `0006` n'a en réalité jamais été appliquée en prod** (constaté par `supabase db dump` pendant la réconciliation des migrations — voir "Fiabiliser l'état des migrations Supabase" plus bas). En prod, le verrouillage édition/suppression d'un cadeau agi par un invité n'est assuré que par le `disabled` côté UI, pas par un trigger Postgres. Sur dev, `0006` est bien en place.
 - **Nom du réservataire flouté par défaut**, révélable d'un clic (garde un peu de surprise pour l'organisateur lui-même). Pour les cagnottes, pas de noms de contributeurs affichés : cette donnée n'existe pas encore (tâche #18 pas construite).
 - **Montant de cagnotte affiché en euros réels** ("816,00 € sur 1 200,00 €") plutôt qu'en pourcentage seul.
 - **Panneau "Inviter mes proches"** (chips d'e-mails, message personnalisable, bouton Envoyer) : implémenté visuellement à l'identique de la maquette, mais **sans envoi réel** — décision explicite de l'utilisateur (aucune intégration Resend n'existe encore dans le projet, et faire croire à un envoi qui n'a pas lieu aurait été trompeur). L'état "Invitation envoyée" est purement local/optimiste. À câbler pour de vrai quand l'envoi transactionnel sera cadré.
