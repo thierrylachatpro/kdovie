@@ -2455,6 +2455,39 @@ mesures CWV terrain via `/seo google` une fois du trafic réel + une clé API Go
 éditorial via `/seo cluster` (M5) ; police custom sur les images OG si on veut la vraie typo
 Quicksand ; éventuellement CSP + Permissions-Policy (M1 étendu, à tester contre Stripe).
 
+### Alerte Search Console « Erreur liée à des redirections » sur `/` — fausse alerte, crawl antérieur au correctif www (7 septembre 2026)
+
+L'utilisateur a signalé un rapport d'inspection d'URL Search Console pour `https://kdovie.com/`
+indiquant « Cette URL n'a pas été indexée » avec pour cause « Erreur liée à des redirections »,
+daté du **3 septembre 2026, 18:15:23** (Googlebot pour smartphone).
+
+**Diagnostic (pas une supposition, vérifié par requêtes réelles)** : cette date de crawl tombe
+**avant ou pile pendant** la fenêtre du correctif déjà documenté dans "Fondations SEO" ci-dessus
+(*"Redirection www ↔ non-www"*, corrigé côté Vercel par l'utilisateur le 3-4 septembre — le domaine
+Vercel avait `www.kdovie.com` en Primary, ce qui faisait boucler certains robots entre www et
+non-www). Trois requêtes réelles refaites aujourd'hui (`https://kdovie.com/`,
+`https://www.kdovie.com/`, `http://kdovie.com/`) redirigent toutes proprement en une seule étape
+vers `https://kdovie.com`, 200, avec un `<head>` complet (canonical, OG, title/description) — aucun
+symptôme de boucle ou de chaîne de redirection excessive aujourd'hui. **Confirmé indépendamment par
+l'utilisateur via l'outil « Tester l'URL en direct » de Search Console** : « Google a accès à cette
+URL. Si elle est indexée et sélectionnée comme URL canonique, elle pourra figurer dans les résultats
+de recherche. »
+
+**Explication** : le rapport « Inspection de l'URL » affiche le résultat du **dernier crawl déjà
+effectué** (une donnée mise en cache, potentiellement obsolète), alors que « Tester l'URL en direct »
+déclenche une **récupération fraîche à l'instant présent** — les deux peuvent diverger juste après
+un correctif tant que Google n'a pas re-crawlé. Le crawl du 3 septembre 18:15 a très probablement
+attrapé le site pendant/juste avant la bascule du domaine primaire sur Vercel ; le test en direct
+d'aujourd'hui, après correctif, réussit.
+
+**Aucune action côté code** : rien à corriger, le mécanisme déjà en place (`SITE_URL` sans www,
+domaine Vercel avec `kdovie.com` en Primary) est correct. **Action recommandée côté utilisateur** :
+dans Search Console, sur l'écran d'inspection de l'URL, cliquer sur **« Demander une indexation »**
+(disponible après un test en direct réussi) pour forcer Google à re-crawler `/` et rafraîchir le
+rapport avec le résultat à jour — sinon l'ancien rapport (basé sur le crawl du 3 septembre) peut
+rester affiché jusqu'au prochain crawl naturel de Google, sans que ça reflète un vrai problème
+actuel.
+
 ## Menu hamburger mobile pour la nav anonyme (4 septembre 2026)
 
 Bug signalé par l'utilisateur : sur mobile, un visiteur non connecté ne voyait **aucune
@@ -2532,6 +2565,96 @@ au moins `0009` → `0023` (colonnes `fee_mode`, `deleted_at`, `is_admin`, `is_p
 `original_title`, `disabled`, `welcome_email_sent_at`, `app_settings`, `searchable`/`first_name`/…,
 `position`, et la fonction `get_list_organizer_first_name`). Avant de supposer qu'une migration
 plus ancienne est en place, **vérifier en base** plutôt que se fier à ce fichier.
+
+## Fiabiliser l'état des migrations Supabase, une fois pour toutes (7 septembre 2026)
+
+Décision du 7 septembre 2026, en réponse à la question de l'utilisateur *"je crois qu'il y a
+toujours des soucis de référencement par rapport aux migrations... comment régler ça une fois pour
+toute ?"* — fait suite à la découverte répétée (`0004`, `0007`, `0008`, voir section précédente) de
+migrations écrites, parfois même notées "appliquée depuis" dans ce fichier, mais en réalité jamais
+réellement en place en prod.
+
+### Cause racine, pas juste le symptôme
+
+Le vrai problème n'est pas "certaines migrations n'ont pas été appliquées" (ça, c'est le symptôme
+récurrent) — c'est que **l'état "appliqué" a parfois été obtenu en tapant du SQL à la main dans le
+SQL Editor Supabase**, plutôt qu'en passant par `supabase db push` (déjà arrivé au moins une fois,
+voir `0019` réparée via `supabase migration repair` après une application manuelle). Une application
+manuelle modifie bien le schéma réel, mais **ne renseigne jamais la table de suivi de la CLI**
+(`supabase_migrations.schema_migrations`) — donc `supabase migration list` peut afficher "non
+appliquée" pour une migration en réalité déjà en place, et à l'inverse une note optimiste a pu être
+écrite dans ce fichier sans jamais avoir été vérifiée en base (exactement ce qui s'est produit pour
+`0007`/`0008`, découvertes cassées en prod des semaines après avoir été notées "faites"). Tant que
+cette double source de vérité (fichier de notes vs. état réel) n'est pas réconciliée une bonne fois,
+le problème reviendra à chaque nouvelle migration.
+
+### Réconciliation complète à faire une fois, pour repartir propre
+
+Nécessite l'accès Supabase (CLI liée au projet, ou URL + clé de service) — hors de portée de cette
+conversation de cadrage, **à exécuter dans Claude Code** :
+
+1. Sur dev **et** prod séparément : `supabase migration list` (après `supabase link` sur le bon
+   projet, ou `--db-url` direct) pour obtenir l'état déclaré par la CLI, colonne `Local` vs.
+   `Remote`, migration par migration.
+2. Pour chaque écart (`Local` présent, `Remote` absent) : **ne jamais se fier à la liste CLI seule**
+   — vérifier le schéma réel (`information_schema.columns`/`.routines`, ou une requête REST ciblée,
+   même méthode déjà pratiquée pour confirmer `0009`→`0023`) pour savoir si la migration est
+   *réellement* appliquée ou pas, indépendamment de ce que dit la table de suivi.
+   - Schéma confirme "pas appliqué" : l'appliquer pour de vrai via `supabase db push` (jamais SQL
+     Editor).
+   - Schéma confirme "déjà appliqué" (cas d'une application manuelle passée, non trackée) :
+     `supabase migration repair --status applied <version>` pour resynchroniser la table de suivi
+     sans rejouer le SQL (rejouer un `create table`/`alter column` déjà en place échouerait).
+3. Répéter jusqu'à `supabase migration list` = `Local = Remote` sur toute la ligne, **sur les deux
+   bases**, pas seulement une.
+4. Une fois réconcilié, pas besoin de corriger rétroactivement chaque mention "appliquée
+   depuis"/"pas encore appliquée" éparpillée dans l'historique de ce fichier — la garantie vient
+   désormais du process ci-dessous, pas d'une note figée à une date passée.
+
+### Règle pour ne plus jamais revivre ça
+
+- **Plus jamais de SQL à la main dans le SQL Editor Supabase pour un changement de schéma** —
+  toujours un fichier de migration versionné + `supabase db push`. Si une correction manuelle en
+  urgence est vraiment inévitable, la faire suivre **immédiatement** (même session, pas "plus
+  tard") d'un `supabase migration repair` pour que la table de suivi reste vraie, et le noter dans
+  CLAUDE.md à ce moment précis.
+- **Ne plus écrire "migration appliquée" dans ce fichier sans l'avoir vérifié au moment de
+  l'écrire** — via `supabase migration list` ou une requête REST directe, jamais sur la base d'une
+  intention ("l'utilisateur va l'appliquer" n'est pas "c'est fait", ne pas confondre les deux dans
+  la formulation).
+- **Avant de commencer un nouveau chantier qui touche au schéma**, réflexe simple : `supabase
+  migration list` sur la base concernée en tout début de tâche, pour repartir d'un état vérifié
+  plutôt que de la mémoire de ce fichier.
+
+**Statut : partiellement exécuté le 7 septembre 2026 — schéma prod vérifié complet, mais la
+réconciliation de la table de suivi CLI reste bloquée faute d'outillage.**
+
+- **Schéma PROD (`ppsaiaesnvwnkzjisvdr`) vérifié migration par migration via REST** (service_role +
+  anon, `scratchpad/probe-schema.mjs`, aucune écriture) : **les 25 migrations `0001`→`0025` ont
+  bien leur effet en place** — chaque colonne (`fee_mode`, `deleted_at`, `is_admin`, `is_priority`,
+  `original_title`, `disabled`, `welcome_email_sent_at`, `searchable`/`first_name`/…, `position`,
+  `retractation_renoncee_at`, `last_payout_at`/`last_payout_reminder_at`…), table (`app_settings`,
+  `gift_item_payouts`), fonction RPC (`reserve_gift_item`, `confirm_contribution`,
+  `cancel_reservation`, `search_organizers`, `get_list_organizer_first_name`) et grant anon
+  (`profiles.display_name` via 0008, `organizer_stripe_accounts.payouts_enabled` via 0010)
+  répondent présents. Les colonnes rendues nullables (`events.type` 0004, `gift_items.source_url`
+  0007, `reservations`/`contributions.guest_name` 0012) confirmées nullables par sonde d'insert
+  (échec sur la FK, plus sur le NOT NULL). Non vérifiables par REST, mais documentés fonctionnels
+  en prod : 0003 (réplication temps réel), 0006 (fonction/trigger `protect_gift_item_delete` —
+  return type `trigger`, non exposé en RPC), 0016 (corps de `confirm_contribution`).
+  **Conclusion : le schéma prod est correct, la réconciliation ne touchera QUE la table de suivi
+  (`supabase migration repair --status applied …`), pas le schéma — risque nul.**
+- **Bloqué pour finir** : `supabase migration list` / `repair` / `db push` exigent la CLI Supabase
+  (absente de la machine) **plus** soit un `SUPABASE_ACCESS_TOKEN`, soit l'URL de connexion DB
+  (avec mot de passe). Ni l'un ni l'autre disponible. **Aucun accès du tout à la base dev**
+  (`hvyinuoebkzghrbcbnqa`) : ni clé, ni URL — dev n'a pas pu être sondée.
+- **Pour débloquer, l'utilisateur fournit l'un de :** (a) la CLI installée (`brew install
+  supabase/tap/supabase`) + un access token perso (`supabase login`, ou `SUPABASE_ACCESS_TOKEN`
+  dans l'env) — le projet prod est déjà lié (`supabase/.temp/`), il faudra lier dev en plus ; ou
+  (b) les deux URLs de connexion DB directes (`postgresql://postgres:<pwd>@…`, dev et prod) pour
+  un `supabase … --db-url`. Ensuite : `supabase migration list` sur chaque base, `repair` pour
+  chaque version présente en schéma mais absente du suivi, `db push` uniquement si une version
+  s'avérait vraiment manquante en schéma (peu probable vu la vérif ci-dessus, côté prod au moins).
 
 ## Mode maintenance : coupé en prod (depuis ~début septembre 2026)
 
