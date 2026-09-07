@@ -2626,9 +2626,26 @@ conversation de cadrage, **à exécuter dans Claude Code** :
   migration list` sur la base concernée en tout début de tâche, pour repartir d'un état vérifié
   plutôt que de la mémoire de ce fichier.
 
-**Statut : réconciliation exécutée le 7 septembre 2026 (CLI installée + `supabase login` par
-l'utilisateur). DEV entièrement réconcilié. PROD réconcilié à 24/25 — reste `0006`, jamais
-réellement appliquée en prod, décision utilisateur en attente.**
+**Statut : réconciliation TERMINÉE le 7 septembre 2026 (CLI installée + `supabase login` par
+l'utilisateur). DEV et PROD : `supabase migration list` = `Local = Remote` sur `0001`→`0026`.**
+
+Résolution de `0006` (jamais appliquée en prod) : option (b) validée par l'utilisateur — nouvelle
+migration `0026_protect_gift_item_delete_service_role.sql` qui fait tester à
+`protect_gift_item_delete` le rôle via `auth.role()` (et non `current_user`), puis `supabase db
+push --include-all` de `0006` + `0026` sur dev et prod.
+- **Pourquoi `auth.role()` et pas `current_user`** : lors d'un `DELETE FROM events` en cascade,
+  PostgreSQL exécute les triggers des lignes `gift_items` supprimées sous le rôle **propriétaire de
+  la table (`postgres`)**, pas sous le rôle de session — vérifié en conditions réelles
+  (`current_user` = `postgres` dans le trigger de cascade). Le GUC `request.jwt.claims` posé par
+  PostgREST, lui, persiste sur toute la transaction, donc `auth.role()` renvoie bien `service_role`
+  même dans le trigger de cascade.
+- **Testé sur dev ET prod** (transactions annulées, aucun résidu) : (1) hard-delete d'une liste
+  contenant un cadeau `reserve` via le client service_role → **réussit** (cascade non bloquée) ;
+  (2) suppression directe d'un cadeau verrouillé en rôle `authenticated` → **bloquée** comme prévu.
+- Effet net : en prod, le verrouillage édition/suppression d'un cadeau agi par un invité est
+  désormais garanti par un trigger Postgres (`0006`), plus seulement par le `disabled` côté UI ;
+  et le hard-delete admin d'une liste (`deleteEventPermanently`) continue de passer même sur des
+  listes avec activité.
 
 Méthode : `supabase link` sur chaque projet → `supabase migration list --linked` pour l'état de la
 table de suivi CLI → `supabase db dump --linked` pour vérifier le **schéma réel** (fonctions,
@@ -2645,23 +2662,14 @@ réellement.
   l'effet de **toutes les migrations sauf `0006`** — colonnes, tables, fonctions RPC, grants anon,
   colonnes rendues nullables (`0004`/`0007`/`0012`), publication temps réel (`0003`), corps
   idempotent de `confirm_contribution` (`0016`) : tous présents. `repair --status applied` passé
-  pour ces 22 versions (`0003`–`0005`, `0007`–`0025`). Reste `0006`.
-- **`0006` : jamais appliquée en prod — confirmé par `db dump`.** La fonction
-  `protect_gift_item_delete` et le trigger `gift_items_protect_delete` sont **absents** ; la
-  fonction `protect_gift_item_mode` en prod est la version `0002` (ne bloque que `mode`, pas
-  title/price_cents/image_url/description). **La note "0006 appliquée depuis, le verrouillage à
-  l'édition fonctionne en production" ailleurs dans ce fichier est donc fausse** — ce qui
-  "fonctionne en prod" c'est le `disabled` côté UI, pas le garde-fou Postgres. **Décision en
-  attente de l'utilisateur** avant `supabase db push` de `0006` sur prod : le trigger
-  `gift_items_protect_delete` (BEFORE DELETE) ferait aussi échouer le hard-delete d'une liste via
-  `/admin` si elle contient un cadeau réservé/en cagnotte (le trigger se déclenche sur les
-  suppressions en cascade). Dev a ce trigger depuis des semaines sans incident signalé, mais le
-  hard-delete admin n'y a jamais été exercé sur une liste avec activité. Options : (a) `db push`
-  de `0006` tel quel ; (b) nouvelle migration qui ajuste `protect_gift_item_delete` pour tolérer
-  la cascade / le `service_role` avant de l'appliquer ; (c) laisser prod sans `0006` et le
-  documenter comme divergence assumée.
-- **`supabase migration list` reste l'outil de vérité** une fois `0006` tranché : `Local = Remote`
-  partout = réconcilié.
+  pour ces 22 versions (`0003`–`0005`, `0007`–`0025`), puis `db push --include-all` pour `0006` +
+  `0026` (voir ci-dessus). **`supabase migration list` : `Local = Remote` sur `0001`→`0026`.
+  Réconcilié.**
+- **`0006` n'avait jamais été appliquée en prod** (confirmé par `db dump` : `protect_gift_item_delete`
+  et le trigger `gift_items_protect_delete` absents, `protect_gift_item_mode` encore en version
+  `0002`). La note "0006 appliquée depuis" ailleurs dans ce fichier était fausse — corrigée sur
+  place. Résolu via `0026` (voir bloc "Statut" ci-dessus).
+- **`supabase migration list` reste l'outil de vérité** : `Local = Remote` partout = réconcilié.
 
 ## Mode maintenance : coupé en prod (depuis ~début septembre 2026)
 
@@ -3096,7 +3104,7 @@ Maquette `Gestion liste.dc.html` mise à jour le 16 août 2026 : la maquette a �
 
 Maquette `Gestion liste.dc.html` mise à jour une seconde fois le 16 août 2026, avec plusieurs nouveautés développées dans la foulée :
 - **Édition de l'événement** (nom, type, date) directement depuis la page de gestion — nouveau composant `EnTeteListe` (lecture/édition) et action serveur `updateEvent`. Ne redéfinit rien de l'existant : mêmes règles que la création (type facultatif, date facultative), RLS `events_update_own` déjà en place.
-- **Champ "précisions" sur un cadeau** (taille, couleur, modèle…), affiché aux côtés du prix et éditable avec le reste. Utilise la colonne `gift_items.description`, déjà présente depuis la migration 0002 mais jamais exploitée jusqu'ici — aucune nouvelle migration nécessaire pour ce champ. La migration `0006` a été complétée pour verrouiller aussi `description` une fois l'article verrouillé, cohérent avec title/price/image. **⚠️ Correctif du 7 septembre 2026 : `0006` n'a en réalité jamais été appliquée en prod** (constaté par `supabase db dump` pendant la réconciliation des migrations — voir "Fiabiliser l'état des migrations Supabase" plus bas). En prod, le verrouillage édition/suppression d'un cadeau agi par un invité n'est assuré que par le `disabled` côté UI, pas par un trigger Postgres. Sur dev, `0006` est bien en place.
+- **Champ "précisions" sur un cadeau** (taille, couleur, modèle…), affiché aux côtés du prix et éditable avec le reste. Utilise la colonne `gift_items.description`, déjà présente depuis la migration 0002 mais jamais exploitée jusqu'ici — aucune nouvelle migration nécessaire pour ce champ. La migration `0006` a été complétée pour verrouiller aussi `description` une fois l'article verrouillé, cohérent avec title/price/image. **Note du 7 septembre 2026 : `0006` n'avait en réalité jamais été appliquée en prod** (constaté par `supabase db dump` pendant la réconciliation des migrations) — appliquée depuis, avec `0026` qui ajuste `protect_gift_item_delete` pour ne pas bloquer le hard-delete admin en cascade. Voir "Fiabiliser l'état des migrations Supabase" plus bas.
 - **Nom du réservataire flouté par défaut**, révélable d'un clic (garde un peu de surprise pour l'organisateur lui-même). Pour les cagnottes, pas de noms de contributeurs affichés : cette donnée n'existe pas encore (tâche #18 pas construite).
 - **Montant de cagnotte affiché en euros réels** ("816,00 € sur 1 200,00 €") plutôt qu'en pourcentage seul.
 - **Panneau "Inviter mes proches"** (chips d'e-mails, message personnalisable, bouton Envoyer) : implémenté visuellement à l'identique de la maquette, mais **sans envoi réel** — décision explicite de l'utilisateur (aucune intégration Resend n'existe encore dans le projet, et faire croire à un envoi qui n'a pas lieu aurait été trompeur). L'état "Invitation envoyée" est purement local/optimiste. À câbler pour de vrai quand l'envoi transactionnel sera cadré.
