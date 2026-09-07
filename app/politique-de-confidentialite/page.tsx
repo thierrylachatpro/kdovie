@@ -6,7 +6,7 @@ import PageLegale from "@/components/layout/PageLegale";
 export const metadata: Metadata = pageMetadata({
   title: "Politique de confidentialité",
   description:
-    "Comment Kdovie collecte, utilise et protège vos données personnelles : données d'organisateur et d'invité, durées de conservation, sous-traitants, vos droits.",
+    "Comment Kdovie collecte, utilise et protège vos données personnelles : données d'organisateur et d'invité, durées de conservation, sous-traitants, extension navigateur, vos droits.",
   path: "/politique-de-confidentialite",
 });
 
@@ -32,7 +32,7 @@ export default async function PolitiqueConfidentialitePage() {
       estConnecte={Boolean(user)}
       pseudo={pseudo}
     >
-      <p className="text-[15px] text-[#8A7263] italic">Dernière mise à jour : 29 août 2026</p>
+      <p className="text-[15px] text-[#8A7263] italic">Dernière mise à jour : 7 septembre 2026</p>
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">
@@ -78,7 +78,7 @@ export default async function PolitiqueConfidentialitePage() {
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           <em>Navigation</em> : si vous acceptez notre bandeau de cookies, nous utilisons Google
           Analytics pour mesurer la fréquentation du site (pages consultées, provenance, appareil)
-          — jamais pour vous identifier personnellement. Voir la section 5.
+          — jamais pour vous identifier personnellement. Voir la section 6.
         </p>
       </section>
 
@@ -119,7 +119,28 @@ export default async function PolitiqueConfidentialitePage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">
-          5. Les cookies utilisés sur Kdovie
+          5. L&apos;extension navigateur Kdovie
+        </h2>
+        <p className="text-[16px] leading-relaxed text-[#5C4436]">
+          L&apos;extension navigateur Kdovie (Chrome et navigateurs compatibles) permet
+          d&apos;ajouter un cadeau à l&apos;une de vos listes depuis la page d&apos;un site
+          marchand. Elle lit le contenu de la page active <strong>uniquement au moment où vous
+          cliquez sur son icône</strong>, jamais en arrière-plan ni sur les autres onglets.
+        </p>
+        <p className="text-[16px] leading-relaxed text-[#5C4436]">
+          Lorsque vous cliquez sur « Ajouter à ma liste », l&apos;extension n&apos;envoie à
+          l&apos;API Kdovie que le <strong>titre, le prix, l&apos;image et l&apos;adresse (URL) du
+          produit détecté</strong>, ainsi que la liste que vous avez choisie — uniquement à votre
+          initiative explicite. Elle utilise votre session déjà ouverte sur kdovie.com pour vous
+          authentifier ; si vous n&apos;êtes pas connecté, elle vous invite simplement à le faire
+          sur le site. Elle ne suit pas votre navigation, ne collecte aucune autre donnée de la
+          page, et ne transmet rien à des tiers.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">
+          6. Les cookies utilisés sur Kdovie
         </h2>
         <ul className="flex list-disc flex-col gap-2 pl-6 text-[16px] leading-relaxed text-[#5C4436]">
           <li>
@@ -135,7 +156,7 @@ export default async function PolitiqueConfidentialitePage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">6. Vos droits</h2>
+        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">7. Vos droits</h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           Vous pouvez nous demander d&apos;accéder à vos données, de les rectifier, de les
           effacer, d&apos;en limiter l&apos;usage, ou d&apos;en récupérer une copie, en écrivant à{" "}
@@ -148,7 +169,7 @@ export default async function PolitiqueConfidentialitePage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">7. Sécurité</h2>
+        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">8. Sécurité</h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           Nous prenons des mesures raisonnables pour protéger vos données (chiffrement des
           connexions, accès restreint à notre base de données, aucun stockage de coordonnées
