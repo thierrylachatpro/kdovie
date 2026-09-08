@@ -5,6 +5,7 @@ import { useFormStatus } from "react-dom";
 import { scrapeArticleUrl } from "@/app/compte/evenements/[slug]/scrape-action";
 import { createGiftItem } from "@/app/compte/evenements/[slug]/gift-item-actions";
 import KdovieSpinner from "@/components/ui/KdovieSpinner";
+import { CHEMIN_EXTENSION } from "@/lib/extensions";
 
 // useFormStatus doit être appelé depuis un descendant du <form>, pas depuis
 // le composant qui le rend — d'où ce bouton séparé. Sans lui, le clic sur
@@ -82,6 +83,14 @@ export default function AjouterArticleForm({
             <p className="text-[15px] text-[#7A6354]">
               Ça peut prendre quelques secondes. Soyez patient...
             </p>
+            <a
+              href={CHEMIN_EXTENSION}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-heading text-[15px] font-bold text-corail underline decoration-2 underline-offset-2 hover:text-[#C0512A]"
+            >
+              Trop long ? Installez notre extension →
+            </a>
           </div>
         </div>
       )}
@@ -150,7 +159,23 @@ export default function AjouterArticleForm({
           </label>
         )}
 
-        {note && <p className="text-sm text-[#8A7263]">{note}</p>}
+        {note && (
+          <div className="rounded-[14px] border-2 border-[#F2DFC9] bg-[#F7E7D6] px-4 py-3.5 text-[15px] leading-relaxed text-[#7A6354]">
+            <p>{note}</p>
+            <p className="mt-1.5">
+              Sur les sites qui bloquent la récupération automatique,{" "}
+              <a
+                href={CHEMIN_EXTENSION}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-corail underline decoration-2 underline-offset-2 hover:text-[#C0512A]"
+              >
+                notre extension navigateur
+              </a>{" "}
+              lit la page directement — un clic, et le cadeau est ajouté.
+            </p>
+          </div>
+        )}
 
         {showFields && (
           <>

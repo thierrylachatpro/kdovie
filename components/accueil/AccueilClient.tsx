@@ -5,6 +5,7 @@ import { useState } from "react";
 import LiensLegaux from "@/components/layout/LiensLegaux";
 import NavAnonyme from "@/components/layout/NavAnonyme";
 import NavConnecte from "@/components/layout/NavConnecte";
+import PresentationExtension from "@/components/extension/PresentationExtension";
 
 type Occasion = {
   label: string;
@@ -665,6 +666,8 @@ export default function AccueilClient({
           </Link>
         </div>
       </section>
+
+      <PresentationExtension />
 
       <footer className="bg-[#F7E7D6] px-6 py-11 sm:px-10">
         <div className="mx-auto flex max-w-[1180px] flex-wrap items-center justify-between gap-5">
