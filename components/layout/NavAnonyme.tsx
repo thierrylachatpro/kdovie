@@ -120,16 +120,20 @@ export default function NavAnonyme({ estConnecte }: { estConnecte: boolean }) {
       {/* Rechercher + Se connecter : 2e ligne sur mobile (alignée à droite),
           dans le flux sur desktop. `relative` sert d'ancrage au panneau. */}
       <div className="relative flex w-full items-center justify-center gap-2.5 md:w-auto md:gap-6">
+        {/* Lien vers la recherche mis en avant (pastille sauge + loupe) plutôt
+            qu'un simple lien texte qui se noyait parmi les ancres — voir
+            demande du 8 septembre 2026. */}
         <Link
           href="/recherche"
-          className="hidden text-[15px] font-medium text-[#5C4436] hover:text-corail md:inline"
+          className="hidden items-center gap-1.5 rounded-2xl border-2 border-sauge bg-[#EEF3EC] px-3.5 py-2 text-[15px] font-semibold whitespace-nowrap text-sauge-dark hover:bg-sauge hover:text-creme md:inline-flex"
         >
+          <IconeLoupe />
           Retrouver une liste
           <StatutLien />
         </Link>
         <Link
           href="/recherche"
-          className="inline-flex flex-none items-center gap-1.5 rounded-2xl border-2 border-[#F2DFC9] px-3 py-2 text-[15px] font-semibold whitespace-nowrap text-[#5C4436] hover:border-corail hover:text-corail md:hidden"
+          className="inline-flex flex-none items-center gap-1.5 rounded-2xl border-2 border-sauge bg-[#EEF3EC] px-3 py-2 text-[15px] font-semibold whitespace-nowrap text-sauge-dark hover:bg-sauge hover:text-creme md:hidden"
         >
           <IconeLoupe />
           Rechercher
