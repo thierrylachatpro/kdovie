@@ -37,3 +37,7 @@ next-env.d.ts
 .supabase/
 supabase/.temp/
 .claude/settings.local.json
+
+# assets de fiche store de l'extension (captures, images promo) — non versionnés
+extension/captures-extension-kdovie/
+extension/Archive.zip
