@@ -6,6 +6,7 @@ import BandeauCookies from "@/components/ui/BandeauCookies";
 import BandeauEnvironnement from "@/components/layout/BandeauEnvironnement";
 import { SITE_URL } from "@/lib/site-url";
 import { DEFAULT_DESCRIPTION, DEFAULT_TITLE, SITE_NAME } from "@/lib/seo";
+import { CONSENT_STORAGE_KEY } from "@/lib/consent";
 import "./globals.css";
 
 // Google Tag Manager — voir CLAUDE.md > "Google Analytics 4, bandeau de
@@ -108,14 +109,30 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 style={{ display: "none", visibility: "hidden" }}
               />
             </noscript>
-            {/* Consent Mode : état par défaut refusé, posé avant le
-                conteneur GTM lui-même — GTM lit le même window.dataLayer,
-                aucune dépendance à gtag.js chargé séparément. */}
+            {/* Consent Mode : posé avant le conteneur GTM lui-même — GTM lit
+                le même window.dataLayer, aucune dépendance à gtag.js chargé
+                séparément.
+                Lit le choix déjà enregistré en localStorage de façon
+                SYNCHRONE ici, plutôt que de partir sur "denied" et laisser
+                BandeauCookies.tsx (React, monté après hydratation) le
+                corriger a posteriori — voir CLAUDE.md > "Bug confirmé
+                (18 septembre 2026)" : ce correctif React arrivait toujours
+                après que gtm.js ait déjà émis gtm.init (déclencheur de la
+                balise GA4), et Google ne redéclenche jamais une balise
+                gérée par le consentement une fois son déclencheur passé —
+                la mesure ne se déclenchait donc jamais, même pour un
+                visiteur revenant avec un consentement déjà accepté. */}
             <Script id="consent-mode-defaut" strategy="beforeInteractive">
               {`
                 window.dataLayer = window.dataLayer || [];
                 function gtag(){ dataLayer.push(arguments); }
-                gtag('consent', 'default', { analytics_storage: 'denied' });
+                var consentementEnregistre;
+                try {
+                  consentementEnregistre = window.localStorage.getItem('${CONSENT_STORAGE_KEY}');
+                } catch (e) {}
+                gtag('consent', 'default', {
+                  analytics_storage: consentementEnregistre === 'accepte' ? 'granted' : 'denied'
+                });
               `}
             </Script>
             <GoogleTagManager gtmId={GTM_ID} />

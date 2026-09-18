@@ -1943,6 +1943,65 @@ périmètre de ce que Claude Code peut faire (pas d'accès à ce compte Google).
   d'usage, contenu exact non re-détaillé ici — voir `components/ui/BandeauCookies.tsx` directement,
   le comportement (symétrie des boutons, stockage, réouverture) est inchangé.
 
+### Bug confirmé (18 septembre 2026) : la balise GA4 ne se déclenche jamais, même après acceptation
+
+Diagnostiqué avec l'utilisateur en conditions réelles via l'Aperçu GTM (Tag Assistant), pas une
+supposition — plusieurs rechargements de page testés, y compris avec le consentement déjà stocké en
+`localStorage` d'un accès précédent :
+
+- Sur **chaque** chargement de page, l'événement `gtm.init` (déclencheur "Initialization - All
+  Pages" de la balise `Google Analytics - Configuration GA4`) survient **avant** l'événement "Mise à
+  jour du consentement" (`gtag('consent','update', ...)`) — vérifié dans l'ordre des événements de
+  l'Aperçu GTM (`Initialisation` toujours numérotée avant `Mise à jour du consentement`, sur
+  plusieurs sessions de page différentes, y compris après un rechargement où le consentement était
+  déjà accordé lors d'un accès précédent).
+- Cause : `gtm.js` se charge et exécute `gtm.init` très tôt (petit script, quasi synchrone). La
+  logique qui relit `localStorage` et rappelle `gtag('consent','update', ...)` vit dans
+  `BandeauCookies.tsx` (composant client React), qui ne s'exécute qu'après hydratation — et via un
+  `setTimeout(0)` délibéré (ajouté le 29 août pour éviter la règle ESLint
+  `react-hooks/set-state-in-effect`, voir plus haut). Ce délai, même minime, suffit à arriver
+  systématiquement après `gtm.init`.
+- **Confirmé par la documentation officielle Google (support.google.com/tagmanager/answer/10718549)** :
+  une balise gérée par le consentement ne se redéclenche **jamais automatiquement** si le
+  consentement était refusé au moment précis où son déclencheur s'est activé — aucun mécanisme de
+  nouvelle tentative. Donc ce n'est pas un problème de timing "presque bon" qui se corrigerait tout
+  seul avec un peu plus de délai côté serveur/CDN : tant que l'ordre reste `gtm.init` → mise à jour
+  du consentement, la balise ne se déclenchera **jamais**, pour aucun visiteur, même revenant, même
+  après avoir déjà accepté par le passé.
+
+**Correctif à implémenter** : déplacer la lecture de `localStorage` (clé
+`kdovie_consentement_analytics`) **hors de React**, dans le script inline synchrone déjà posé dans
+`app/layout.tsx` (`strategy="beforeInteractive"`, celui qui pose aujourd'hui
+`gtag('consent','default', { analytics_storage: 'denied' })` sans condition) — le faire lire la
+valeur stockée et poser directement `granted` si elle vaut déjà `"accepte"`, avant même que `gtm.js`
+ne se charge. Ça élimine la course pour un visiteur qui revient avec un choix déjà enregistré (le cas
+qui doit représenter l'essentiel du trafic récurrent). Pour un tout premier visiteur (rien en
+`localStorage`), le comportement reste inchangé et correct : la toute première page vue avant son
+clic sur "Accepter" ne sera jamais comptée (normal, voulu), mais toute page suivante après son clic
+doit fonctionner puisque le choix est alors déjà stocké au prochain chargement.
+
+`components/ui/BandeauCookies.tsx` (la logique de clic "Accepter"/"Refuser" côté React, le
+`setTimeout(0)` pour la lecture d'affichage du bandeau lui-même) n'a pas besoin de changer — seul le
+script inline de `app/layout.tsx` doit être étendu pour lire `localStorage` de façon synchrone avant
+le chargement de GTM. **Pas encore implémenté** — à faire dans Claude Code.
+
+**Statut : corrigé et testé (18 septembre 2026).** Exactement le correctif ci-dessus, rien de plus :
+
+- `app/layout.tsx` importe `CONSENT_STORAGE_KEY` (`lib/consent.ts`) et l'interpole dans le script
+  inline `beforeInteractive` — celui-ci lit désormais `window.localStorage.getItem(...)` de façon
+  synchrone (dans un `try/catch`, un blocage du stockage — navigation privée, extension — ne doit
+  jamais faire planter le script) et pose `analytics_storage: 'granted'` d'entrée si la valeur vaut
+  déjà `"accepte"`, sinon `'denied'` comme avant. `components/ui/BandeauCookies.tsx` strictement
+  inchangé, comme anticipé.
+- **Testé réellement** (Playwright, `NEXT_PUBLIC_GTM_ID` temporairement surchargée en variable
+  d'environnement pour le serveur de dev — `.env.local` non modifié, la clé y reste vide comme
+  prévu pour le développement local) : inspection directe de `window.dataLayer` juste après
+  chargement, **avant** toute tentative de chargement de `gtm.js` — (1) `localStorage` déjà à
+  `"accepte"` (rechargement simulant un visiteur revenant) → premier `consent default` déjà
+  `granted`, corrige exactement la course diagnostiquée le 18 septembre ; (2) rien en
+  `localStorage` (premier visiteur) → reste `denied`, comportement inchangé ; (3) `"refuse"` déjà
+  enregistré → reste `denied`. Les trois scénarios passent. `tsc`/`lint`/`build` propres.
+
 ## Politique de confidentialité RGPD (25 août 2026)
 
 Chantier identifié comme le plus urgent des points juridiques en suspens (voir la checklist de mise
@@ -2912,13 +2971,29 @@ demande un ajustement.
    `app/politique-de-confidentialite/page.tsx` (renumérotation 5→8, référence « section 6 »
    corrigée dans la section 2, date de mise à jour au 7 septembre). Texte : lecture de la page
    active au clic uniquement, envoi limité à titre/prix/image/URL + liste choisie, à l'initiative
-   explicite de l'organisateur, rien à des tiers. Commité sur `dev` — **à merger sur `main` puis
-   déployer avant de finaliser la fiche du store** (l'URL doit être valide au dépôt).
+   explicite de l'organisateur, rien à des tiers. Commité sur `dev`, **mergé sur `main` et déployé
+   par l'utilisateur avant le 7 septembre 2026 au soir** — `kdovie.com/politique-de-confidentialite`
+   reflète donc bien ce paragraphe au moment du dépôt de la fiche (condition levée).
 2. 3 captures 1280×800 PNG livrées à l'utilisateur (non connecté / formulaire pré-rempli avec un
    aspirateur robot / succès), générées depuis le **vrai** `extension/popup.html` + `popup.js`
    servi en local, `chrome.*` entièrement mocké (résultats cannés, **aucune requête réseau, aucune
    donnée en base** — pas de compte de test nécessaire avec l'approche mock). Script :
    `scratchpad/capture-popup.py` (jetable, pas commité).
+
+**Soumission réelle déposée par l'utilisateur (7 septembre 2026)** : fiche produit (Store listing)
+et onglet Privacy practices renseignés dans le Developer Dashboard (justifications de permissions
+`activeTab`/`scripting`/`host_permissions`, déclaration de données "Website content" uniquement,
+3 certifications cochées — voir échange Cowork du même jour), URL de politique de confidentialité
+pointant vers la version à jour en prod, package ZIP final (`content/`, `icons/`, `manifest.json`,
+`popup.css/html/js` à la racine de l'archive) déposé. Le formulaire demandait aussi un compte de
+test pour la revue (l'auth Kdovie étant par lien magique, sans mot de passe classique) — résolu en
+fournissant l'accès à une boîte mail jetable dédiée (email + mot de passe de cette boîte, jamais un
+mot de passe Kdovie) accompagné d'instructions pas à pas pour récupérer le lien de connexion et
+tester l'ajout d'un cadeau via l'extension. **Soumission confirmée envoyée par l'utilisateur (7
+septembre 2026), en attente de la revue Google** — délai habituel de quelques jours à ~2 semaines
+pour une première soumission, rien à faire côté Kdovie en attendant sauf répondre si Google demande
+une clarification. Penser à révoquer/changer le mot de passe de la boîte mail jetable une fois la
+revue terminée.
 
 ### Extension pour Microsoft Edge (greenlightée le 6 septembre 2026)
 
