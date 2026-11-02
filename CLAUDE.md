@@ -213,7 +213,7 @@ Décision retenue à la place : passer par ScrapingAnt (scrapingant.com), qui pr
 
 ## Cagnotte et frais (tâche #18)
 
-Compte Stripe créé par l'utilisateur, Connect activé en mode **marketplace** (le modèle Kdovie correspond à ce cas Stripe : la plateforme collecte puis reverse à plusieurs bénéficiaires organisateurs, avec commission au passage — pas le cas "plateforme SaaS" où chaque compte connecté encaisse pour son propre compte).
+Compte Stripe créé par l'utilisateur, Connect activé en mode **marketplace** (le modèle Kdovie correspond à ce cas Stripe : paiements traités par Stripe directement au profit de l'organisateur, marchand officiel via `on_behalf_of` — pas le cas "plateforme SaaS" où chaque compte connecté encaisse pour son propre compte).
 
 **Mode live depuis le 31 août 2026** — met à jour ce paragraphe, écrit à l'origine en mode test uniquement, ne pas se fier à une version antérieure de ce fichier si elle traîne ailleurs. Compte Stripe Prowebia activé en production (accompagné pas à pas dans la conversation de cadrage), clés `STRIPE_SECRET_KEY`/`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` posées sur Vercel en **deux entrées séparées par variable** : scope **Production** = valeurs `sk_live_.../pk_live_...`, scope **Preview** = valeurs `sk_test_.../pk_test_...` restées inchangées (même schéma de séparation que les variables Supabase, voir "Environnements dev/prod séparés" plus bas — la branche `dev`/les previews restent en clés de test, jamais mélangées aux vraies transactions). Nouveau webhook live créé (Stripe Dashboard > Workbench > Webhooks, périmètre "Votre compte", événement `checkout.session.completed`, URL `https://kdovie.com/api/webhooks/stripe`), `STRIPE_WEBHOOK_SECRET` posé sur Vercel en Production. **Décision assumée par l'utilisateur : la bascule en live n'a pas attendu le règlement du statut juridique** (objet social/RC Pro/CGV, voir "Pages légales" plus bas — toujours ouverts à ce jour) ; le risque business déjà documenté là-bas reste entier, c'est un choix de l'utilisateur en connaissance de cause, pas une résolution du sujet juridique. **Reste à faire, pas encore fait** : une vraie petite transaction test en conditions live pour valider toute la chaîne (Checkout → webhook → `confirm_contribution` → réception par le compte connecté) avant une annonce publique large — voir `checklist-mise-en-production.md` à la racine du repo, qui garde le détail pas-à-pas de cette bascule.
 
@@ -3419,10 +3419,25 @@ Depuis le 19 août 2026 (voir "Environnements dev/prod séparés" ci-dessus) : l
 
 L'utilisateur pilote le produit avec un chef de projet Claude dans une conversation séparée (cadrage, décisions business/design, arbitrages). Ce fichier est le résumé de ce qui a été décidé là-bas. Si une décision fonctionnelle ou business manque ici pour avancer, pose la question à l'utilisateur plutôt que de trancher seul — il pourra la reporter dans l'autre conversation pour que ce fichier soit mis à jour en conséquence.
 
+## Positionnement juridique de Kdovie (2 novembre 2026)
+
+Kdovie est porté par la SASU Prowebia sans modification de l'objet social : Kdovie est un **éditeur
+de service web**, jamais un intermédiaire rémunéré sur des transactions entre tiers.
+
+- Cagnottes : gratuites, `TAUX_KDOVIE = 0` jusqu'à nouvel ordre. Ne pas réactiver de commission en %
+  sans décision explicite de l'utilisateur (nécessiterait une modification des statuts).
+- Paiements : destination charges + `on_behalf_of` → l'organisateur est le marchand officiel
+  (merchant of record) ; Kdovie ne détient jamais les fonds. Ne pas retirer `on_behalf_of`,
+  ne pas passer aux direct charges (non recommandées pour les comptes Express v1).
+- Vocabulaire : ne jamais décrire Kdovie comme « collectant » ou « reversant » l'argent des cagnottes
+  (textes du site, CGU, CGV, aide, ce fichier). Formulation à utiliser : « les paiements sont traités
+  par Stripe, directement au profit de l'organisateur ».
+- Affiliation : présentée comme liens partenaires (revenu publicitaire du site), mention
+  « Lien partenaire : Kdovie peut être rémunéré, sans coût supplémentaire pour vous ».
+
 ## Commission Kdovie suspendue à 0 % (2 novembre 2026)
 
-Décision de l'utilisateur, pour mettre le site en production sans attendre la mise à jour des statuts
-de la société (objet social, voir "Pages légales") : **plus aucune commission Kdovie sur les
+Décision de l'utilisateur, pour rester dans l'objet social actuel de Prowebia (voir "Positionnement juridique de Kdovie") : **plus aucune commission Kdovie sur les
 cotisations, jusqu'à nouvel ordre.** Les frais de traitement Stripe restent répercutés comme avant
 (selon `fee_mode`) — Kdovie ne gagne rien mais ne perd rien non plus.
 

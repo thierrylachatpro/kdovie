@@ -28,7 +28,7 @@ export default function ReservationConfirmeeEmail({
           </Link>
           {isAffiliate && (
             <Text style={{ ...emailStyles.texteDoux, fontSize: 12, margin: "8px 0 0" }}>
-              Lien affilié — Kdovie peut percevoir une commission, sans coût supplémentaire
+              Lien partenaire : Kdovie peut être rémunéré, sans coût supplémentaire
               pour vous.
             </Text>
           )}

@@ -307,7 +307,7 @@ export default function ListePubliqueClient({
                     {estAffilie && (
                       <span className="text-[#A08D7E]">
                         {" "}
-                        · lien affilié — Kdovie peut percevoir une commission, sans coût
+                        · lien partenaire : Kdovie peut être rémunéré, sans coût
                         supplémentaire pour vous
                       </span>
                     )}
@@ -446,7 +446,7 @@ export default function ListePubliqueClient({
                   {shop && (
                     <span className="truncate text-sm text-[#8A7263]">
                       {shop}
-                      {estAffilie && " · lien affilié"}
+                      {estAffilie && " · lien partenaire"}
                     </span>
                   )}
                 </div>
@@ -670,7 +670,7 @@ function ReservationModal({
                   </a>
                   {achatAffilie && (
                     <span className="max-w-55 text-center text-xs text-[#A08D7E]">
-                      Lien affilié — Kdovie peut percevoir une commission, sans coût
+                      Lien partenaire : Kdovie peut être rémunéré, sans coût
                       supplémentaire pour vous
                     </span>
                   )}
