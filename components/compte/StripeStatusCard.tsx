@@ -68,7 +68,7 @@ export default function StripeStatusCard({ status }: { status: OrganizerStripeSt
             {status === "en_attente" &&
               "Votre compte Stripe est créé, il ne reste qu'à confirmer votre identité — une formalité de sécurité de quelques minutes. En attendant, vos invités peuvent déjà cotiser normalement."}
             {status === "actif" &&
-              "Tout est en ordre : vous pouvez vous reverser l'argent de vos cagnottes quand vous le souhaitez, directement et en toute sécurité sur votre compte en banque, tant que votre compte Stripe reste correctement configuré (identité vérifiée, coordonnées bancaires à jour)."}
+              "Tout est en ordre : vous pouvez virer l'argent de vos cagnottes quand vous le souhaitez, directement et en toute sécurité sur votre compte en banque, tant que votre compte Stripe reste correctement configuré (identité vérifiée, coordonnées bancaires à jour)."}
           </p>
         </div>
 

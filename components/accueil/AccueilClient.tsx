@@ -93,7 +93,7 @@ const OCCASIONS: Occasion[] = [
   {
     label: "Pot de départ",
     kicker: "Pot de départ",
-    title: "Une collecte sans le tableur",
+    title: "Une cagnotte sans le tableur",
     body: "Le bureau cotise en ligne à son rythme, et l'organisateur ne court plus après les billets.",
     listName: "Départ de Nadia",
     ideas: [
@@ -165,7 +165,7 @@ const FAQS = [
   {
     question: "Comment fonctionne l'argent d'une cagnotte ?",
     answer:
-      "Chaque participation part directement vers vous via Stripe, notre partenaire de paiement, sans attendre la fin de la cagnotte. Si elle n'atteint pas son objectif, vous recevez quand même ce qui a été collecté — il n'y a pas de remboursement automatique.",
+      "Chaque participation part directement vers vous via Stripe, notre partenaire de paiement, sans attendre la fin de la cagnotte. Si elle n'atteint pas son objectif, vous gardez quand même les participations reçues — il n'y a pas de remboursement automatique.",
   },
   {
     question: "Est-ce que Kdovie est gratuit ?",
@@ -532,7 +532,7 @@ export default function AccueilClient({
             </div>
             <div className="mb-5.5 flex justify-between text-[15px] font-semibold text-[#5C4436]">
               <span>
-                {formatEuros(pot)} collectés
+                {formatEuros(pot)} réunis
               </span>
               <span className="text-[#8A7263]">{backers} participants</span>
             </div>

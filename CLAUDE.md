@@ -3434,6 +3434,11 @@ de service web**, jamais un intermédiaire rémunéré sur des transactions entr
   par Stripe, directement au profit de l'organisateur ».
 - Affiliation : présentée comme liens partenaires (revenu publicitaire du site), mention
   « Lien partenaire : Kdovie peut être rémunéré, sans coût supplémentaire pour vous ».
+- **Appliqué le 2 novembre 2026** : `/aide`, `/cgv` (§2, titre §3 « Prix et frais », §5), FAQ et
+  démo de l'accueil reformulés selon ce vocabulaire. Le bouton « Me reverser cette cagnotte »
+  devient **« Virer sur mon compte bancaire »** (`GiftItemCard`, `ReversementModal`, email de
+  rappel, aide) ; « déjà reversés » → « déjà virés ». Seuls les noms internes (fichiers, fonctions
+  `reverserCagnotteArticle`, table `gift_item_payouts`) gardent l'ancien terme.
 
 ## Commission Kdovie suspendue à 0 % (2 novembre 2026)
 

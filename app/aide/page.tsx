@@ -113,10 +113,10 @@ export default async function AidePage() {
       <section className="flex flex-col gap-5">
         <h2 className="font-heading text-2xl font-bold text-corail">Cagnottes et paiement</h2>
         <Question question="Comment fonctionne l'argent d'une cagnotte ?">
-          Chaque participation est encaissée pour vous via Stripe, notre partenaire de paiement,
-          sans attendre la fin de la cagnotte. Si elle n&apos;atteint pas son objectif, vous
-          récupérez quand même ce qui a été collecté — il n&apos;y a pas de remboursement
-          automatique.
+          Chaque participation est traitée par Stripe, notre partenaire de paiement, directement
+          à votre profit, sans attendre la fin de la cagnotte. Si elle n&apos;atteint pas son
+          objectif, vous gardez quand même les participations reçues — il n&apos;y a pas de
+          remboursement automatique.
         </Question>
         <Question question="Comment recevoir l'argent d'une cagnotte ?">
           Depuis « Mon compte », connectez votre compte Stripe : quelques informations à renseigner
@@ -136,7 +136,7 @@ export default async function AidePage() {
           <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5">
             <li>
               Sur la page de gestion de votre liste, chaque cadeau ayant reçu au moins une
-              cotisation affiche un bouton <strong>« Me reverser cette cagnotte »</strong>.
+              cotisation affiche un bouton <strong>« Virer sur mon compte bancaire »</strong>.
             </li>
             <li>
               Une fenêtre vous confirme le montant qui sera viré. Après validation, il arrive sur
@@ -144,11 +144,11 @@ export default async function AidePage() {
             </li>
             <li>
               Si une partie des cotisations est trop récente, seul le montant déjà disponible est
-              proposé — le reste pourra être reversé quelques jours plus tard. Vous pouvez donc
-              reverser une même cagnotte en plusieurs fois.
+              proposé — le reste pourra être viré sur votre compte bancaire quelques jours plus tard. Vous
+              pouvez donc virer une même cagnotte en plusieurs fois.
             </li>
             <li>
-              Vous pouvez attendre la fin de la cagnotte ou vous reverser au fil de l&apos;eau,
+              Vous pouvez attendre la fin de la cagnotte ou virer l&apos;argent au fil de l&apos;eau,
               comme vous préférez. Pensez simplement à ne pas laisser l&apos;argent dormir trop
               longtemps : passé quelques mois sans aucun versement, notre partenaire Stripe peut en
               restreindre l&apos;accès (nous vous envoyons un rappel par e-mail bien avant).

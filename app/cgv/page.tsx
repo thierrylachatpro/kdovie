@@ -53,15 +53,15 @@ export default async function CgvPage() {
           Kdovie met à disposition un outil permettant à un organisateur de constituer une cagnotte
           en vue de l&apos;achat d&apos;un cadeau, et à ses invités d&apos;y contribuer. La
           cotisation est un versement au bénéfice de l&apos;organisateur de la liste&nbsp;: les
-          fonds sont transférés directement à ce dernier via notre prestataire de paiement, sans
-          jamais être encaissés sur un compte intermédiaire de Kdovie. Kdovie n&apos;est pas le
+          paiements sont traités par Stripe, directement au profit de l&apos;organisateur, qui en
+          est le bénéficiaire. Kdovie ne détient à aucun moment les fonds. Kdovie n&apos;est pas le
           vendeur du cadeau et n&apos;est pas partie à l&apos;éventuel achat effectué ensuite par
           l&apos;organisateur auprès d&apos;un marchand tiers.
         </p>
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">3. Prix, frais et commission</h2>
+        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">3. Prix et frais</h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           L&apos;invité choisit librement le montant de sa cotisation (minimum 1 €). À ce montant
           s&apos;ajoutent les frais de traitement bancaire de notre prestataire de paiement. Kdovie
@@ -101,9 +101,9 @@ export default async function CgvPage() {
         </h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           La cotisation constitue une prestation dont l&apos;exécution est immédiate&nbsp;: dès la
-          confirmation de votre paiement, les fonds correspondants sont transférés à
-          l&apos;organisateur de la liste (le transfert effectif peut être temporairement différé
-          si la vérification d&apos;identité de l&apos;organisateur par Stripe n&apos;est pas
+          confirmation de votre paiement, celui-ci est traité par Stripe directement au profit de
+          l&apos;organisateur de la liste (sa mise à disposition sur le compte bancaire de
+          l&apos;organisateur peut être temporairement différée si la vérification d&apos;identité de l&apos;organisateur par Stripe n&apos;est pas
           achevée, mais la cotisation, elle, est acquise). Au moment de valider votre cotisation,
           vous demandez expressément que cette exécution commence immédiatement, sans attendre
           l&apos;expiration du délai de rétractation.

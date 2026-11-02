@@ -15,15 +15,15 @@ export default function RappelReversementEmail({
 }) {
   return (
     <EmailLayout preview="De l'argent de vos cagnottes vous attend sur Kdovie">
-      <Text style={emailStyles.titre}>Pensez à vous reverser vos cagnottes</Text>
+      <Text style={emailStyles.titre}>Pensez à virer l&apos;argent de vos cagnottes</Text>
       <Text style={emailStyles.texte}>
         Vous avez <strong>{formatPriceCents(soldeCents)}</strong> de cotisations qui vous
         attendent et qui n&apos;ont pas encore été virées sur votre compte bancaire.
       </Text>
       <Text style={emailStyles.texte}>
         Sur Kdovie, c&apos;est vous qui décidez quand récupérer l&apos;argent d&apos;une cagnotte :
-        rendez-vous sur la page de gestion de votre liste et cliquez sur «&nbsp;Me reverser cette
-        cagnotte&nbsp;» sur chaque cadeau concerné. Le virement arrive sur votre compte sous
+        rendez-vous sur la page de gestion de votre liste et cliquez sur «&nbsp;Virer sur mon compte
+        bancaire&nbsp;» sur chaque cadeau concerné. Le virement arrive sur votre compte sous
         environ 2&nbsp;jours ouvrés.
       </Text>
       <Link href={dashboardUrl} style={emailStyles.bouton}>

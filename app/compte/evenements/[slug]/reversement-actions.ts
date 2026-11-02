@@ -54,7 +54,7 @@ export async function reverserCagnotteArticle(
     return { error: "Cadeau introuvable." };
   }
   if (item.status !== "cagnotte") {
-    return { error: "Aucune cagnotte à reverser sur ce cadeau." };
+    return { error: "Aucun montant à virer sur ce cadeau." };
   }
 
   const { data: stripeAccount } = await admin
@@ -80,7 +80,7 @@ export async function reverserCagnotteArticle(
   const montantRestantCents = item.funded_amount_cents - dejaReverseCents;
 
   if (montantRestantCents <= 0) {
-    return { error: "Cette cagnotte a déjà été intégralement reversée." };
+    return { error: "Cette cagnotte a déjà été intégralement virée." };
   }
 
   // Solde réellement virable maintenant (available, pas pending).

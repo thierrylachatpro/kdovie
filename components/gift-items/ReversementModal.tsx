@@ -55,7 +55,7 @@ export default function ReversementModal({
         ) : (
           <>
             <h2 className="font-heading mb-1.5 text-2xl font-bold text-[#4A3529]">
-              Me reverser cette cagnotte
+              Virer sur mon compte bancaire
             </h2>
             <p className="mb-5 text-base text-[#7A6354]">{titre}</p>
 
@@ -68,7 +68,7 @@ export default function ReversementModal({
                     {" "}
                     Le reste ({formatPriceCents(resteIndisponibleCents)}) n&apos;est pas encore
                     disponible : Stripe finalise les paiements les plus récents. Vous pourrez le
-                    reverser dans quelques jours.
+                    virer dans quelques jours.
                   </>
                 )}
               </p>

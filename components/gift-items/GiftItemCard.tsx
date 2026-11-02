@@ -248,7 +248,7 @@ export default function GiftItemCard({
                   </div>
                   {reversedCents > 0 && (
                     <div className="mt-1 text-sm font-semibold text-[#2F4A2C]">
-                      {formatPriceCents(reversedCents)} déjà reversés sur{" "}
+                      {formatPriceCents(reversedCents)} déjà virés sur{" "}
                       {formatPriceCents(item.funded_amount_cents)} cotisés
                     </div>
                   )}
@@ -375,7 +375,7 @@ export default function GiftItemCard({
                   onClick={ouvrirReversement}
                   className="font-heading rounded-2xl bg-sauge px-5 py-3 text-[15px] font-bold text-[#F7FBF6] hover:bg-[#79997A]"
                 >
-                  Me reverser cette cagnotte
+                  Virer sur mon compte bancaire
                 </button>
               )}
             </>

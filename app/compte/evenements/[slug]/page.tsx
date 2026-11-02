@@ -101,7 +101,7 @@ export default async function EvenementPage({
 
   // Solde Stripe de l'organisateur — une seule lecture (le solde est
   // fongible au niveau du compte, pas par cagnotte), utilisée par le bouton
-  // « Me reverser cette cagnotte » sur chaque article. Voir CLAUDE.md >
+  // « Virer sur mon compte bancaire » sur chaque article. Voir CLAUDE.md >
   // "Reversement manuel de la cagnotte par article".
   let stripeActif = false;
   let soldeDisponibleCents = 0;
