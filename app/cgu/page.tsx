@@ -28,7 +28,7 @@ export default async function CguPage() {
 
   return (
     <PageLegale title="Conditions générales d'utilisation" estConnecte={Boolean(user)} pseudo={pseudo}>
-      <p className="text-[15px] text-[#8A7263] italic">Dernière mise à jour : 18 août 2026</p>
+      <p className="text-[15px] text-[#8A7263] italic">Dernière mise à jour : 2 novembre 2026</p>
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">1. Objet</h2>
@@ -85,7 +85,43 @@ export default async function CguPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">
-          5. Réservation et cotisation par un invité
+          5. Activation de la cagnotte
+        </h2>
+        <p className="text-[16px] leading-relaxed text-[#5C4436]">
+          Pour recevoir des participations, l&apos;organisateur active un compte de paiement
+          auprès de Stripe, partenaire de paiement de Kdovie. En activant ce compte, il accepte
+          le{" "}
+          <a
+            href="https://stripe.com/fr/legal/connect-account"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-corail underline"
+          >
+            Contrat de compte connecté Stripe
+          </a>
+          , qui inclut les Conditions d&apos;utilisation des services Stripe. Les paiements sont
+          traités par Stripe directement au profit de l&apos;organisateur, qui en est le
+          bénéficiaire. Kdovie ne détient à aucun moment les fonds.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">
+          6. Remboursements et contestations de paiement
+        </h2>
+        <p className="text-[16px] leading-relaxed text-[#5C4436]">
+          L&apos;organisateur est le bénéficiaire des participations reçues sur sa cagnotte. Il
+          est seul responsable des remboursements qu&apos;il accorde et des contestations de
+          paiement (rétrofacturations) formées par les participants. Si un remboursement ou une
+          contestation rend le solde de son compte Stripe négatif et que Prowebia, éditeur de
+          Kdovie, est amené à couvrir ce montant auprès de Stripe, l&apos;organisateur
+          s&apos;engage à rembourser à Prowebia la somme correspondante, sur simple demande.
+        </p>
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">
+          7. Réservation et cotisation par un invité
         </h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           Un invité peut réserver un article directement ou contribuer financièrement à son
@@ -97,7 +133,7 @@ export default async function CguPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">
-          6. Liens vers des sites marchands tiers
+          8. Liens vers des sites marchands tiers
         </h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           Les articles ajoutés à une liste renvoient vers des sites marchands tiers (Amazon, et
@@ -109,7 +145,7 @@ export default async function CguPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">7. Usage interdit</h2>
+        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">9. Usage interdit</h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           L&apos;utilisateur s&apos;engage à ne pas utiliser le service à des fins frauduleuses,
           à ne pas publier de contenu illicite, et à ne pas tenter de contourner les mécanismes
@@ -120,7 +156,7 @@ export default async function CguPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">
-          8. Disponibilité du service
+          10. Disponibilité du service
         </h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           Kdovie met en œuvre les moyens raisonnables pour assurer la disponibilité du service,
@@ -130,7 +166,7 @@ export default async function CguPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">9. Responsabilité</h2>
+        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">11. Responsabilité</h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           Kdovie ne saurait être tenu responsable des dommages indirects résultant de
           l&apos;utilisation du service, ni des conséquences liées à l&apos;indisponibilité
@@ -140,7 +176,7 @@ export default async function CguPage() {
       </section>
 
       <section className="flex flex-col gap-3">
-        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">10. Droit applicable</h2>
+        <h2 className="font-heading text-2xl font-bold text-[#4A3529]">12. Droit applicable</h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           Les présentes CGU sont soumises au droit français. Tout litige relève, à défaut de
           résolution amiable, de la compétence des tribunaux français.
@@ -149,7 +185,7 @@ export default async function CguPage() {
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">
-          11. Modification des CGU
+          13. Modification des CGU
         </h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           Kdovie peut modifier les présentes CGU à tout moment ; les utilisateurs sont invités à
