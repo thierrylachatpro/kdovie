@@ -164,9 +164,9 @@ export default async function AidePage() {
           petit bonus en plus du cadeau.
         </Question>
         <Question question="Est-ce que Kdovie est gratuit ?">
-          Créer un compte et des listes est gratuit et sans limite. Seules les cagnottes ont de
-          petits frais (traitement bancaire et une commission Kdovie), toujours affichés clairement
-          avant le paiement.
+          Créer un compte et des listes est gratuit et sans limite. Kdovie ne prend aucune
+          commission sur les cagnottes : seuls les frais de traitement bancaire s&apos;appliquent,
+          toujours affichés clairement avant le paiement.
         </Question>
       </section>
     </PageLegale>

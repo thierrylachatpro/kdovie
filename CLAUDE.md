@@ -2002,6 +2002,12 @@ le chargement de GTM. **Pas encore implémenté** — à faire dans Claude Code.
   `localStorage` (premier visiteur) → reste `denied`, comportement inchangé ; (3) `"refuse"` déjà
   enregistré → reste `denied`. Les trois scénarios passent. `tsc`/`lint`/`build` propres.
 
+**Confirmé en production par l'utilisateur le 18 septembre 2026**, via l'Aperçu GTM directement sur
+`kdovie.com` : sur un rechargement avec un consentement déjà stocké, l'événement "Initialisation"
+affiche `analytics_storage` déjà `Accordé` en **"Par défaut sur la page"** (donc avant le chargement
+de `gtm.js`) — capture d'écran à l'appui. La balise GA4 se déclenche désormais normalement, données
+visibles en temps réel dans GA4. Bug définitivement clos.
+
 ## Politique de confidentialité RGPD (25 août 2026)
 
 Chantier identifié comme le plus urgent des points juridiques en suspens (voir la checklist de mise
@@ -3412,3 +3418,27 @@ Depuis le 19 août 2026 (voir "Environnements dev/prod séparés" ci-dessus) : l
 ## Mode de collaboration
 
 L'utilisateur pilote le produit avec un chef de projet Claude dans une conversation séparée (cadrage, décisions business/design, arbitrages). Ce fichier est le résumé de ce qui a été décidé là-bas. Si une décision fonctionnelle ou business manque ici pour avancer, pose la question à l'utilisateur plutôt que de trancher seul — il pourra la reporter dans l'autre conversation pour que ce fichier soit mis à jour en conséquence.
+
+## Commission Kdovie suspendue à 0 % (2 novembre 2026)
+
+Décision de l'utilisateur, pour mettre le site en production sans attendre la mise à jour des statuts
+de la société (objet social, voir "Pages légales") : **plus aucune commission Kdovie sur les
+cotisations, jusqu'à nouvel ordre.** Les frais de traitement Stripe restent répercutés comme avant
+(selon `fee_mode`) — Kdovie ne gagne rien mais ne perd rien non plus.
+
+- `lib/fee-calculation.ts` : `TAUX_KDOVIE = 0` (au lieu de `0.01`). Toute la chaîne en découle
+  sans autre changement : formule `frais_en_sus`, `application_fee_amount` envoyé à Stripe
+  (= frais Stripe seuls, toujours nécessaire puisque la plateforme paie ces frais sur une destination
+  charge, voir "Bug frais Stripe absorbés par Kdovie"), détail affiché à l'invité. Vérifié : 20 € net
+  → 20,56 € prélevés, 20,00 € à l'organisateur, 0,56 € d'`application_fee_amount`, 0 € de commission.
+- `ContributionModal` : la ligne "Frais de traitement Kdovie" n'est affichée que si la commission
+  est > 0 (masquée tant qu'elle vaut 0, réapparaît automatiquement à la réactivation).
+- Textes mis à jour (pas de mention d'une commission qui n'est pas prélevée) : `/cgv` section 3
+  (date de mise à jour au 2 novembre 2026), `/aide` et FAQ de l'accueil ("Est-ce que Kdovie est
+  gratuit ?").
+- **Limite connue** : `/admin` et `/admin/cotisations` recalculent la commission à partir de
+  `TAUX_KDOVIE` (aucune valeur stockée par cotisation) — les cotisations passées, réellement
+  prélevées à 1 %, y apparaissent désormais à 0 €. Les vrais montants restent consultables dans le
+  dashboard Stripe (frais perçus).
+- **Pour réactiver** : `TAUX_KDOVIE = 0.01`, et rétablir les mentions de commission dans `/cgv`,
+  `/aide` et `AccueilClient` (voir le commit de cette section pour le texte d'origine).

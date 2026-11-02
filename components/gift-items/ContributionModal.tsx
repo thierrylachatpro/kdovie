@@ -199,12 +199,14 @@ export default function ContributionModal({
                               {formatPriceCents(previewFraisStripeCents)}
                             </td>
                           </tr>
-                          <tr>
-                            <td className="py-1.5">+ Frais de traitement Kdovie</td>
-                            <td className="py-1.5 text-right">
-                              {formatPriceCents(previewCommissionKdovieCents)}
-                            </td>
-                          </tr>
+                          {previewCommissionKdovieCents > 0 && (
+                            <tr>
+                              <td className="py-1.5">+ Frais de traitement Kdovie</td>
+                              <td className="py-1.5 text-right">
+                                {formatPriceCents(previewCommissionKdovieCents)}
+                              </td>
+                            </tr>
+                          )}
                           <tr>
                             <td className="border-t border-[#F2DFC9] py-1.5 font-semibold">
                               = Total prélevé sur votre carte
@@ -230,12 +232,14 @@ export default function ContributionModal({
                               {formatPriceCents(previewFraisStripeCents)}
                             </td>
                           </tr>
-                          <tr>
-                            <td className="py-1.5">− Frais de traitement Kdovie</td>
-                            <td className="py-1.5 text-right">
-                              {formatPriceCents(previewCommissionKdovieCents)}
-                            </td>
-                          </tr>
+                          {previewCommissionKdovieCents > 0 && (
+                            <tr>
+                              <td className="py-1.5">− Frais de traitement Kdovie</td>
+                              <td className="py-1.5 text-right">
+                                {formatPriceCents(previewCommissionKdovieCents)}
+                              </td>
+                            </tr>
+                          )}
                           <tr>
                             <td className="border-t border-[#F2DFC9] py-1.5 font-semibold">
                               = Reçu par l&apos;organisateur

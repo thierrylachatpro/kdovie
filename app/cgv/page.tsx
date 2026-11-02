@@ -29,7 +29,7 @@ export default async function CgvPage() {
 
   return (
     <PageLegale title="Conditions générales de vente" estConnecte={Boolean(user)} pseudo={pseudo}>
-      <p className="text-[15px] text-[#8A7263] italic">Dernière mise à jour : 6 septembre 2026</p>
+      <p className="text-[15px] text-[#8A7263] italic">Dernière mise à jour : 2 novembre 2026</p>
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">1. Objet et champ d&apos;application</h2>
@@ -64,8 +64,8 @@ export default async function CgvPage() {
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">3. Prix, frais et commission</h2>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
           L&apos;invité choisit librement le montant de sa cotisation (minimum 1 €). À ce montant
-          s&apos;ajoutent les frais de traitement bancaire de notre prestataire de paiement et une
-          commission de Kdovie de 1 %. Selon le réglage choisi par l&apos;organisateur pour sa
+          s&apos;ajoutent les frais de traitement bancaire de notre prestataire de paiement. Kdovie
+          ne prélève actuellement aucune commission sur les cotisations. Selon le réglage choisi par l&apos;organisateur pour sa
           liste&nbsp;:
         </p>
         <ul className="flex list-disc flex-col gap-2 pl-6 text-[16px] leading-relaxed text-[#5C4436]">
@@ -75,11 +75,11 @@ export default async function CgvPage() {
           </li>
           <li>
             soit ils sont déduits de votre cotisation (l&apos;organisateur reçoit la somme
-            choisie diminuée des frais et de la commission).
+            choisie diminuée de ces frais).
           </li>
         </ul>
         <p className="text-[16px] leading-relaxed text-[#5C4436]">
-          Le détail complet (montant du cadeau, frais bancaires, commission Kdovie, total prélevé
+          Le détail complet (montant du cadeau, frais bancaires, total prélevé
           sur votre carte) vous est présenté à l&apos;écran avant tout paiement. Aucun frais
           caché n&apos;est appliqué.
         </p>

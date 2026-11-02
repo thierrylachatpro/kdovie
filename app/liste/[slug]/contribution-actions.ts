@@ -90,7 +90,7 @@ export async function createContribution(
   // ici), Stripe prélève TOUJOURS ses propres frais de traitement sur le
   // solde de la plateforme, quel que soit on_behalf_of — voir CLAUDE.md >
   // "Bug frais Stripe absorbés par Kdovie au lieu de l'organisateur". En
-  // envoyant à Stripe uniquement la commission Kdovie (1 %), la plateforme
+  // envoyant à Stripe uniquement la commission Kdovie, la plateforme
   // n'avait donc pas de quoi couvrir ces frais et perdait de l'argent à
   // chaque cotisation. application_fee_amount doit couvrir commission +
   // frais Stripe combinés, pour que le compte connecté reçoive exactement
