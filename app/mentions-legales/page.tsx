@@ -102,10 +102,25 @@ export default async function MentionsLegalesPage() {
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">
           Médiation de la consommation
         </h2>
-        <p className="text-[15px] leading-relaxed text-[#8A7263] italic">
-          Les coordonnées d&apos;un médiateur de la consommation seront ajoutées ici dès la
-          souscription à ce service, obligatoire pour toute vente à distance à des consommateurs
-          en France.
+        <p className="text-[16px] leading-relaxed text-[#5C4436]">
+          Médiateur de la consommation&nbsp;: <strong>Société de la Médiation Professionnelle</strong>{" "}
+          —{" "}
+          <a
+            href="https://www.mediateur-consommation-smp.fr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline"
+          >
+            www.mediateur-consommation-smp.fr
+          </a>
+          . Adresse pour saisir le médiateur&nbsp;: Alteritae, 5 rue Salvaing, 12000 Rodez. Le
+          consommateur doit d&apos;abord adresser une réclamation écrite à Kdovie
+          (contact@kdovie.com), puis dispose d&apos;un an à compter de celle-ci pour saisir le
+          médiateur. Voir aussi l&apos;article 8 des{" "}
+          <Link href="/cgv" className="underline">
+            conditions générales de vente
+          </Link>
+          .
         </p>
       </section>
     </PageLegale>

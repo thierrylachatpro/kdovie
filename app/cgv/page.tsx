@@ -29,7 +29,7 @@ export default async function CgvPage() {
 
   return (
     <PageLegale title="Conditions générales de vente" estConnecte={Boolean(user)} pseudo={pseudo}>
-      <p className="text-[15px] text-[#8A7263] italic">Dernière mise à jour : 2 novembre 2026</p>
+      <p className="text-[15px] text-[#8A7263] italic">Dernière mise à jour : 3 novembre 2026</p>
 
       <section className="flex flex-col gap-3">
         <h2 className="font-heading text-2xl font-bold text-[#4A3529]">1. Objet et champ d&apos;application</h2>
@@ -173,10 +173,30 @@ export default async function CgvPage() {
           </a>
           . Nous nous efforçons d&apos;y répondre dans les meilleurs délais.
         </p>
-        <p className="text-[15px] leading-relaxed text-[#8A7263] italic">
-          Kdovie procède actuellement à la désignation d&apos;un médiateur de la consommation
-          conformément à l&apos;article L.616-1 du Code de la consommation ; ses coordonnées
-          seront ajoutées ici dès finalisation de cette démarche.
+        <p className="text-[16px] leading-relaxed text-[#5C4436]">
+          Conformément aux articles L.611-1 et suivants du Code de la consommation, en cas de
+          litige non résolu, vous pouvez recourir gratuitement au médiateur de la consommation
+          dont relève Kdovie&nbsp;:
+        </p>
+        <p className="text-[16px] leading-relaxed text-[#5C4436]">
+          <strong>Société de la Médiation Professionnelle</strong>
+          <br />
+          Site&nbsp;:{" "}
+          <a
+            href="https://www.mediateur-consommation-smp.fr"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-corail underline"
+          >
+            www.mediateur-consommation-smp.fr
+          </a>
+          <br />
+          Adresse pour saisir le médiateur&nbsp;: Alteritae, 5 rue Salvaing, 12000 Rodez
+        </p>
+        <p className="text-[16px] leading-relaxed text-[#5C4436]">
+          Avant de saisir le médiateur, vous devez d&apos;abord avoir adressé une réclamation
+          écrite à Kdovie (par e-mail à l&apos;adresse ci-dessus). Vous disposez ensuite d&apos;un
+          délai d&apos;un an à compter de cette réclamation pour saisir le médiateur.
         </p>
       </section>
 
