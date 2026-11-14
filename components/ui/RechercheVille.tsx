@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { nomCommuneSansArrondissement } from "@/lib/commune";
 
 // Code postal + ville avec suggestion automatique, réutilisé à la fois sur
 // /compte/profil (renseigner sa ville) et /recherche (chercher une ville) —
@@ -75,7 +76,10 @@ export default function RechercheVille({
         };
         const communes = (data.features ?? [])
           .filter((f) => f.properties?.postcode === postalCode && f.properties?.city)
-          .map((f) => ({ nom: f.properties!.city!, codePostal: postalCode }));
+          .map((f) => ({
+            nom: nomCommuneSansArrondissement(f.properties!.city!),
+            codePostal: postalCode,
+          }));
         const uniques = Array.from(new Map(communes.map((c) => [c.nom, c])).values());
         setSuggestions(uniques);
         // Une seule commune trouvée pour ce code postal : la retenir

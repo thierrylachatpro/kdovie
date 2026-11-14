@@ -1663,6 +1663,16 @@ rayon de distance, tri des résultats par pertinence au-delà d'une correspondan
   - État de test restauré à l'identique après chaque vérification (comptes de test supprimés,
     confirmé par une recherche vide en suivi).
 
+**Recherche par nom de ville (14 novembre 2026)** : sur `/recherche`, le champ « Ville » se remplit
+désormais en tapant le **nom** de la ville (les visiteurs ne connaissent pas le code postal de leurs
+proches) — `components/ui/RechercheVilleParNom.tsx`, suggestions API Adresse (`type=municipality`,
+`autocomplete=1`) avec le département en repère, navigation clavier, et calage automatique sur la
+commune correspondante en quittant le champ (« lyon » → « Lyon ») puisque `search_organizers`
+compare la ville à l'identique. `/compte/profil` garde la saisie par code postal (l'organisateur
+connaît le sien). Arrondissements ramenés à la ville (`lib/commune.ts`, « Lyon 3e Arrondissement »
+→ « Lyon ») des deux côtés pour qu'un organisateur d'arrondissement soit trouvé en tapant « Lyon ».
+Aucune migration.
+
 ## Fiabilisation du scraping multi-marchands (25 août 2026)
 
 Retour d'usage de l'utilisateur : la récupération automatique des infos d'article (tâche #16, voir

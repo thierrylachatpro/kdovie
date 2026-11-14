@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { eventTypeIcon, eventTypeLabel } from "@/lib/event-types";
 import { pageMetadata } from "@/lib/seo";
 import PageLegale from "@/components/layout/PageLegale";
-import RechercheVille from "@/components/ui/RechercheVille";
+import RechercheVilleParNom from "@/components/ui/RechercheVilleParNom";
 
 export async function generateMetadata({
   searchParams,
@@ -33,11 +33,9 @@ export default async function RecherchePage({ searchParams }: PageProps<"/recher
   const params = await searchParams;
   const qParam = params.q;
   const cityParam = params.city;
-  const postalCodeParam = params.postal_code;
 
   const q = typeof qParam === "string" ? qParam.trim() : "";
   const city = typeof cityParam === "string" ? cityParam.trim() : "";
-  const postalCode = typeof postalCodeParam === "string" ? postalCodeParam.trim() : "";
 
   const supabase = await createClient();
   const {
@@ -80,7 +78,7 @@ export default async function RecherchePage({ searchParams }: PageProps<"/recher
           />
         </label>
 
-        <RechercheVille initialPostalCode={postalCode} initialCity={city} required />
+        <RechercheVilleParNom initialCity={city} required />
 
         <button
           type="submit"
