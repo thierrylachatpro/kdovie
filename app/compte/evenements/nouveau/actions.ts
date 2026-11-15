@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { EVENT_TYPES } from "@/lib/event-types";
 import { generateEventSlug } from "@/lib/slug";
+import { aliasVariants, anneeAlias, suggestAlias } from "@/lib/short-alias";
 
 // Nombre maximal de tentatives en cas de collision sur le slug généré.
 // generateEventSlug ajoute déjà un suffixe aléatoire de 5 caractères — une
@@ -64,5 +65,36 @@ export async function createEvent(formData: FormData) {
     redirect("/compte/evenements/nouveau?erreur=erreur");
   }
 
+  await attribuerAlias(supabase, user.id, slugCree, { type, name, eventDate });
+
   redirect(`/compte/evenements/${slugCree}`);
+}
+
+// Lien court kdovie.com/kdo/{alias} — voir CLAUDE.md > "Liens courts
+// mémorisables". Ne fait JAMAIS échouer la création de la liste : en dernier
+// recours short_alias reste null et le lien affiché retombe sur /liste/[slug].
+async function attribuerAlias(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  slug: string,
+  { type, name, eventDate }: { type: string | null; name: string; eventDate: string | null },
+) {
+  try {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("first_name")
+      .eq("id", userId)
+      .maybeSingle();
+    const base = suggestAlias({ firstName: profile?.first_name, type, name });
+    const candidats = [base, ...aliasVariants(base, anneeAlias(eventDate), MAX_TENTATIVES_SLUG - 1)];
+
+    for (const alias of candidats) {
+      const { error } = await supabase.from("events").update({ short_alias: alias }).eq("slug", slug);
+      if (!error) return;
+      // Alias déjà pris : candidat suivant. Toute autre erreur : on abandonne.
+      if (error.code !== "23505") return;
+    }
+  } catch (error) {
+    console.error("[alias] attribution impossible:", error);
+  }
 }

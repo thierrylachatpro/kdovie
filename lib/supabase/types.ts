@@ -85,6 +85,8 @@ export type Database = {
           id: string
           name: string
           organizer_id: string
+          short_alias: string | null
+          first_opened_at: string | null
           slug: string
           status: string
           type: string | null
@@ -98,6 +100,8 @@ export type Database = {
           id?: string
           name: string
           organizer_id: string
+          short_alias?: string | null
+          first_opened_at?: string | null
           slug: string
           status?: string
           type?: string | null
@@ -111,6 +115,8 @@ export type Database = {
           id?: string
           name?: string
           organizer_id?: string
+          short_alias?: string | null
+          first_opened_at?: string | null
           slug?: string
           status?: string
           type?: string | null
@@ -446,6 +452,12 @@ export type Database = {
           p_slug: string
         }
         Returns: string | null
+      }
+      is_short_alias_available: {
+        Args: {
+          p_alias: string
+        }
+        Returns: boolean
       }
     }
     Enums: {

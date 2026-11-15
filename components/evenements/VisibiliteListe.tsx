@@ -13,6 +13,14 @@ import { updateEventStatus } from "@/app/compte/evenements/[slug]/event-status-a
 import { sendInvitations } from "@/app/compte/evenements/[slug]/invite-actions";
 import type { EventStatus } from "@/lib/event-status";
 import KdovieSpinner from "@/components/ui/KdovieSpinner";
+import { updateShortAlias } from "@/app/compte/evenements/[slug]/alias-actions";
+import { createClient as createBrowserClient } from "@/lib/supabase/client";
+import {
+  aliasVariants,
+  isValidAlias,
+  normalizeAlias,
+  normalizeAliasSaisie,
+} from "@/lib/short-alias";
 
 function estEmailValide(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -25,6 +33,9 @@ export default function VisibiliteListe({
   eventName,
   lienPublic,
   itemCount = 0,
+  shortAlias = null,
+  aliasVerrouille = false,
+  anneeAlias,
 }: {
   eventId: string;
   slug: string;
@@ -32,6 +43,9 @@ export default function VisibiliteListe({
   eventName: string;
   lienPublic: string;
   itemCount?: number;
+  shortAlias?: string | null;
+  aliasVerrouille?: boolean;
+  anneeAlias?: number;
 }) {
   const [value, setValue] = useState(status);
   // Resynchronise l'état local si le serveur renvoie un autre statut après
@@ -67,7 +81,22 @@ export default function VisibiliteListe({
   const rappelRef = useRef<HTMLDivElement | null>(null);
   const cleRappel = `kdovie-rappel-brouillon-${slug}`;
 
+  // Lien court /kdo/{alias} : modifiable tant que la liste n'a jamais été
+  // ouverte (voir CLAUDE.md > "Liens courts mémorisables").
+  const [aliasEdition, setAliasEdition] = useState(false);
+  const [aliasDraft, setAliasDraft] = useState(shortAlias ?? "");
+  const [aliasEtat, setAliasEtat] = useState<
+    "idle" | "verification" | "libre" | "pris" | "invalide" | "actuel"
+  >("idle");
+  const [aliasSuggestions, setAliasSuggestions] = useState<string[]>([]);
+  const [aliasErreur, setAliasErreur] = useState<string | null>(null);
+  const [aliasSaving, startAliasSaving] = useTransition();
+
   const shared = value === "ouverte";
+  // Ouvrir la liste verrouille le lien (trigger en base) : on le considère
+  // verrouillé dès l'ouverture côté interface, sans attendre la revalidation.
+  const aliasModifiable = !aliasVerrouille && !shared;
+  const lienAffiche = lienPublic.replace(/^https?:\/\//, "");
   const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=264x264&margin=8&color=4A3529&bgcolor=FFF8F0&data=${encodeURIComponent(lienPublic)}`;
 
   function changerStatut(next: EventStatus, onSuccess?: () => void) {
@@ -241,6 +270,67 @@ export default function VisibiliteListe({
     );
   }
 
+  // Vérification de disponibilité, ~400 ms après la dernière frappe.
+  useEffect(() => {
+    if (!aliasEdition) return;
+    const alias = normalizeAlias(aliasDraft);
+    const timer = setTimeout(async () => {
+      if (!isValidAlias(alias)) {
+        setAliasEtat("invalide");
+        setAliasSuggestions([]);
+        return;
+      }
+      if (alias === shortAlias) {
+        setAliasEtat("actuel");
+        setAliasSuggestions([]);
+        return;
+      }
+      setAliasEtat("verification");
+      const supabase = createBrowserClient();
+      const estLibre = async (candidat: string) => {
+        const { data, error } = await supabase.rpc("is_short_alias_available", {
+          p_alias: candidat,
+        });
+        return !error && data === true;
+      };
+      if (await estLibre(alias)) {
+        setAliasEtat("libre");
+        setAliasSuggestions([]);
+        return;
+      }
+      setAliasEtat("pris");
+      const libres: string[] = [];
+      for (const candidat of aliasVariants(alias, anneeAlias ?? new Date().getFullYear(), 6)) {
+        if (libres.length >= 3) break;
+        if (await estLibre(candidat)) libres.push(candidat);
+      }
+      setAliasSuggestions(libres);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [aliasDraft, aliasEdition, shortAlias, anneeAlias]);
+
+  function ouvrirEditionAlias() {
+    setAliasDraft(shortAlias ?? "");
+    setAliasErreur(null);
+    setAliasEtat("idle");
+    setAliasSuggestions([]);
+    setAliasEdition(true);
+  }
+
+  function enregistrerAlias() {
+    const alias = normalizeAlias(aliasDraft);
+    if (!isValidAlias(alias) || aliasEtat === "pris") return;
+    setAliasErreur(null);
+    startAliasSaving(async () => {
+      const result = await updateShortAlias(eventId, alias, slug);
+      if (result.error) {
+        setAliasErreur(result.error);
+        return;
+      }
+      setAliasEdition(false);
+    });
+  }
+
   async function handleCopy() {
     if (!shared) return;
     await navigator.clipboard.writeText(lienPublic);
@@ -306,23 +396,124 @@ export default function VisibiliteListe({
             ? "Toute personne à qui vous donnez le lien peut consulter les cadeaux et en réserver."
             : "Personne d'autre que vous n'y a accès, même avec le lien. Ouvrez-la quand vous serez prêt à recevoir des réservations."}
         </p>
-        <div className="flex flex-nowrap items-center gap-2.5">
-          <span
-            className={`min-w-0 truncate text-sm ${shared ? "text-[#8A7263]" : "text-[#A08D7E]"}`}
-          >
-            {lienPublic}
-          </span>
-          <button
-            type="button"
-            onClick={handleCopy}
-            disabled={!shared}
-            className={`flex-none text-sm font-semibold underline ${
-              shared ? "cursor-pointer text-[#C0512A]" : "cursor-default text-[#A08D7E]"
-            }`}
-          >
-            {shared ? (copie ? "Lien copié !" : "Copier le lien") : "Lien inactif"}
-          </button>
-        </div>
+        {aliasEdition ? (
+          <div className="flex max-w-115 flex-col gap-2">
+            <div className="flex items-center overflow-hidden rounded-2xl border-2 border-[#F2DFC9] bg-white focus-within:border-corail">
+              <span className="flex-none pl-3.5 text-sm text-[#8A7263]">kdovie.com/kdo/</span>
+              <input
+                type="text"
+                value={aliasDraft}
+                autoFocus
+                aria-label="Fin du lien court"
+                maxLength={40}
+                onChange={(event) => {
+                  setAliasDraft(normalizeAliasSaisie(event.target.value));
+                  setAliasErreur(null);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    enregistrerAlias();
+                  } else if (event.key === "Escape") {
+                    setAliasEdition(false);
+                  }
+                }}
+                className="min-w-0 flex-1 bg-transparent py-2.5 pr-3.5 text-sm text-[#4A3529] outline-none"
+              />
+            </div>
+            <p aria-live="polite" className="text-sm">
+              {aliasEtat === "verification" && (
+                <span className="text-[#8A7263]">Vérification…</span>
+              )}
+              {aliasEtat === "libre" && <span className="font-semibold text-[#5E7E5B]">Disponible</span>}
+              {aliasEtat === "actuel" && (
+                <span className="text-[#8A7263]">C&apos;est votre lien actuel.</span>
+              )}
+              {aliasEtat === "invalide" && (
+                <span className="text-[#8A7263]">
+                  Entre 3 et 40 caractères : lettres, chiffres et tirets.
+                </span>
+              )}
+              {aliasEtat === "pris" && (
+                <span className="font-semibold text-corail-dark">Déjà utilisé</span>
+              )}
+            </p>
+            {aliasEtat === "pris" && aliasSuggestions.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-sm text-[#8A7263]">Libres :</span>
+                {aliasSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    onClick={() => setAliasDraft(suggestion)}
+                    className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-[#5C4436] hover:bg-[#F7E7D6]"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
+            {aliasErreur && <p className="text-sm text-corail-dark">{aliasErreur}</p>}
+            <div className="flex flex-wrap gap-2.5">
+              <button
+                type="button"
+                onClick={enregistrerAlias}
+                disabled={
+                  aliasSaving || !(aliasEtat === "libre" || aliasEtat === "actuel")
+                }
+                className="font-heading inline-flex items-center gap-2 rounded-2xl bg-corail px-4.5 py-2.5 text-sm font-bold text-creme hover:bg-[#D45F37] disabled:opacity-50"
+              >
+                {aliasSaving && <KdovieSpinner className="h-4 w-4" variant="dark" />}
+                Enregistrer
+              </button>
+              <button
+                type="button"
+                onClick={() => setAliasEdition(false)}
+                disabled={aliasSaving}
+                className="font-heading rounded-2xl bg-white px-4.5 py-2.5 text-sm font-bold text-[#5C4436] hover:bg-[#F7E7D6]"
+              >
+                Annuler
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span
+                className={`min-w-0 truncate text-sm ${shared ? "text-[#8A7263]" : "text-[#A08D7E]"}`}
+              >
+                {lienAffiche}
+              </span>
+              {aliasModifiable && (
+                <button
+                  type="button"
+                  onClick={ouvrirEditionAlias}
+                  aria-label="Modifier le lien court"
+                  className="flex-none cursor-pointer text-sm font-semibold text-[#C0512A] underline"
+                >
+                  Modifier
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleCopy}
+                disabled={!shared}
+                className={`flex-none text-sm font-semibold underline ${
+                  shared ? "cursor-pointer text-[#C0512A]" : "cursor-default text-[#A08D7E]"
+                }`}
+              >
+                {shared ? (copie ? "Lien copié !" : "Copier le lien") : "Lien inactif"}
+              </button>
+            </div>
+            {shortAlias && (
+              <p className="mt-1 text-[13px] text-[#8A7263]">
+                {aliasModifiable
+                  ? "Vous pouvez encore le personnaliser : il deviendra définitif dès que votre liste sera ouverte."
+                  : "Ce lien est définitif depuis l'ouverture de votre liste."}
+              </p>
+            )}
+          </>
+        )}
         {erreur && <p className="mt-2.5 text-sm text-corail-dark">{erreur}</p>}
         {publieConfirmation && shared && (
           <p

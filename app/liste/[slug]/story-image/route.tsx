@@ -12,7 +12,7 @@ export const runtime = "nodejs";
 const WIDTH = 1080;
 const HEIGHT = 1920;
 
-type InfosListe = { name: string; type: string | null };
+type InfosListe = { name: string; type: string | null; shortAlias: string | null };
 
 async function chargerListe(slug: string): Promise<InfosListe | null> {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -23,7 +23,7 @@ async function chargerListe(slug: string): Promise<InfosListe | null> {
   const signal = AbortSignal.timeout(5000);
 
   const evtRes = await fetch(
-    `${url}/rest/v1/events?select=name,type,status,deleted_at&slug=eq.${encodeURIComponent(slug)}`,
+    `${url}/rest/v1/events?select=name,type,status,deleted_at,short_alias&slug=eq.${encodeURIComponent(slug)}`,
     { headers, cache: "no-store", signal },
   );
 
@@ -33,12 +33,13 @@ async function chargerListe(slug: string): Promise<InfosListe | null> {
     type: string | null;
     status: string;
     deleted_at: string | null;
+    short_alias: string | null;
   }[];
   const event = rows[0];
   // Inconnue, supprimée ou encore en brouillon : rien à partager.
   if (!event || event.deleted_at || event.status !== "ouverte") return null;
 
-  return { name: event.name, type: event.type };
+  return { name: event.name, type: event.type, shortAlias: event.short_alias };
 }
 
 export async function GET(
@@ -58,7 +59,9 @@ export async function GET(
   }
 
   const host = new URL(SITE_URL).host;
-  const urlAffichee = `${host}/liste/${slug}`;
+  const urlAffichee = liste.shortAlias
+    ? `${host}/kdo/${liste.shortAlias}`
+    : `${host}/liste/${slug}`;
 
   return new ImageResponse(
     (

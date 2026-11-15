@@ -73,7 +73,7 @@ export default async function ListePubliquePage({
   // > "Section Listes".
   const { data: event } = await supabase
     .from("events")
-    .select("id, type, name, event_date, slug, status, organizer_id, fee_mode, deleted_at")
+    .select("id, type, name, event_date, slug, status, organizer_id, fee_mode, deleted_at, first_opened_at")
     .eq("slug", slug)
     .single();
 
@@ -253,13 +253,27 @@ export default async function ListePubliquePage({
                 <div className="mx-auto mb-5.5 flex h-18 w-18 items-center justify-center rounded-[24px] bg-[#F5E3C9] text-3xl">
                   ⏳
                 </div>
-                <h2 className="font-heading text-[28px] font-bold text-[#4A3529]">
-                  Cette liste n&apos;est pas encore ouverte
-                </h2>
-                <p className="mx-auto mt-3 max-w-[480px] text-[17px] leading-relaxed text-[#7A6354]">
-                  Son organisateur la prépare encore. Revenez avec ce même lien un peu plus tard :
-                  les cadeaux apparaîtront dès qu&apos;elle sera partagée.
-                </p>
+                {event.first_opened_at ? (
+                  <>
+                    <h2 className="font-heading text-[28px] font-bold text-[#4A3529]">
+                      Cette liste est momentanément fermée
+                    </h2>
+                    <p className="mx-auto mt-3 max-w-[480px] text-[17px] leading-relaxed text-[#7A6354]">
+                      Son organisateur l&apos;a refermée pour un petit moment. Gardez bien ce
+                      lien : il fonctionnera de nouveau dès que la liste sera rouverte.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <h2 className="font-heading text-[28px] font-bold text-[#4A3529]">
+                      Cette liste n&apos;est pas encore ouverte
+                    </h2>
+                    <p className="mx-auto mt-3 max-w-[480px] text-[17px] leading-relaxed text-[#7A6354]">
+                      Son organisateur la prépare encore. Revenez avec ce même lien un peu plus
+                      tard : les cadeaux apparaîtront dès qu&apos;elle sera partagée.
+                    </p>
+                  </>
+                )}
               </section>
             )}
 

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { headers } from "next/headers";
+import { SITE_URL } from "@/lib/site-url";
+import { anneeAlias } from "@/lib/short-alias";
 import { createClient } from "@/lib/supabase/server";
 import { stripe } from "@/lib/stripe";
 import { soldeEurCents } from "@/lib/stripe-balance";
@@ -38,7 +39,7 @@ export default async function EvenementPage({
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, type, name, slug, event_date, status")
+    .select("id, type, name, slug, event_date, status, short_alias, first_opened_at")
     .eq("slug", slug)
     .eq("organizer_id", user.id)
     .is("deleted_at", null)
@@ -125,9 +126,12 @@ export default async function EvenementPage({
     }
   }
 
-  const host = (await headers()).get("host");
-  const protocol = host?.startsWith("localhost") ? "http" : "https";
-  const lienPublic = `${protocol}://${host}/liste/${event.slug}`;
+  // Lien partagé (affiché, copié, QR, invitation, sticker story) : toujours
+  // sur kdovie.com, en lien court /kdo/{alias} quand il existe — voir
+  // CLAUDE.md > "Liens courts mémorisables".
+  const lienPublic = event.short_alias
+    ? `${SITE_URL}/kdo/${event.short_alias}`
+    : `${SITE_URL}/liste/${event.slug}`;
 
   const lockedCount = items.filter((i) => i.status !== "disponible").length;
   const lockedLabel =
@@ -191,6 +195,9 @@ export default async function EvenementPage({
           eventName={event.name}
           lienPublic={lienPublic}
           itemCount={items.length}
+          shortAlias={event.short_alias}
+          aliasVerrouille={Boolean(event.first_opened_at)}
+          anneeAlias={anneeAlias(event.event_date)}
         />
 
         {erreur && <p className="mb-4 text-sm text-corail-dark">{erreur}</p>}
