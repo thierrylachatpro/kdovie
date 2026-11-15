@@ -3591,3 +3591,85 @@ Décision utilisateur du 15 novembre 2026, à développer. Constat : beaucoup de
 - Liste brouillon avec articles → la fenêtre s'affiche ; « Plus tard » → ne revient pas au rechargement, revient dans un nouvel onglet/nouvelle session.
 - Liste brouillon vide → aucune fenêtre. Liste ouverte → aucune fenêtre.
 - « Publier ma liste » → statut `ouverte`, badge et carte de visibilité à jour, page publique `/liste/[slug]` affiche bien le contenu.
+
+## Liens courts mémorisables `kdovie.com/kdo/{alias}` (15 novembre 2026)
+
+Décision utilisateur du 15 novembre 2026, à développer. Objectif : un lien de liste court et **mémorisable**, que l'organisateur peut dicter, écrire sur un faire-part ou afficher sur la story — à la place de `kdovie.com/liste/noel-de-francis-et-paule-i7hd3`.
+
+Choix déjà tranchés (ne pas rouvrir) :
+- **Préfixe `/kdo/`** (« kdo » = cadeau, clin d'œil à la marque). `/l/` écarté (trop proche du `i`).
+- **Alias en mots, proposé automatiquement puis modifiable par l'organisateur** (ex. `julie-noel`). Écartés : code aléatoire (`7xk3pq`, pas mémorisable), réutilisation du suffixe du slug (pas mémorisable, caractères ambigus, unicité non garantie), raccourcisseur externe (bit.ly).
+- **Le slug et `/liste/[slug]` ne changent pas** : l'alias est une porte d'entrée en plus, qui redirige vers la page publique existante. Canonical, sitemap, OG, liens internes (admin, recherche, annulation de réservation) restent sur `/liste/[slug]`.
+- **Verrouillage à la première ouverture** : l'alias est modifiable tant que la liste n'a jamais été ouverte aux invités ; dès la première ouverture il est définitif, même si la liste repasse en brouillon. Pas de table d'historique d'alias ni de redirection d'ancien alias.
+- **Un alias n'est jamais réattribué**, même après suppression de la liste — même règle que les slugs retirés (unicité sur tous les événements, `deleted_at` compris).
+- Risque accepté par l'utilisateur : un alias en mots est devinable (contrairement au suffixe aléatoire du slug). Faible pour une liste de cadeaux : adresse jamais affichée, brouillons invisibles, `/liste/[slug]` en `noindex`.
+
+### Base de données — migration `0028_events_short_alias.sql`
+
+(Numéro à ajuster si une migration a été ajoutée entre-temps. À appliquer sur `kdovie-dev` puis sur la prod, comme d'habitude.)
+
+- `events.short_alias text` nullable, **index unique** (sur toute la table, supprimés compris). Contrainte `check (short_alias ~ '^[a-z0-9]+(-[a-z0-9]+)*$' and char_length(short_alias) between 3 and 40)`.
+- `events.first_opened_at timestamptz` nullable.
+- **Trigger `before update of status`** : si `new.status = 'ouverte'` et `old.first_opened_at is null` → `new.first_opened_at = now()`. En trigger plutôt que dans le code, pour couvrir les deux chemins d'ouverture : `updateEventStatus` (`app/compte/evenements/[slug]/event-status-actions.ts`) et la bascule admin (`app/admin/listes/actions.ts`).
+- **Trigger `before update of short_alias`** (garde-fou) : si `old.first_opened_at is not null` et que l'alias change → `raise exception`. Le verrouillage ne repose pas que sur l'interface.
+- Rattrapage : `first_opened_at = created_at` pour les listes actuellement `ouverte` (approximation suffisante). Les listes en brouillon déjà ouvertes puis refermées sont indétectables : elles restent considérées comme jamais ouvertes, alias modifiable.
+- RPC `is_short_alias_available(p_alias text) returns boolean`, `security definer`, `grant execute ... to authenticated` : vérifie sur **toute** la table (supprimés compris, invisibles via RLS pour l'organisateur). Même patron que `get_list_organizer_first_name`.
+- Vérifier que `anon` peut lire `short_alias`, `slug` et `first_opened_at` sur `events` (pour la route `/kdo` et la page publique). Attention au précédent `first_name` (aucun accès anon en colonne) : tester en anonyme, pas seulement connecté.
+- Mettre à jour `lib/supabase/types.ts`.
+
+### Génération de l'alias — `lib/short-alias.ts` (fonctions pures)
+
+- `normalizeAlias(saisie)` : réutilise `slugify` de `lib/slug.ts` (accents, majuscules, espaces et caractères spéciaux → tirets), puis coupe à 40 caractères sans laisser de tiret final. Ex. « Mariage d'Emma & Lucas ! » → `mariage-d-emma-lucas`.
+- `suggestAlias({ firstName, type, name })` :
+  - prénom renseigné + type → `prénom-motdutype`, avec : `naissance` → `naissance`, `anniversaire` → `anniversaire`, `mariage` → `mariage`, `noel` → `noel`, `pot_depart` → `depart`, `cremaillere` → `cremaillere`, `bapteme` → `bapteme`. Ex. `julie-noel`, `marc-depart`, `sophie-cremaillere`.
+  - prénom sans type → `normalizeAlias(name)` ; sans prénom → `normalizeAlias(name)` (ex. `noel-de-francis-et-paule`).
+  - résultat de moins de 3 caractères → repli `ma-liste`.
+- `aliasVariants(base, annee)` : candidats en cas de collision, dans l'ordre `base-{année}` (année de l'événement si renseignée, sinon année courante), `base-2`, `base-3`… Ex. `julie-noel-2026`, `julie-noel-2`.
+
+### Création d'une liste
+
+Dans `app/compte/evenements/nouveau/actions.ts`, après la création réussie (boucle de slug existante inchangée) : calculer `suggestAlias` (prénom lu dans le profil de l'organisateur connecté), puis enregistrer le premier candidat libre parmi `[base, ...aliasVariants]` (en cas d'erreur d'unicité, passer au suivant ; même logique de tentatives bornées que `MAX_TENTATIVES_SLUG`). **Ne jamais faire échouer la création de la liste à cause de l'alias** : en dernier recours, `short_alias` reste `null` et le lien affiché retombe sur `/liste/[slug]`. Rien à ajouter au formulaire de création (simplicité).
+
+Listes existantes : script ponctuel dans `scripts/` (service role, mêmes fonctions de `lib/short-alias.ts`) qui attribue un alias à chaque événement sans alias, supprimés exclus. À lancer sur dev puis prod, après la migration.
+
+### Route `/kdo/[alias]`
+
+`app/kdo/[alias]/page.tsx` (page serveur, pas de rendu) :
+- Alias passé en minuscules, recherche de l'événement par `short_alias` (appels REST sans `cookies()`, comme `opengraph-image`).
+- Trouvé → `permanentRedirect('/liste/{slug}')` (308). Sans risque de cache : la correspondance alias → slug ne change jamais (alias verrouillé une fois partagé, slug immuable). La page publique gère déjà brouillon, supprimée, etc.
+- Introuvable → `notFound()` (réutiliser l'écran « Liste introuvable » existant, `noindex, nofollow`).
+- Vérifier que `proxy.ts` (mode maintenance) laisse passer `/kdo/...` comme `/liste/...`, et que les aperçus WhatsApp/Facebook suivent bien la redirection (titre et image de la liste).
+
+### Où le lien court remplace l'ancien
+
+- `app/compte/evenements/[slug]/page.tsx` : `lienPublic` = `${SITE_URL}/kdo/${short_alias}` si l'alias existe, sinon l'URL `/liste/...` actuelle. Comme `VisibiliteListe` utilise `lienPublic` partout, cela couvre d'un coup : lien affiché, bouton copier, **QR code** (moins dense, plus facile à scanner), lien copié pour le sticker de la story, email d'invitation (`sendInvitations`).
+- `app/liste/[slug]/story-image/route.tsx` : `urlAffichee` = `kdovie.com/kdo/{alias}` si l'alias existe, sinon l'URL actuelle.
+- Ne pas toucher : emails transactionnels (réservation, cotisation, annulation), liens admin et recherche, canonical/OG/sitemap.
+
+### Interface — carte de visibilité `VisibiliteListe.tsx`
+
+Ligne du lien : `kdovie.com/kdo/julie-noel` + **[Modifier]** + **[Copier]**.
+
+- **[Modifier]** n'apparaît que si `first_opened_at` est `null`. Champ en ligne avec préfixe fixe non éditable `kdovie.com/kdo/`, saisie normalisée en direct (`normalizeAlias`), vérification de disponibilité avec un délai d'environ 400 ms (`is_short_alias_available`) :
+  - libre → « Disponible » (sauge) ;
+  - pris → « Déjà utilisé » + 2-3 suggestions cliquables issues de `aliasVariants` (déjà vérifiées libres) ;
+  - format invalide ou moins de 3 caractères → message d'aide.
+  - Boutons « Enregistrer » (avec `KdovieSpinner`) / « Annuler ».
+- Enregistrement : nouvelle server action `updateShortAlias(eventId, alias, slug)` — utilisateur connecté et propriétaire, alias renormalisé côté serveur, refus si `first_opened_at` non nul, erreur d'unicité → « Ce lien vient d'être pris, essaie une autre version », puis `revalidatePath` de la page de gestion.
+- Tant que modifiable, petite mention sous la ligne : « Tu peux encore le personnaliser : il deviendra définitif dès que ta liste sera ouverte. »
+- Une fois verrouillé : plus de bouton Modifier, mention « Ce lien est définitif depuis l'ouverture de ta liste. »
+- Fenêtre de rappel « liste encore en brouillon » : aucun changement nécessaire (le bouton « Publier ma liste » déclenche l'ouverture, le trigger verrouille l'alias).
+
+### Page publique en brouillon
+
+Dans `app/liste/[slug]/page.tsx`, écran brouillon actuel (« Cette liste n'est pas encore ouverte ») : si `first_opened_at` est renseigné, afficher plutôt « Cette liste est momentanément fermée » (avec un court texte : l'organisateur l'a refermée temporairement, le lien restera valable à sa réouverture). Sinon, texte actuel inchangé.
+
+### À vérifier
+
+- `tsc` / `lint` / `build` propres ; migration appliquée sur dev puis prod ; script de rattrapage lancé et vérifié (aucun événement non supprimé sans alias).
+- Création d'une liste : alias proposé correct (prénom + type, sans prénom, sans type, collision → `-2026`).
+- `/kdo/{alias}` → 308 vers `/liste/{slug}`, en navigation anonyme ; majuscules acceptées (`/kdo/Julie-Noel`) ; alias inconnu → « Liste introuvable » ; liste supprimée → « Liste introuvable » ; aperçu WhatsApp correct.
+- Modification : normalisation en direct, disponibilité, suggestions, enregistrement ; impossible après la première ouverture (interface **et** trigger, tester un update direct).
+- Ouvrir → refermer → l'alias reste identique, la page publique affiche « momentanément fermée » ; rouvrir → le même lien refonctionne.
+- Lien copié, QR, email d'invitation et visuel story utilisent bien `kdovie.com/kdo/...`.
+- Bascule admin ouverte/brouillon : `first_opened_at` bien renseigné à la première ouverture.
