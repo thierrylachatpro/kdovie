@@ -282,7 +282,7 @@ export default async function ComptePage() {
                       href={`/compte/evenements/${event.slug}`}
                       className="font-heading rounded-2xl bg-corail px-5 py-3 text-[15px] font-bold text-creme hover:bg-[#D45F37]"
                     >
-                      Ouvrir la liste
+                      Gérer cette liste
                       <StatutLien variant="dark" />
                     </Link>
                   </div>
