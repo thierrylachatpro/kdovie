@@ -1686,6 +1686,15 @@ appels RPC anonymes OK). **Pas appliquée sur dev** : la base de dev est en paus
 sur la prod pour le moment », voir "Environnements dev/prod séparés"). Leçon : toujours vérifier `supabase/.temp/project-ref`
 après un `link`, ne jamais enchaîner `link && push` sans contrôler la sortie du `link`.
 
+**Fenêtre « Vos proches ne peuvent pas vous trouver » (15 novembre 2026)** : sur `/compte`, si
+l'organisateur a au moins une liste ouverte mais `profiles.searchable = false`, une fenêtre
+(`components/compte/RappelRecherchePopup.tsx`, même mécanique que le rappel « brouillon » :
+`role="dialog"`, focus piégé, Échap = « Plus tard », « Plus tard » mémorisé pour la session dans
+`sessionStorage` sous `kdovie-rappel-recherche`) explique que ses listes ne sont retrouvables
+qu'avec le lien. Bouton « Me rendre trouvable » → `/compte/profil#recherche-publique` (ancre posée
+sur `IdentiteCard`), où il renseigne prénom, nom, ville et coche la case. Vouvoiement, comme le
+reste du tableau de bord. Le petit bandeau « Publier mes listes » déjà en place reste affiché.
+
 ## Fiabilisation du scraping multi-marchands (25 août 2026)
 
 Retour d'usage de l'utilisateur : la récupération automatique des infos d'article (tâche #16, voir
