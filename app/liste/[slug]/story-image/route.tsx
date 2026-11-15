@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { storyMessage } from "@/lib/story-message";
+import { storyMessage, storyTheme } from "@/lib/story-message";
 import { SITE_URL } from "@/lib/site-url";
 
 // Visuel « story » (1080×1920) qu'un organisateur partage sur Instagram /
@@ -65,7 +65,23 @@ export async function GET(
 
   // Taille du lien adaptée à sa longueur pour qu'il tienne sur une ligne
   // dans le bandeau (≈ 0,56 em par caractère en police par défaut).
-  const tailleLien = Math.max(24, Math.min(64, Math.floor(800 / (urlAffichee.length * 0.56))));
+  const tailleLien = Math.max(24, Math.min(60, Math.floor(800 / (urlAffichee.length * 0.56))));
+  const theme = storyTheme(liste.type);
+
+  // Confettis aux couleurs de la marque, placés dans les marges pour ne
+  // jamais gêner la lecture.
+  const confettis: { x: number; y: number; t: number; c: string; r: number; rond?: boolean }[] = [
+    { x: 70, y: 250, t: 26, c: "#F5B942", r: 20 },
+    { x: 960, y: 300, t: 34, c: "#E8734A", r: 0, rond: true },
+    { x: 140, y: 560, t: 18, c: "#8BA888", r: 0, rond: true },
+    { x: 905, y: 640, t: 24, c: "#F5B942", r: -25 },
+    { x: 60, y: 980, t: 30, c: "#E8734A", r: 35 },
+    { x: 985, y: 1060, t: 20, c: "#8BA888", r: 15 },
+    { x: 110, y: 1350, t: 22, c: "#F5B942", r: 0, rond: true },
+    { x: 950, y: 1420, t: 28, c: "#E8734A", r: -15 },
+    { x: 190, y: 1700, t: 16, c: "#8BA888", r: 30 },
+    { x: 880, y: 1760, t: 22, c: "#F5B942", r: 0, rond: true },
+  ];
 
   return new ImageResponse(
     (
@@ -73,13 +89,30 @@ export async function GET(
         style={{
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
           width: "100%",
           height: "100%",
-          background: "#FFF8F0",
+          backgroundImage: `linear-gradient(180deg, ${theme.fondHaut} 0%, ${theme.fondHaut} 35%, ${theme.fondBas} 100%)`,
           fontFamily: "sans-serif",
+          position: "relative",
         }}
       >
+        {confettis.map((c, i) => (
+          <div
+            key={i}
+            style={{
+              position: "absolute",
+              left: `${c.x}px`,
+              top: `${c.y}px`,
+              width: `${c.t}px`,
+              height: c.rond ? `${c.t}px` : `${Math.round(c.t * 0.45)}px`,
+              borderRadius: c.rond ? "999px" : "6px",
+              background: c.c,
+              transform: `rotate(${c.r}deg)`,
+              opacity: 0.85,
+            }}
+          />
+        ))}
+
         {/* Bandeau aux couleurs de la marque, comme en haut du site */}
         <div style={{ display: "flex", width: "100%", height: "28px" }}>
           <div style={{ flex: 3, background: "#E8734A" }} />
@@ -92,59 +125,55 @@ export async function GET(
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
+            justifyContent: "space-around",
             width: "100%",
             flex: 1,
-            padding: "220px 90px 250px",
+            padding: "200px 90px 250px",
           }}
         >
-          {/* Logo canonique, en grand */}
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "18px" }}>
-            <svg width="220" height="220" viewBox="0 0 56 56" fill="none">
+          {/* Logo canonique */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "14px" }}>
+            <svg width="190" height="190" viewBox="0 0 56 56" fill="none">
               <rect x="10" y="24" width="36" height="22" rx="2" fill="#E8734A" />
               <rect x="7" y="16" width="42" height="10" rx="2" fill="#F5B942" />
               <rect x="25" y="16" width="6" height="30" fill="#FFF8F0" />
               <path d="M28 16C28 16 20 16 17 12C15 9.5 17 6 20 6C24 6 28 12 28 16Z" fill="#8BA888" />
               <path d="M28 16C28 16 36 16 39 12C41 9.5 39 6 36 6C32 6 28 12 28 16Z" fill="#8BA888" />
             </svg>
-            <div style={{ fontSize: "120px", fontWeight: 700, color: "#E8734A", letterSpacing: "-4px", lineHeight: 1 }}>
+            <div style={{ fontSize: "112px", fontWeight: 700, color: "#E8734A", letterSpacing: "-4px", lineHeight: 1 }}>
               kdovie
             </div>
-            <div style={{ fontSize: "34px", color: "#8A7263" }}>
+            <div style={{ fontSize: "32px", color: "#8A7263" }}>
               Un seul compte, toute une vie de cadeaux
             </div>
           </div>
 
-          {/* Phrase + nom de la liste */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              marginTop: "110px",
-              gap: "36px",
-            }}
-          >
+          {/* Thème + phrase */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "28px" }}>
             <div
               style={{
-                fontSize: "70px",
-                fontWeight: 700,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: "190px",
+                height: "190px",
+                borderRadius: "999px",
+                background: "#FFFFFF",
+                fontSize: "110px",
+                boxShadow: "0 10px 30px rgba(74, 53, 41, 0.10)",
+              }}
+            >
+              {theme.emoji}
+            </div>
+            <div
+              style={{
+                fontSize: "68px",
                 color: "#4A3529",
-                lineHeight: 1.15,
+                lineHeight: 1.18,
                 textAlign: "center",
               }}
             >
               {storyMessage(liste.type)}
-            </div>
-            <div
-              style={{
-                fontSize: "44px",
-                fontWeight: 600,
-                color: "#C0512A",
-                textAlign: "center",
-                lineHeight: 1.2,
-              }}
-            >
-              {liste.name}
             </div>
           </div>
 
@@ -152,29 +181,17 @@ export async function GET(
           <div
             style={{
               display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              marginTop: "auto",
+              justifyContent: "center",
               width: "100%",
-              gap: "22px",
+              padding: "40px 36px",
+              borderRadius: "48px",
+              background: "#E8734A",
+              color: "#FFF8F0",
+              fontSize: `${tailleLien}px`,
+              boxShadow: "0 12px 30px rgba(192, 81, 42, 0.25)",
             }}
           >
-            <div style={{ fontSize: "36px", color: "#8A7263" }}>Ma liste est ici</div>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                width: "100%",
-                padding: "40px 36px",
-                borderRadius: "48px",
-                background: "#E8734A",
-                color: "#FFF8F0",
-                fontSize: `${tailleLien}px`,
-                fontWeight: 700,
-              }}
-            >
-              {urlAffichee}
-            </div>
+            {urlAffichee}
           </div>
         </div>
       </div>
