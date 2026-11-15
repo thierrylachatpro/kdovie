@@ -1681,8 +1681,9 @@ signature, mêmes garde-fous : `searchable = true`, ville exacte, listes ouverte
 **Appliquée en prod le 15 novembre 2026** — par erreur avant le feu vert : la base de dev était en
 pause (projet gratuit mis en veille), le `supabase link` vers dev a échoué silencieusement et le
 `db push` a visé la prod restée liée. Vérifiée en prod (`migration list` : 0027 local = remote ;
-appels RPC anonymes OK). **Pas encore appliquée sur dev** (base en pause, à réactiver depuis le
-dashboard Supabase puis `supabase db push`). Leçon : toujours vérifier `supabase/.temp/project-ref`
+appels RPC anonymes OK). **Pas appliquée sur dev** : la base de dev est en pause et ne peut pas
+être réactivée sur l'offre gratuite Supabase (décision utilisateur du 15 novembre 2026 : « on reste
+sur la prod pour le moment », voir "Environnements dev/prod séparés"). Leçon : toujours vérifier `supabase/.temp/project-ref`
 après un `link`, ne jamais enchaîner `link && push` sans contrôler la sortie du `link`.
 
 ## Fiabilisation du scraping multi-marchands (25 août 2026)
@@ -3384,6 +3385,16 @@ Décision avec l'utilisateur pour se donner un environnement de test avant la b�
 - **Variables d'environnement** : les 3 variables Supabase (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`) existent maintenant en double dans Vercel pour chacune : l'entrée d'origine reste scopée **Production and Preview** avec les vraies valeurs de prod (sert de valeur par défaut pour `main` et pour toute autre branche/PR) ; une seconde entrée, ajoutée via "Add New" (jamais en éditant l'entrée existante — piège rencontré en le faisant : ça **remplace** l'entrée au lieu de la compléter, et prive `main` de toute valeur), scopée **Preview restreint à la branche `dev`**, porte les valeurs de `kdovie-dev`. Vercel fait prévaloir automatiquement la version restreinte à la branche pour les déploiements de `dev`. `NEXT_PUBLIC_SUPABASE_URL`/`NEXT_PUBLIC_SUPABASE_ANON_KEY` ont "Sensitive" désactivé (elles sont conçues pour être exposées au navigateur, Vercel bloque sinon avec un message explicite) ; `SUPABASE_SERVICE_ROLE_KEY` garde "Sensitive" activé. **Mise à jour du 31 août 2026** : Stripe suit désormais le même schéma à deux entrées que Supabase (`STRIPE_SECRET_KEY`/`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` en Production = clés live, en Preview = clés de test) — voir "Cagnotte et frais" plus haut, qui détaille la bascule live. Ce paragraphe décrivait un état antérieur (Stripe encore uniquement en test des deux côtés), gardé tel quel pour l'historique du montage Vercel, mais ne plus s'y fier pour le statut Stripe.
 - **`components/layout/BandeauEnvironnement.tsx`** : bandeau discret ajouté en haut de `app/layout.tsx`, visible uniquement quand `VERCEL_GIT_COMMIT_REF` (variable système Vercel, jamais présente en local) est renseignée et différente de `main` — donc sur l'alias `dev` et sur les previews de PR, jamais sur `kdovie.com`/`kdovie.vercel.app` ni en `npm run dev` local. N'a pas eu besoin d'être retouché malgré le changement de plan : il se base sur le nom de branche réel, pas sur les libellés Production/Preview de Vercel.
 - **Incident post-bascule, corrigé** : pendant la courte fenêtre où `dev` était temporairement configurée comme "Production Branch" (tentative du plan initial), un commit poussé sur `dev` à ce moment-là a été promu déploiement de production actif — remettre le réglage sur `main` ensuite n'a pas fait revenir automatiquement l'ancien déploiement en ligne. Corrigé via "Promote to Production" sur le dernier déploiement `main` dans l'onglet Deployments. Ce même commit `dev`, construit pendant cette fenêtre, avait aussi été bâti sous le type d'environnement "Production" (donc avec les vraies variables de prod, pas les overrides `kdovie-dev`) — corrigé en le reconstruisant via "Redeploy" en choisissant explicitement l'environnement **Preview**. Épisode ponctuel lié à la bascule temporaire, pas un problème structurel du montage final.
+
+**Mise à jour du 15 novembre 2026 — base de dev indisponible** : le projet Supabase `kdovie-dev`
+(`hvyinuoebkzghrbcbnqa`) est en pause et ne peut pas être réactivé sur l'offre gratuite. Décision
+de l'utilisateur : on reste sur la prod pour le moment. Conséquences : toute migration va
+directement en prod (feu vert de l'utilisateur avant chaque `db push`, vérifier
+`supabase/.temp/project-ref` après tout `link`) ; les tests qui écrivent en base se font sur la
+prod avec nettoyage immédiat (préférer lecture seule / transactions annulées / aperçus avec
+données bouchon) ; la preview Vercel de la branche `dev` pointe encore vers la base en pause et
+ne fonctionne plus pour ce qui touche à la base. Le workflow git (`dev` puis `main` à la demande)
+reste inchangé. Dernière migration présente en dev : `0026`.
 
 ## Page d'attente en production (19 août 2026)
 
