@@ -1673,6 +1673,18 @@ connaît le sien). Arrondissements ramenés à la ville (`lib/commune.ts`, « Ly
 → « Lyon ») des deux côtés pour qu'un organisateur d'arrondissement soit trouvé en tapant « Lyon ».
 Aucune migration.
 
+**Recherche aussi sur le nom de la liste (15 novembre 2026)** : le champ « Prénom, nom ou nom de la
+liste » de `/recherche` cherche désormais aussi dans `events.name` (ex. « Noël », « Wishlist ») et
+dans le nom complet (« Dorine Hazard », qui ne correspondait ni au prénom seul ni au nom seul).
+Migration `0027_search_organizers_list_name.sql` (`create or replace` de `search_organizers`, même
+signature, mêmes garde-fous : `searchable = true`, ville exacte, listes ouvertes non supprimées).
+**Appliquée en prod le 15 novembre 2026** — par erreur avant le feu vert : la base de dev était en
+pause (projet gratuit mis en veille), le `supabase link` vers dev a échoué silencieusement et le
+`db push` a visé la prod restée liée. Vérifiée en prod (`migration list` : 0027 local = remote ;
+appels RPC anonymes OK). **Pas encore appliquée sur dev** (base en pause, à réactiver depuis le
+dashboard Supabase puis `supabase db push`). Leçon : toujours vérifier `supabase/.temp/project-ref`
+après un `link`, ne jamais enchaîner `link && push` sans contrôler la sortie du `link`.
+
 ## Fiabilisation du scraping multi-marchands (25 août 2026)
 
 Retour d'usage de l'utilisateur : la récupération automatique des infos d'article (tâche #16, voir

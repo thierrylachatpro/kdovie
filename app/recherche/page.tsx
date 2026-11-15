@@ -17,7 +17,7 @@ export async function generateMetadata({
   return pageMetadata({
     title: "Retrouver la liste de cadeaux d'un proche",
     description:
-      "Cherchez le prénom ou le nom d'un proche et sa ville pour retrouver ses listes de cadeaux ouvertes sur Kdovie.",
+      "Cherchez le prénom, le nom d'un proche ou le nom de sa liste, avec sa ville, pour retrouver ses listes de cadeaux ouvertes sur Kdovie.",
     path: "/recherche",
     noindex: Boolean(q && city),
   });
@@ -61,18 +61,20 @@ export default async function RecherchePage({ searchParams }: PageProps<"/recher
   return (
     <PageLegale title="Retrouver une liste" estConnecte={Boolean(user)} pseudo={pseudo}>
       <p className="text-[17px] leading-relaxed text-[#7A6354]">
-        Cherchez le prénom ou le nom d&apos;un proche, avec sa ville, pour retrouver ses listes
+        Cherchez le prénom, le nom d&apos;un proche ou le nom de sa liste, avec sa ville, pour retrouver ses listes
         ouvertes — seuls les organisateurs qui ont activé la recherche publique apparaissent ici.
       </p>
 
       <form method="get" className="flex flex-col gap-4 rounded-[28px] border-2 border-[#F2DFC9] bg-white p-6.5">
         <label className="flex flex-col gap-1.5">
-          <span className="font-heading text-base font-bold text-[#4A3529]">Prénom ou nom</span>
+          <span className="font-heading text-base font-bold text-[#4A3529]">
+            Prénom, nom ou nom de la liste
+          </span>
           <input
             type="text"
             name="q"
             defaultValue={q}
-            placeholder="Thierry"
+            placeholder="Thierry, Noël…"
             required
             className="w-full rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:ring-2 focus:ring-jaune"
           />
