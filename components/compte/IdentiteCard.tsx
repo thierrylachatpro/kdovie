@@ -79,7 +79,10 @@ export default function IdentiteCard({
   }
 
   return (
-    <section className="rounded-[28px] border-2 border-[#F2DFC9] bg-white p-7.5">
+    <section
+      id="recherche-publique"
+      className="scroll-mt-6 rounded-[28px] border-2 border-[#F2DFC9] bg-white p-7.5"
+    >
       <div className="mb-7 flex items-center gap-4.5">
         <span className="font-heading flex h-16 w-16 flex-none items-center justify-center rounded-[22px] bg-corail text-2xl font-bold text-creme">
           {initiales(nomAffiche)}

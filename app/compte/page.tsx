@@ -6,6 +6,7 @@ import { eventStatusClassName, eventStatusLabel } from "@/lib/event-status";
 import NavConnecte from "@/components/layout/NavConnecte";
 import PiedDePage from "@/components/layout/PiedDePage";
 import StatutLien from "@/components/ui/StatutLien";
+import RappelRecherchePopup from "@/components/compte/RappelRecherchePopup";
 import { deriveOrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 
 export default async function ComptePage() {
@@ -182,6 +183,10 @@ export default async function ComptePage() {
             <StatutLien variant="dark" />
           </Link>
         </section>
+
+        {!profile?.searchable && (events ?? []).some((e) => e.status === "ouverte") && (
+          <RappelRecherchePopup />
+        )}
 
         {(afficherBandeauCagnotte || !profile?.searchable) && (
           <div className="-mt-4 mb-8 flex flex-wrap gap-2.5">
