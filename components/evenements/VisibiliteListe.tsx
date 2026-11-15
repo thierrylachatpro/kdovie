@@ -22,10 +22,35 @@ import {
   normalizeAliasSaisie,
 } from "@/lib/short-alias";
 
-// Invitation par email masquée le 15 novembre 2026 (décision utilisateur) :
-// seul le bouton « Partager » reste. Le code d'envoi est conservé pour pouvoir
-// la réactiver en repassant ce drapeau à true.
-const AFFICHER_INVITATION_EMAIL = false;
+// Invitation par email : masquée puis réactivée le 15 novembre 2026 (décision
+// utilisateur) sous le nom « Envoyer une invitation », car la fenêtre de
+// partage des ordinateurs ne propose pas toujours l'email (Windows,
+// messageries web). Repasser à false pour la masquer.
+const AFFICHER_INVITATION_EMAIL = true;
+
+// Icône « téléphone + partage » du bouton Partager, pour signaler un usage
+// plutôt mobile (story / message sur Instagram ou TikTok).
+function IconeTelephonePartage() {
+  return (
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="flex-none"
+    >
+      <rect x="5" y="2" width="12" height="20" rx="2.5" />
+      <path d="M10 18.5h2" />
+      <path d="M14 8.5l3.5-3 3.5 3" />
+      <path d="M17.5 5.5V13" />
+    </svg>
+  );
+}
 
 function estEmailValide(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
@@ -544,7 +569,7 @@ export default function VisibiliteListe({
             onClick={() => setInviteOpen(true)}
             className="font-heading inline-flex items-center justify-center gap-2.5 rounded-[20px] bg-corail px-6 py-4.5 text-[17px] font-bold text-creme hover:bg-[#D45F37]"
           >
-            <span className="text-lg">✉️</span>Inviter mes proches
+            <span className="text-lg">✉️</span>Envoyer une invitation
           </button>
         )}
         <button
@@ -552,17 +577,13 @@ export default function VisibiliteListe({
           onClick={handleStory}
           disabled={!shared || storyPending}
           title={shared ? undefined : "Ouvrez d'abord votre liste aux invités"}
-          className={`font-heading inline-flex items-center justify-center gap-2.5 rounded-[20px] px-6 py-4.5 text-[17px] font-bold ${
+          className={`font-heading inline-flex items-center justify-center gap-2.5 rounded-[20px] px-6 py-4 text-[17px] font-bold ${
             shared
-              ? "cursor-pointer bg-corail text-creme hover:bg-[#D45F37] disabled:opacity-60"
+              ? "cursor-pointer bg-jaune text-[#6B4A0F] hover:bg-[#EBAB2C] disabled:opacity-60"
               : "cursor-default bg-[#F2DFC9] text-[#A08D7E]"
           }`}
         >
-          {storyPending ? (
-            <KdovieSpinner className="h-4.5 w-4.5" variant="dark" />
-          ) : (
-            <span className="text-lg" aria-hidden="true">📱</span>
-          )}
+          {storyPending ? <KdovieSpinner className="h-5 w-5" /> : <IconeTelephonePartage />}
           Partager
         </button>
         {shared && (
