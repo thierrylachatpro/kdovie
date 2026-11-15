@@ -3475,3 +3475,80 @@ cotisations, jusqu'à nouvel ordre.** Les frais de traitement Stripe restent ré
   dashboard Stripe (frais perçus).
 - **Pour réactiver** : `TAUX_KDOVIE = 0.01`, et rétablir les mentions de commission dans `/cgv`,
   `/aide` et `AccueilClient` (voir le commit de cette section pour le texte d'origine).
+
+## Partage d'une liste en story (Instagram / TikTok)
+
+Décision utilisateur du 15 novembre 2026, à développer. Objectif : permettre à l'organisateur de diffuser sa liste en story sur ses propres réseaux, **le plus simplement possible** — un seul bouton, un seul format, aucun réglage.
+
+Contexte et contraintes techniques (ne pas rechercher d'autre approche) :
+- Instagram et TikTok n'offrent **aucun lien de partage web** (pas d'équivalent à `facebook.com/sharer`). Le deep link Stories d'Instagram et le Share Kit de TikTok sont réservés aux apps natives, hors périmètre v1.
+- On passe donc par un **visuel généré** + la **Web Share API** (`navigator.share({ files })`) sur mobile, avec repli téléchargement.
+- Pas de format « publication » (carré / 4:5) : **story uniquement**, décision assumée pour ne pas compliquer l'interface.
+
+### Interface — un seul bouton
+
+Dans la carte de visibilité `VisibiliteListe.tsx` (page `/compte/evenements/[slug]`), à côté de l'invitation par email et du lien copié existants : bouton **« Partager en story »**.
+
+- Désactivé (grisé, comme le QR) tant que la liste est en `brouillon` — même logique que le reste de la carte.
+- État d'attente avec `KdovieSpinner` (ne pas créer d'autre indicateur de chargement).
+
+Comportement au clic :
+1. **Copier l'URL publique seule** dans le presse-papier (`navigator.clipboard.writeText`). **Uniquement l'URL**, pas de phrase autour : le champ du sticker Lien d'Instagram n'accepte qu'une adresse.
+2. Récupérer le visuel (fetch de la route image ci-dessous → `File` PNG).
+3. **Si `navigator.canShare({ files: [file] })`** (iOS Safari, Chrome Android) → `navigator.share({ files: [file] })`. Le menu natif propose Instagram, TikTok, « Enregistrer l'image »… Ne pas passer `url`/`text` dans le share : certaines apps ignorent alors le fichier.
+4. **Sinon** (ordinateur, navigateur sans partage de fichiers) → téléchargement du PNG (lien `download`), sans afficher d'erreur.
+5. `AbortError` (l'utilisateur ferme le menu de partage) : ignorer silencieusement.
+
+Message affiché après le clic (toast ou texte sous le bouton, tutoiement) :
+- Mobile (partage) : « Ta story est prête ! Le lien est copié : colle-le dans un sticker Lien, sur la flèche, pour que tes proches arrivent directement sur ta liste. »
+- Ordinateur (téléchargement) : « Ton visuel est téléchargé et le lien est copié. Envoie l'image sur ton téléphone pour la publier en story, puis colle le lien dans un sticker Lien sur la flèche. »
+
+### Visuel story — route image
+
+Nouvelle route, même technique que `app/liste/[slug]/opengraph-image.tsx` (`next/og` `ImageResponse`, flexbox pur, **pas de police custom**, appels REST sans `cookies()`), ex. `app/liste/[slug]/story-image/route.tsx` :
+- PNG **1080×1920**, `Content-Disposition: inline; filename="kdovie-story-{slug}.png"` (le nom sert au téléchargement et au fichier partagé).
+- Prénom via la RPC existante `get_list_organizer_first_name(p_slug)` si besoin, repli gracieux sans prénom.
+- Répondre 404 si liste inconnue, supprimée ou en `brouillon`.
+
+Contenu, de haut en bas, sur fond crème `#FFF8F0` (palette déjà validée : corail `#E8734A`, jaune `#F5B942`, sauge `#8BA888`) :
+1. Logo Kdovie (SVG canonique, ne pas en redessiner un).
+2. Grande phrase **à la première personne** (c'est l'organisateur qui publie), choisie automatiquement selon `events.type` — rien à saisir. « Notre » pour les événements de couple/famille, « ma » sinon :
+   - `naissance` : « Bébé arrive bientôt ! Si vous voulez nous gâter, notre liste est par ici »
+   - `anniversaire` : « C'est bientôt mon anniversaire ! Une petite idée ? Ma liste est ici »
+   - `mariage` : « On se dit oui ! Merci de partager ce moment avec nous, voici notre liste »
+   - `noel` : « Le Père Noël a besoin d'un coup de main ? Voici ma liste »
+   - `pot_depart` : « Une nouvelle page commence ! Pour participer, c'est par ici »
+   - `cremaillere` : « On a enfin notre chez-nous ! Notre liste pour l'équiper est ici »
+   - `bapteme` : « Un beau jour se prépare ! Voici la liste pour le baptême »
+   - `null` (type facultatif) : « Envie de me faire plaisir ? Ma liste est par ici »
+   Centraliser ces phrases dans une petite fonction pure (ex. `lib/story-message.ts`), pas en dur dans la route.
+3. Nom de la liste en plus petit.
+4. **Zone réservée au sticker Lien**, dans le tiers inférieur : emplacement vide clairement délimité (pointillés ou cadre arrondi), flèche vers le bas et texte « Touche le lien juste ici ». Garder ~250 px de marge en haut et en bas (zones couvertes par l'interface d'Instagram/TikTok).
+5. Sous la zone, l'**URL publique en clair** et en petit (`kdovie.com/liste/{slug}`), en secours si le sticker n'est pas ajouté et pour TikTok (lien non cliquable en story).
+6. Mention discrète « sur kdovie.com ».
+
+**Pas de QR code sur ce visuel** : la personne qui regarde la story est déjà sur son téléphone et ne peut pas scanner son propre écran. Le QR existant de `VisibiliteListe` reste inchangé (usage imprimé : faire-part, affichettes).
+
+### À vérifier
+
+- `tsc` / `lint` / `build` propres.
+- Route image : 200 `image/png` 1080×1920 pour chaque type d'événement + `null`, accents corrects, rendu vérifié par capture ; 404 sur slug inconnu et sur liste en brouillon.
+- Test réel sur iPhone (Safari) et Android (Chrome) : le menu de partage s'ouvre avec l'image, Instagram la reçoit en story, le lien collé dans le sticker fonctionne.
+- Ordinateur : téléchargement + lien copié + bon message.
+
+## Fenêtre de rappel « liste encore en brouillon »
+
+Décision utilisateur du 15 novembre 2026, à développer. Constat : beaucoup de listes restent en `brouillon`, les organisateurs ne semblent pas voir qu'il faut les ouvrir aux invités.
+
+- **Où** : page de gestion `/compte/evenements/[slug]`, à l'arrivée sur la page.
+- **Quand** : uniquement si `events.status = 'brouillon'` **et** la liste contient au moins un article (`gift_items`) — une liste vide n'a rien à montrer, la pousser à la publication serait prématuré.
+- **Fréquence** : « Plus tard » masque la fenêtre pour la session, mémorisé par liste dans `sessionStorage` (clé du type `kdovie-rappel-brouillon-{slug}`, lecture/écriture dans un `try/catch`). Elle réapparaît à la visite suivante, pas à chaque rechargement.
+- **Texte (tutoiement)** : titre « Ta liste est encore en brouillon », corps « Tes invités ne peuvent pas encore la voir. Tu veux la publier maintenant ? »
+- **Boutons** : « Publier ma liste » (bouton principal corail) → **même action serveur** que le bouton existant « Ouvrir ma liste aux invités » de `VisibiliteListe` (ne pas dupliquer la logique), avec `KdovieSpinner` pendant l'attente ; « Plus tard » (bouton secondaire).
+- **Après publication** : fermer la fenêtre, afficher une courte confirmation (« Ta liste est en ligne ! Partage-la maintenant avec tes proches. ») et faire défiler jusqu'à la carte de visibilité (email, lien, story).
+- **Accessibilité** : vraie modale (`role="dialog"`, `aria-modal`, focus piégé, fermeture à Échap = « Plus tard »).
+
+### À vérifier
+- Liste brouillon avec articles → la fenêtre s'affiche ; « Plus tard » → ne revient pas au rechargement, revient dans un nouvel onglet/nouvelle session.
+- Liste brouillon vide → aucune fenêtre. Liste ouverte → aucune fenêtre.
+- « Publier ma liste » → statut `ouverte`, badge et carte de visibilité à jour, page publique `/liste/[slug]` affiche bien le contenu.

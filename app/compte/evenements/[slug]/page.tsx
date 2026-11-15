@@ -190,6 +190,7 @@ export default async function EvenementPage({
           status={event.status as EventStatus}
           eventName={event.name}
           lienPublic={lienPublic}
+          itemCount={items.length}
         />
 
         {erreur && <p className="mb-4 text-sm text-corail-dark">{erreur}</p>}
