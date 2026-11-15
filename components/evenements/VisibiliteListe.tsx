@@ -228,6 +228,9 @@ export default function VisibiliteListe({
     setStoryMessageAffiche(null);
     // Uniquement l'URL : le sticker Lien d'Instagram n'accepte qu'une adresse.
     navigator.clipboard?.writeText(lienPublic).catch(() => {});
+    // Annoncé tout de suite : sur mobile, ce message est visible dès la
+    // fermeture du menu de partage.
+    setStoryMessageAffiche(`Lien copié : ${lienAffiche}`);
 
     let file = storyFileRef.current;
     if (!file) {
@@ -244,7 +247,7 @@ export default function VisibiliteListe({
       setStoryPending(false);
     }
     if (!file) {
-      setStoryMessageAffiche("Impossible de préparer le visuel pour l'instant, réessaie dans un instant.");
+      setStoryMessageAffiche("Le lien de votre liste est copié, mais le visuel n'a pas pu être préparé. Réessayez dans un instant.");
       return;
     }
 
@@ -252,13 +255,13 @@ export default function VisibiliteListe({
       try {
         await navigator.share({ files: [file] });
         setStoryMessageAffiche(
-          "Ta story est prête ! Le lien est copié : colle-le dans un sticker Lien, sur la flèche, pour que tes proches arrivent directement sur ta liste.",
+          `C'est prêt ! Le lien de votre liste (${lienAffiche}) est copié : collez-le dans un sticker Lien de votre story ou dans votre message.`,
         );
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
         telechargerStory(file);
         setStoryMessageAffiche(
-          "Ton visuel est téléchargé et le lien est copié. Envoie l'image sur ton téléphone pour la publier en story, puis colle le lien dans un sticker Lien sur la flèche.",
+          `Le visuel est téléchargé et le lien de votre liste (${lienAffiche}) est copié. Envoyez l'image sur votre téléphone pour la partager en story ou en message sur Instagram ou TikTok, puis collez-y le lien.`,
         );
       }
       return;
@@ -266,7 +269,7 @@ export default function VisibiliteListe({
 
     telechargerStory(file);
     setStoryMessageAffiche(
-      "Ton visuel est téléchargé et le lien est copié. Envoie l'image sur ton téléphone pour la publier en story, puis colle le lien dans un sticker Lien sur la flèche.",
+      `Le visuel est téléchargé et le lien de votre liste (${lienAffiche}) est copié. Envoyez l'image sur votre téléphone pour la partager en story ou en message sur Instagram ou TikTok, puis collez-y le lien.`,
     );
   }
 
@@ -555,8 +558,13 @@ export default function VisibiliteListe({
           ) : (
             <span className="text-lg" aria-hidden="true">📱</span>
           )}
-          Partager en story
+          Partager en story ou en message
         </button>
+        {shared && (
+          <p className="-mt-1 px-2 text-center text-[13px] leading-snug text-[#7A6354]">
+            Instagram ou TikTok. Le lien de votre liste est copié en même temps, prêt à coller.
+          </p>
+        )}
         <button
           type="button"
           onClick={handleToggle}

@@ -63,6 +63,10 @@ export async function GET(
     ? `${host}/kdo/${liste.shortAlias}`
     : `${host}/liste/${slug}`;
 
+  // Taille du lien adaptée à sa longueur pour qu'il tienne sur une ligne
+  // dans le bandeau (≈ 0,56 em par caractère en police par défaut).
+  const tailleLien = Math.max(24, Math.min(64, Math.floor(800 / (urlAffichee.length * 0.56))));
+
   return new ImageResponse(
     (
       <div
@@ -73,95 +77,104 @@ export async function GET(
           width: "100%",
           height: "100%",
           background: "#FFF8F0",
-          padding: "250px 90px",
           fontFamily: "sans-serif",
         }}
       >
-        {/* Logo canonique */}
-        <div style={{ display: "flex", alignItems: "center", gap: "22px" }}>
-          <svg width="96" height="96" viewBox="0 0 56 56" fill="none">
-            <rect x="10" y="24" width="36" height="22" rx="2" fill="#E8734A" />
-            <rect x="7" y="16" width="42" height="10" rx="2" fill="#F5B942" />
-            <rect x="25" y="16" width="6" height="30" fill="#FFF8F0" />
-            <path d="M28 16C28 16 20 16 17 12C15 9.5 17 6 20 6C24 6 28 12 28 16Z" fill="#8BA888" />
-            <path d="M28 16C28 16 36 16 39 12C41 9.5 39 6 36 6C32 6 28 12 28 16Z" fill="#8BA888" />
-          </svg>
-          <div style={{ fontSize: "72px", fontWeight: 700, color: "#E8734A", letterSpacing: "-2px" }}>
-            kdovie
-          </div>
+        {/* Bandeau aux couleurs de la marque, comme en haut du site */}
+        <div style={{ display: "flex", width: "100%", height: "28px" }}>
+          <div style={{ flex: 3, background: "#E8734A" }} />
+          <div style={{ flex: 2, background: "#F5B942" }} />
+          <div style={{ flex: 1, background: "#8BA888" }} />
         </div>
 
-        {/* Phrase + nom de la liste */}
         <div
           style={{
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            marginTop: "110px",
-            gap: "40px",
-          }}
-        >
-          <div
-            style={{
-              fontSize: "76px",
-              fontWeight: 700,
-              color: "#4A3529",
-              lineHeight: 1.15,
-              textAlign: "center",
-            }}
-          >
-            {storyMessage(liste.type)}
-          </div>
-          <div
-            style={{
-              fontSize: "44px",
-              fontWeight: 600,
-              color: "#C0512A",
-              textAlign: "center",
-              lineHeight: 1.2,
-            }}
-          >
-            {liste.name}
-          </div>
-        </div>
-
-        {/* Zone réservée au sticker Lien */}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            marginTop: "auto",
             width: "100%",
+            flex: 1,
+            padding: "220px 90px 250px",
           }}
         >
-          <div style={{ fontSize: "44px", fontWeight: 700, color: "#E8734A" }}>
-            Touche le lien juste ici
+          {/* Logo canonique, en grand */}
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "18px" }}>
+            <svg width="220" height="220" viewBox="0 0 56 56" fill="none">
+              <rect x="10" y="24" width="36" height="22" rx="2" fill="#E8734A" />
+              <rect x="7" y="16" width="42" height="10" rx="2" fill="#F5B942" />
+              <rect x="25" y="16" width="6" height="30" fill="#FFF8F0" />
+              <path d="M28 16C28 16 20 16 17 12C15 9.5 17 6 20 6C24 6 28 12 28 16Z" fill="#8BA888" />
+              <path d="M28 16C28 16 36 16 39 12C41 9.5 39 6 36 6C32 6 28 12 28 16Z" fill="#8BA888" />
+            </svg>
+            <div style={{ fontSize: "120px", fontWeight: 700, color: "#E8734A", letterSpacing: "-4px", lineHeight: 1 }}>
+              kdovie
+            </div>
+            <div style={{ fontSize: "34px", color: "#8A7263" }}>
+              Un seul compte, toute une vie de cadeaux
+            </div>
           </div>
-          <svg width="90" height="110" viewBox="0 0 90 110" fill="none" style={{ marginTop: "18px" }}>
-            <path d="M45 8 V88" stroke="#E8734A" strokeWidth="12" strokeLinecap="round" />
-            <path
-              d="M14 62 L45 96 L76 62"
-              stroke="#E8734A"
-              strokeWidth="12"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
+
+          {/* Phrase + nom de la liste */}
           <div
             style={{
               display: "flex",
-              marginTop: "24px",
-              width: "760px",
-              height: "190px",
-              borderRadius: "48px",
-              border: "6px dashed #E8734A",
-              background: "#FFFFFF",
+              flexDirection: "column",
+              alignItems: "center",
+              marginTop: "110px",
+              gap: "36px",
             }}
-          />
-          <div style={{ marginTop: "40px", fontSize: "34px", color: "#5C4436" }}>{urlAffichee}</div>
-          <div style={{ marginTop: "14px", fontSize: "28px", color: "#8BA888", fontWeight: 600 }}>
-            sur kdovie.com
+          >
+            <div
+              style={{
+                fontSize: "70px",
+                fontWeight: 700,
+                color: "#4A3529",
+                lineHeight: 1.15,
+                textAlign: "center",
+              }}
+            >
+              {storyMessage(liste.type)}
+            </div>
+            <div
+              style={{
+                fontSize: "44px",
+                fontWeight: 600,
+                color: "#C0512A",
+                textAlign: "center",
+                lineHeight: 1.2,
+              }}
+            >
+              {liste.name}
+            </div>
+          </div>
+
+          {/* Lien court, bien visible */}
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              marginTop: "auto",
+              width: "100%",
+              gap: "22px",
+            }}
+          >
+            <div style={{ fontSize: "36px", color: "#8A7263" }}>Ma liste est ici</div>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                width: "100%",
+                padding: "40px 36px",
+                borderRadius: "48px",
+                background: "#E8734A",
+                color: "#FFF8F0",
+                fontSize: `${tailleLien}px`,
+                fontWeight: 700,
+              }}
+            >
+              {urlAffichee}
+            </div>
           </div>
         </div>
       </div>

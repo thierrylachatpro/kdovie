@@ -3575,6 +3575,11 @@ Contenu, de haut en bas, sur fond crème `#FFF8F0` (palette déjà validée : co
 - Test réel sur iPhone (Safari) et Android (Chrome) : le menu de partage s'ouvre avec l'image, Instagram la reçoit en story, le lien collé dans le sticker fonctionne.
 - Ordinateur : téléchargement + lien copié + bon message.
 
+**Révision du 15 novembre 2026 (retour de l'utilisateur)** :
+- **Usage visé : story ou message privé, sur Instagram comme sur TikTok** (pas de publication dans le fil). Bouton renommé « Partager en story ou en message » ; le menu de partage natif reste le mécanisme (il propose story et messages des deux apps).
+- **Visuel refait pour mettre la marque en avant** : bandeau aux trois couleurs en haut, grand logo canonique + « kdovie » + baseline « Un seul compte, toute une vie de cadeaux », phrase selon le type, nom de la liste, puis le **lien court en grand** dans un bandeau corail (« Ma liste est ici »), taille de texte ajustée à la longueur pour tenir sur une ligne (jusqu'à 40 caractères d'alias). **Retirés** : « Touche le lien juste ici », la flèche et le cadre en pointillés — chacun ajoute un sticker Lien ou colle le lien où il veut. Mention « sur kdovie.com » retirée (le lien affiché la contient déjà).
+- **Le lien copié est annoncé** : aide permanente sous le bouton (« Instagram ou TikTok. Le lien de votre liste est copié en même temps, prêt à coller. »), message « Lien copié : … » dès le clic, puis message final qui affiche le lien copié. Textes au vouvoiement, comme le reste de la carte.
+
 ## Fenêtre de rappel « liste encore en brouillon »
 
 Décision utilisateur du 15 novembre 2026, à développer. Constat : beaucoup de listes restent en `brouillon`, les organisateurs ne semblent pas voir qu'il faut les ouvrir aux invités.
