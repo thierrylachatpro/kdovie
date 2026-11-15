@@ -3674,7 +3674,7 @@ Dans `app/liste/[slug]/page.tsx`, écran brouillon actuel (« Cette liste n'est 
 - Lien copié, QR, email d'invitation et visuel story utilisent bien `kdovie.com/kdo/...`.
 - Bascule admin ouverte/brouillon : `first_opened_at` bien renseigné à la première ouverture.
 
-**Statut (15 novembre 2026) : implémenté et testé de bout en bout ; migration appliquée en prod ; script de rattrapage PAS encore lancé en prod (attend le feu vert de l'utilisateur).**
+**Statut (15 novembre 2026) : implémenté et testé de bout en bout ; migration appliquée en prod ; script de rattrapage lancé en prod avec le feu vert de l'utilisateur (13 alias attribués, 0 échec, plus aucune liste non supprimée sans alias — vérifié) ; mis en ligne sur `main`.**
 
 Écarts au cadrage, tranchés avec l'utilisateur avant de coder :
 - **Pas de passage par `kdovie-dev`** : la base de dev est en pause et ne peut pas être réactivée (offre gratuite). Migration appliquée directement en prod avec le feu vert de l'utilisateur.
