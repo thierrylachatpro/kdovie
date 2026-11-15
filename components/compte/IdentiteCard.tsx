@@ -46,7 +46,7 @@ export default function IdentiteCard({
     searchable !== initialSearchable;
 
   const nomAffiche = firstName.trim() || fallbackDisplayName;
-  const villeManquante = searchable && (!lastName.trim() || !postalCode.trim() || !city.trim());
+  const villeManquante = searchable && (!postalCode.trim() || !city.trim());
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -58,7 +58,7 @@ export default function IdentiteCard({
       return;
     }
     if (villeManquante) {
-      setErreur("Pour être trouvable, indiquez aussi votre nom et votre ville.");
+      setErreur("Pour être trouvable, indiquez aussi votre ville.");
       return;
     }
 
@@ -140,7 +140,8 @@ export default function IdentiteCard({
               className="w-full rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:ring-2 focus:ring-jaune"
             />
             <span className="text-sm text-[#8A7263]">
-              Jamais affiché sur vos listes, uniquement dans la recherche publique.
+              Jamais affiché sur vos listes. Si vous le renseignez, il apparaît dans la recherche
+              publique.
             </span>
           </label>
         </div>
@@ -175,7 +176,8 @@ export default function IdentiteCard({
               Me rendre trouvable dans la recherche publique
             </span>
             <span className="text-sm text-[#7A6354]">
-              Votre prénom, votre nom et votre ville deviennent visibles pour toute personne qui
+              Votre prénom, votre ville et, si vous l&apos;avez renseigné, votre nom deviennent
+              visibles pour toute personne qui
               vous cherche sur Kdovie — pratique pour qu&apos;un proche retrouve vos listes sans
               lien direct.
             </span>

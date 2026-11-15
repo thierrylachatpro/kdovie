@@ -1695,6 +1695,13 @@ qu'avec le lien. Bouton « Me rendre trouvable » → `/compte/profil#recherche-
 sur `IdentiteCard`), où il renseigne prénom, nom, ville et coche la case. Vouvoiement, comme le
 reste du tableau de bord. Le petit bandeau « Publier mes listes » déjà en place reste affiché.
 
+**Nom de famille facultatif même pour être trouvable (15 novembre 2026)** : décision utilisateur,
+la recherche publique n'exige plus que la ville (prénom toujours obligatoire). Validation retirée
+dans `IdentiteCard` et dans `updateIdentite` (`app/compte/profil/actions.ts`, revalidation serveur
+conservée pour la ville). Aucune migration : `search_organizers` trouve déjà par prénom ou nom de
+la liste, et l'affichage des résultats gère un nom absent. Remplace la règle du 25 août (« nom
+obligatoire dès qu'on veut être trouvable »).
+
 ## Fiabilisation du scraping multi-marchands (25 août 2026)
 
 Retour d'usage de l'utilisateur : la récupération automatique des infos d'article (tâche #16, voir

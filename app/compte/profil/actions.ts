@@ -33,12 +33,14 @@ export async function updateIdentite(data: {
     return { error: "Le prénom est obligatoire." };
   }
 
-  // La visibilité dans la recherche exige nom + ville, sinon la fiche
-  // resterait techniquement "trouvable" sans être réellement exploitable —
-  // revalidé ici, jamais uniquement côté formulaire.
-  if (data.searchable && (!lastName || !postalCode || !city)) {
+  // La visibilité dans la recherche exige la ville (la recherche filtre
+  // dessus), sinon la fiche resterait techniquement "trouvable" sans être
+  // réellement exploitable. Le nom de famille reste facultatif : prénom +
+  // ville + nom de la liste suffisent. Revalidé ici, jamais uniquement côté
+  // formulaire.
+  if (data.searchable && (!postalCode || !city)) {
     return {
-      error: "Pour être trouvable, indiquez aussi votre nom et votre ville.",
+      error: "Pour être trouvable, indiquez aussi votre ville.",
     };
   }
 
