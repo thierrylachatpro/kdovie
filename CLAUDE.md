@@ -3657,7 +3657,7 @@ Ligne du lien : `kdovie.com/kdo/julie-noel` + **[Modifier]** + **[Copier]**.
   - Boutons « Enregistrer » (avec `KdovieSpinner`) / « Annuler ».
 - Enregistrement : nouvelle server action `updateShortAlias(eventId, alias, slug)` — utilisateur connecté et propriétaire, alias renormalisé côté serveur, refus si `first_opened_at` non nul, erreur d'unicité → « Ce lien vient d'être pris, essaie une autre version », puis `revalidatePath` de la page de gestion.
 - Tant que modifiable, petite mention sous la ligne : « Tu peux encore le personnaliser : il deviendra définitif dès que ta liste sera ouverte. »
-- Une fois verrouillé : plus de bouton Modifier, mention « Ce lien est définitif depuis l'ouverture de ta liste. »
+- Une fois verrouillé : plus de bouton Modifier, mention « Ce lien est définitif depuis l'ouverture de ta liste. » *(Mention retirée le 15 novembre 2026 sur demande de l'utilisateur : une fois verrouillé, seul le bouton Modifier disparaît, aucun texte affiché.)*
 - Fenêtre de rappel « liste encore en brouillon » : aucun changement nécessaire (le bouton « Publier ma liste » déclenche l'ouverture, le trigger verrouille l'alias).
 
 ### Page publique en brouillon

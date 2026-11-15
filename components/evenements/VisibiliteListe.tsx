@@ -505,11 +505,10 @@ export default function VisibiliteListe({
                 {shared ? (copie ? "Lien copié !" : "Copier le lien") : "Lien inactif"}
               </button>
             </div>
-            {shortAlias && (
+            {shortAlias && aliasModifiable && (
               <p className="mt-1 text-[13px] text-[#8A7263]">
-                {aliasModifiable
-                  ? "Vous pouvez encore le personnaliser : il deviendra définitif dès que votre liste sera ouverte."
-                  : "Ce lien est définitif depuis l'ouverture de votre liste."}
+                Vous pouvez encore le personnaliser : il deviendra définitif dès que votre liste
+                sera ouverte.
               </p>
             )}
           </>
