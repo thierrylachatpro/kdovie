@@ -22,6 +22,11 @@ import {
   normalizeAliasSaisie,
 } from "@/lib/short-alias";
 
+// Invitation par email masquée le 15 novembre 2026 (décision utilisateur) :
+// seul le bouton « Partager » reste. Le code d'envoi est conservé pour pouvoir
+// la réactiver en repassant ce drapeau à true.
+const AFFICHER_INVITATION_EMAIL = false;
+
 function estEmailValide(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
@@ -533,7 +538,7 @@ export default function VisibiliteListe({
       </div>
 
       <div className="flex min-w-58 flex-col items-stretch gap-2.5">
-        {shared && (
+        {AFFICHER_INVITATION_EMAIL && shared && (
           <button
             type="button"
             onClick={() => setInviteOpen(true)}
@@ -547,22 +552,23 @@ export default function VisibiliteListe({
           onClick={handleStory}
           disabled={!shared || storyPending}
           title={shared ? undefined : "Ouvrez d'abord votre liste aux invités"}
-          className={`font-heading inline-flex items-center justify-center gap-2.5 rounded-2xl px-5 py-3.5 text-[15px] font-bold ${
+          className={`font-heading inline-flex items-center justify-center gap-2.5 rounded-[20px] px-6 py-4.5 text-[17px] font-bold ${
             shared
-              ? "cursor-pointer bg-jaune text-[#6B4A0F] hover:bg-[#EBAB2C] disabled:opacity-60"
+              ? "cursor-pointer bg-corail text-creme hover:bg-[#D45F37] disabled:opacity-60"
               : "cursor-default bg-[#F2DFC9] text-[#A08D7E]"
           }`}
         >
           {storyPending ? (
-            <KdovieSpinner className="h-4 w-4" />
+            <KdovieSpinner className="h-4.5 w-4.5" variant="dark" />
           ) : (
             <span className="text-lg" aria-hidden="true">📱</span>
           )}
-          Partager en story ou en message
+          Partager
         </button>
         {shared && (
-          <p className="-mt-1 px-2 text-center text-[13px] leading-snug text-[#7A6354]">
-            Instagram ou TikTok. Le lien de votre liste est copié en même temps, prêt à coller.
+          <p className="-mt-1 max-w-72 self-center px-2 text-center text-[13px] leading-snug text-[#7A6354]">
+            En story ou en message, sur Instagram ou TikTok. Le lien de votre liste est copié en
+            même temps, prêt à coller.
           </p>
         )}
         <button

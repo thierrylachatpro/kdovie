@@ -3582,6 +3582,8 @@ Contenu, de haut en bas, sur fond crème `#FFF8F0` (palette déjà validée : co
 
 **Seconde révision du visuel (15 novembre 2026)** : retirés « Ma liste est ici » et le nom de la liste ; trois blocs répartis sur la hauteur (`justifyContent: space-around` — Satori n'accepte pas `space-evenly`) : marque (logo, « kdovie », baseline), thème + phrase, lien court. Ambiance par type via `storyTheme` (`lib/story-message.ts`) : grand emoji dans une pastille blanche (🍼 naissance, 🎂 anniversaire, 💍 mariage, 🎄 Noël, 🎉 pot de départ, 🏡 crémaillère, 🕊️ baptême, ✨ sans type) et fond dégradé crème → teinte assortie ; confettis aux couleurs de la marque dans les marges. Les emojis sont chargés par `next/og` depuis le CDN Twemoji au rendu : s'il ne répond pas, l'emoji peut manquer, le reste du visuel sort normalement.
 
+**Bouton unique « Partager » (15 novembre 2026, décision utilisateur)** : l'invitation par email (« Inviter mes proches ») est **masquée**, pas supprimée — drapeau `AFFICHER_INVITATION_EMAIL = false` en tête de `VisibiliteListe.tsx` ; formulaire, `sendInvitations` et `InvitationEmail` restent dans le code pour pouvoir la réactiver. Le bouton de partage (même comportement : visuel story + lien copié) s'appelle désormais simplement « Partager » et prend le style du bouton principal (corail). Aide sous le bouton : « En story ou en message, sur Instagram ou TikTok. Le lien de votre liste est copié en même temps, prêt à coller. »
+
 ## Fenêtre de rappel « liste encore en brouillon »
 
 Décision utilisateur du 15 novembre 2026, à développer. Constat : beaucoup de listes restent en `brouillon`, les organisateurs ne semblent pas voir qu'il faut les ouvrir aux invités.
