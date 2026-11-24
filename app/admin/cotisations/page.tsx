@@ -22,7 +22,7 @@ export default async function AdminCotisationsPage({
   const { data: contributions } = await admin
     .from("contributions")
     .select(
-      "id, amount_cents, guest_name, guest_email, created_at, gift_items(title, events(name, organizer_id, fee_mode, profiles(display_name)))",
+      "id, amount_cents, guest_name, guest_email, created_at, gift_items(title, events(name, organizer_id, fee_mode, profiles(first_name, last_name)))",
     )
     .eq("status", "succeeded")
     .order("created_at", { ascending: false });
@@ -58,7 +58,10 @@ export default async function AdminCotisationsPage({
       guestEmail: c.guest_email ?? "",
       listName: c.gift_items?.events?.name ?? "—",
       giftTitle: c.gift_items?.title ?? "—",
-      organizerPseudo: c.gift_items?.events?.profiles?.display_name ?? null,
+      organizerPseudo:
+        [c.gift_items?.events?.profiles?.first_name, c.gift_items?.events?.profiles?.last_name]
+          .filter(Boolean)
+          .join(" ") || null,
       organizerEmail: organizerId ? (emailByOrganizerId.get(organizerId) ?? "—") : "—",
       createdAt: c.created_at,
     };

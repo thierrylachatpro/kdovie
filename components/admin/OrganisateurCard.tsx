@@ -2,13 +2,14 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { updateOrganizerPseudo, setOrganizerDisabled } from "@/app/admin/organisateurs/actions";
+import { updateOrganizerName, setOrganizerDisabled } from "@/app/admin/organisateurs/actions";
 import KdovieSpinner from "@/components/ui/KdovieSpinner";
 
 export default function OrganisateurCard({
   userId,
   email,
-  pseudo,
+  firstName,
+  lastName,
   createdAt,
   lastSignInAt,
   disabled,
@@ -16,15 +17,18 @@ export default function OrganisateurCard({
 }: {
   userId: string;
   email: string;
-  pseudo: string | null;
+  firstName: string | null;
+  lastName: string | null;
   createdAt: string;
   lastSignInAt: string | null;
   disabled: boolean;
   isAdmin: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(pseudo ?? "");
-  const [current, setCurrent] = useState(pseudo);
+  const [draftFirst, setDraftFirst] = useState(firstName ?? "");
+  const [draftLast, setDraftLast] = useState(lastName ?? "");
+  const [current, setCurrent] = useState({ first: firstName, last: lastName });
+  const nomComplet = [current.first, current.last].filter(Boolean).join(" ");
   const [currentDisabled, setCurrentDisabled] = useState(disabled);
   const [confirmingDisable, setConfirmingDisable] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -43,15 +47,15 @@ export default function OrganisateurCard({
       })
     : "jamais";
 
-  function handleSavePseudo() {
+  function handleSaveName() {
     setErreur(null);
     startTransition(async () => {
-      const result = await updateOrganizerPseudo(userId, draft);
+      const result = await updateOrganizerName(userId, draftFirst, draftLast);
       if (result.error) {
         setErreur(result.error);
         return;
       }
-      setCurrent(draft.trim() || null);
+      setCurrent({ first: draftFirst.trim() || null, last: draftLast.trim() || null });
       setEditing(false);
     });
   }
@@ -75,7 +79,7 @@ export default function OrganisateurCard({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2.5">
             <span className="font-heading text-lg font-bold text-[#4A3529]">
-              {current || "Sans pseudo"}
+              {nomComplet || "Prénom et nom non renseignés"}
             </span>
             {isAdmin && (
               <span className="rounded-full bg-jaune/25 px-2.5 py-1 text-[12px] font-semibold text-[#7A5A16]">
@@ -104,12 +108,13 @@ export default function OrganisateurCard({
             <button
               type="button"
               onClick={() => {
-                setDraft(current ?? "");
+                setDraftFirst(current.first ?? "");
+                setDraftLast(current.last ?? "");
                 setEditing(true);
               }}
               className="rounded-2xl bg-[#F7E7D6] px-4 py-2.5 text-[14px] font-semibold text-[#5C4436] hover:bg-[#F2DFC9]"
             >
-              Modifier le pseudo
+              Modifier le nom
             </button>
           )}
           {!confirmingDisable ? (
@@ -153,14 +158,23 @@ export default function OrganisateurCard({
         <div className="mt-4 flex flex-wrap items-center gap-2.5 border-t border-[#F2DFC9] pt-4">
           <input
             type="text"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder="Pseudo"
-            className="min-w-50 flex-1 rounded-2xl border-2 border-[#F2DFC9] bg-white px-4 py-2.5 text-[15px] text-[#4A3529] outline-none focus:border-corail"
+            value={draftFirst}
+            onChange={(event) => setDraftFirst(event.target.value)}
+            placeholder="Prénom"
+            aria-label="Prénom"
+            className="min-w-40 flex-1 rounded-2xl border-2 border-[#F2DFC9] bg-white px-4 py-2.5 text-[15px] text-[#4A3529] outline-none focus:border-corail"
+          />
+          <input
+            type="text"
+            value={draftLast}
+            onChange={(event) => setDraftLast(event.target.value)}
+            placeholder="Nom"
+            aria-label="Nom"
+            className="min-w-40 flex-1 rounded-2xl border-2 border-[#F2DFC9] bg-white px-4 py-2.5 text-[15px] text-[#4A3529] outline-none focus:border-corail"
           />
           <button
             type="button"
-            onClick={handleSavePseudo}
+            onClick={handleSaveName}
             disabled={isPending}
             className="font-heading inline-flex items-center gap-2 rounded-2xl bg-corail px-4 py-2.5 text-[14px] font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
           >

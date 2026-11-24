@@ -5,13 +5,14 @@ import { isCurrentUserAdmin } from "@/lib/admin-auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-// CRUD organisateurs pour le super-administrateur — voir CLAUDE.md >
+// CRUD organisateurs pour le super-administrateur (prénom/nom, désactivation) — voir CLAUDE.md >
 // "Dashboard super-administrateur". Re-vérifie is_admin ici, jamais confié
 // au seul gate de app/admin/organisateurs/page.tsx (même pattern que
 // restoreEvent dans app/admin/actions.ts).
-export async function updateOrganizerPseudo(
+export async function updateOrganizerName(
   userId: string,
-  pseudo: string,
+  firstName: string,
+  lastName: string,
 ): Promise<{ error: string | null }> {
   const estAdmin = await isCurrentUserAdmin();
   if (!estAdmin) {
@@ -21,7 +22,7 @@ export async function updateOrganizerPseudo(
   const admin = createAdminClient();
   const { error } = await admin
     .from("profiles")
-    .update({ display_name: pseudo.trim() || null })
+    .update({ first_name: firstName.trim() || null, last_name: lastName.trim() || null })
     .eq("id", userId);
 
   if (!error) {

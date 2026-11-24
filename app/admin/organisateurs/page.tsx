@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import OrganisateurCard from "@/components/admin/OrganisateurCard";
 
-// CRUD organisateurs (lecture, modification du pseudo, désactivation
+// CRUD organisateurs (lecture, modification du prénom et du nom, désactivation
 // réversible) — voir CLAUDE.md > "Dashboard super-administrateur". Pas de
 // création de compte depuis ce dashboard (décision explicite) ni de
 // suppression réelle (cleanup-organizer.mjs reste le seul moyen, réservé à
@@ -13,7 +13,7 @@ export default async function AdminOrganisateursPage() {
   const [{ data: profiles }, { data: usersData }] = await Promise.all([
     admin
       .from("profiles")
-      .select("id, display_name, is_admin, disabled, created_at")
+      .select("id, first_name, last_name, is_admin, disabled, created_at")
       .order("created_at", { ascending: false }),
     admin.auth.admin.listUsers({ perPage: 1000 }),
   ]);
@@ -46,7 +46,8 @@ export default async function AdminOrganisateursPage() {
               key={o.id}
               userId={o.id}
               email={o.email}
-              pseudo={o.display_name}
+              firstName={o.first_name}
+              lastName={o.last_name}
               createdAt={o.created_at}
               lastSignInAt={o.lastSignInAt ?? null}
               disabled={o.disabled}

@@ -17,7 +17,7 @@ export default async function AdminListesPage({ searchParams }: PageProps<"/admi
     admin
       .from("events")
       .select(
-        "id, name, slug, status, deleted_at, organizer_id, created_at, profiles(display_name)",
+        "id, name, slug, status, deleted_at, organizer_id, created_at, profiles(first_name, last_name)",
       )
       .order("created_at", { ascending: false }),
     admin.auth.admin.listUsers({ perPage: 1000 }),
@@ -43,7 +43,8 @@ export default async function AdminListesPage({ searchParams }: PageProps<"/admi
       deleted_at: event.deleted_at,
       created_at: event.created_at,
       organizerEmail: authUser?.email ?? "—",
-      organizerPseudo: event.profiles?.display_name ?? null,
+      organizerPseudo:
+        [event.profiles?.first_name, event.profiles?.last_name].filter(Boolean).join(" ") || null,
       montantCotiseCents: montantParEvent.get(event.id) ?? 0,
     };
   });
@@ -51,7 +52,9 @@ export default async function AdminListesPage({ searchParams }: PageProps<"/admi
   const listesFiltrees = q
     ? listes.filter(
         (liste) =>
-          liste.name.toLowerCase().includes(q) || liste.organizerEmail.toLowerCase().includes(q),
+          liste.name.toLowerCase().includes(q) ||
+          liste.organizerEmail.toLowerCase().includes(q) ||
+          (liste.organizerPseudo ?? "").toLowerCase().includes(q),
       )
     : listes;
 
