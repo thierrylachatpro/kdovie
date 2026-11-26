@@ -94,7 +94,9 @@ export default function RechercheVilleParNom({
 
   return (
     <label className="relative flex flex-col gap-1.5">
-      <span className="font-heading text-base font-bold text-[#4A3529]">Ville</span>
+      <span className="font-heading text-base font-bold text-[#4A3529]">
+        Ville{!required && <span className="font-normal text-[#8A7263]"> (facultatif)</span>}
+      </span>
       <input
         type="text"
         name={name}

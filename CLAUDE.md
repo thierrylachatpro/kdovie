@@ -1704,6 +1704,17 @@ conservée pour la ville). Aucune migration : `search_organizers` trouve déjà 
 la liste, et l'affichage des résultats gère un nom absent. Remplace la règle du 25 août (« nom
 obligatoire dès qu'on veut être trouvable »).
 
+**Recherche sans accents, ville facultative (26 novembre 2026)** : décision utilisateur, constat
+« Héloïse » introuvable (compte sans prénom/ville/case cochée, et recherche sensible aux accents).
+Migration `0029_search_organizers_unaccent_city_optional.sql` (**appliquée en prod**, extension
+`unaccent` dans le schéma `extensions`) : `search_organizers` compare prénom, nom, nom complet, nom
+de la liste et ville sans accents ni casse ; la ville n'est plus obligatoire (vide = pas de filtre) ;
+garde-fou anti-annuaire : au moins 3 caractères cherchés (vérifié en SQL et sur `/recherche`).
+Côté profil, la ville n'est plus exigée pour cocher « Me rendre trouvable » (prénom seul suffit) —
+remplace la règle du 25 août (« deux champs requis ensemble ») et celle du 15 novembre (ville
+obligatoire). Testé en anonyme : « noel » trouve « Noël », « oceane » trouve « Liste Noël Océane »,
+« th » ne renvoie rien. Pas appliquée sur dev (base en pause).
+
 ## Fiabilisation du scraping multi-marchands (25 août 2026)
 
 Retour d'usage de l'utilisateur : la récupération automatique des infos d'article (tâche #16, voir

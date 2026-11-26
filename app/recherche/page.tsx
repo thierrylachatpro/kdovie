@@ -17,9 +17,9 @@ export async function generateMetadata({
   return pageMetadata({
     title: "Retrouver la liste de cadeaux d'un proche",
     description:
-      "Cherchez le prénom, le nom d'un proche ou le nom de sa liste, avec sa ville, pour retrouver ses listes de cadeaux ouvertes sur Kdovie.",
+      "Cherchez le prénom, le nom d'un proche ou le nom de sa liste, avec sa ville si vous la connaissez, pour retrouver ses listes de cadeaux ouvertes sur Kdovie.",
     path: "/recherche",
-    noindex: Boolean(q && city),
+    noindex: Boolean(q || city),
   });
 }
 
@@ -27,8 +27,9 @@ export async function generateMetadata({
 // "Recherche publique d'organisateurs par nom et ville". Formulaire GET
 // natif (pas de JS de soumission), même principe que /admin/listes et
 // /admin/cotisations : URL partageable, résultats rendus côté serveur.
-// Le prénom-ou-nom ET la ville sont exigés ensemble, jamais l'un sans
-// l'autre, pour ne pas devenir un annuaire consultable en vrac.
+// La ville est facultative (26 novembre 2026) ; garde-fou anti-annuaire :
+// au moins 3 caractères cherchés (vérifié aussi dans search_organizers).
+// Recherche insensible aux accents et à la casse (migration 0029).
 export default async function RecherchePage({ searchParams }: PageProps<"/recherche">) {
   const params = await searchParams;
   const qParam = params.q;
@@ -52,7 +53,8 @@ export default async function RecherchePage({ searchParams }: PageProps<"/recher
     pseudo = profile?.first_name?.trim() || user.email?.split("@")[0] || null;
   }
 
-  const rechercheLancee = Boolean(q && city);
+  const rechercheLancee = q.length >= 3;
+  const tropCourt = q.length > 0 && q.length < 3;
 
   const { data: resultats } = rechercheLancee
     ? await supabase.rpc("search_organizers", { p_query: q, p_city: city })
@@ -61,8 +63,8 @@ export default async function RecherchePage({ searchParams }: PageProps<"/recher
   return (
     <PageLegale title="Retrouver une liste" estConnecte={Boolean(user)} pseudo={pseudo}>
       <p className="text-[17px] leading-relaxed text-[#7A6354]">
-        Cherchez le prénom, le nom d&apos;un proche ou le nom de sa liste, avec sa ville, pour retrouver ses listes
-        ouvertes — seuls les organisateurs qui ont activé la recherche publique apparaissent ici.
+        Cherchez le prénom, le nom d&apos;un proche ou le nom de sa liste (et sa ville si vous la connaissez)
+        pour retrouver ses listes ouvertes — seuls les organisateurs qui ont activé la recherche publique apparaissent ici.
       </p>
 
       <form method="get" className="flex flex-col gap-4 rounded-[28px] border-2 border-[#F2DFC9] bg-white p-6.5">
@@ -76,11 +78,12 @@ export default async function RecherchePage({ searchParams }: PageProps<"/recher
             defaultValue={q}
             placeholder="Thierry, Noël…"
             required
+            minLength={3}
             className="w-full rounded-[18px] border-2 border-[#F2DFC9] bg-creme px-4.5 py-4 text-[17px] text-[#4A3529] outline-none focus:ring-2 focus:ring-jaune"
           />
         </label>
 
-        <RechercheVilleParNom initialCity={city} required />
+        <RechercheVilleParNom initialCity={city} />
 
         <button
           type="submit"
@@ -90,11 +93,15 @@ export default async function RecherchePage({ searchParams }: PageProps<"/recher
         </button>
       </form>
 
+      {tropCourt && (
+        <p className="text-[15px] text-[#8A7263]">Tapez au moins 3 caractères.</p>
+      )}
+
       {rechercheLancee && (
         <div className="flex flex-col gap-3">
           {(resultats ?? []).length === 0 ? (
             <p className="text-[15px] text-[#8A7263]">
-              Aucune liste trouvée pour « {q} » à {city}.
+              Aucune liste trouvée pour « {q} »{city ? ` à ${city}` : ""}.
             </p>
           ) : (
             (resultats ?? []).map((resultat) => (

@@ -33,16 +33,8 @@ export async function updateIdentite(data: {
     return { error: "Le prénom est obligatoire." };
   }
 
-  // La visibilité dans la recherche exige la ville (la recherche filtre
-  // dessus), sinon la fiche resterait techniquement "trouvable" sans être
-  // réellement exploitable. Le nom de famille reste facultatif : prénom +
-  // ville + nom de la liste suffisent. Revalidé ici, jamais uniquement côté
-  // formulaire.
-  if (data.searchable && (!postalCode || !city)) {
-    return {
-      error: "Pour être trouvable, indiquez aussi votre ville.",
-    };
-  }
+  // Nom et ville facultatifs, même pour être trouvable (26 novembre 2026) :
+  // la recherche publique ne filtre sur la ville que si on la précise.
 
   const { error } = await supabase
     .from("profiles")

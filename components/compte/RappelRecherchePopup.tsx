@@ -95,7 +95,7 @@ export default function RappelRecherchePopup() {
         <p id="rappel-recherche-texte" className="mb-5 text-[16px] leading-relaxed text-[#7A6354]">
           Vos listes sont ouvertes, mais elles n&apos;apparaissent pas dans la recherche de Kdovie :
           on ne peut les retrouver qu&apos;avec le lien que vous envoyez. Activez la recherche pour
-          que vos proches les trouvent avec votre prénom et votre ville.
+          que vos proches les trouvent avec votre prénom ou le nom de la liste.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link
