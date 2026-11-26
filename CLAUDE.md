@@ -44,6 +44,8 @@ Chaque article a un mode : `automatique` (défaut), `cotisation_obligatoire`, ou
 - Sur-financement d'une cagnotte (contributions cumulées supérieures au prix affiché) : pas de plafond, pas de remboursement, le surplus est un bonus pour l'organisateur.
 - Le reversement à l'organisateur peut se faire même si la cagnotte n'est pas financée à 100 %.
 
+**Mode par défaut d'un nouveau cadeau : `cotisation_impossible` (« Réservation uniquement », 26 novembre 2026)** — décision utilisateur. Posé dans `createGiftItemCore` (`lib/create-gift-item.ts`), donc formulaire du site et extension navigateur. Le défaut en base (`'auto'`, migration 0002) n'a pas été changé ; l'organisateur peut toujours choisir un autre mode tant qu'aucun invité n'a agi.
+
 ## Gestion des articles par l'organisateur : modification et suppression (16 août 2026)
 
 Aujourd'hui, la page de gestion (`/compte/evenements/[slug]`) permet seulement d'ajouter un article et de changer son `mode` (`ModeSelect`) — pas de modification ni de suppression. À ajouter :

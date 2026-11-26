@@ -55,6 +55,9 @@ export async function createGiftItemCore(
       description: input.description ?? null,
       price_cents: input.priceCents ?? null,
       position,
+      // Réglage par défaut d'un nouveau cadeau : réservation uniquement
+      // (décision du 26 novembre 2026). Modifiable ensuite via ModeSelect.
+      mode: "cotisation_impossible",
     })
     .select("id")
     .single();
