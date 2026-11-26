@@ -796,6 +796,18 @@ Objectif : rendre ce manque visible à l'organisateur avant qu'un invité ne s'y
 - **Testé** : `tsc`/`lint`/`build` propres. Rendu des deux formulations (`"aucun"`/`"en_attente"`) vérifié par capture d'écran avec des données bouchon. **Pas testé en conditions réelles** : nécessiterait un compte organisateur avec un article en mode cotisation sur une liste ouverte et un statut Stripe non actif — pas de compte de test dans cet état actuellement (voir CRUD organisateurs, comptes de test précédents supprimés au fil de la session).
 - **Retouche du 31 août 2026 (`commit aba78c6`)** : le bouton du bandeau ("Activez votre cagnotte") pointe désormais vers `/compte/profil#cagnotte` (ancre posée sur `StripeStatusCard`) au lieu du haut de la page — défilement natif du navigateur, aucun JS ajouté.
 
+**Bandeau remplacé par une fenêtre (26 novembre 2026)** — décision utilisateur. Le bandeau rouge
+« Activez votre cagnotte » est retiré de `/compte` au profit d'une fenêtre (`RappelPopup`,
+`components/compte/RappelPopup.tsx`, composant commun avec la fenêtre « Vos proches ne peuvent pas
+vous trouver » — `RappelRecherchePopup` supprimé). « Plus tard » mémorisé pour la session
+(`sessionStorage`, clé `kdovie-rappel-cagnotte`). Bouton « Activer ma cagnotte » (statut `aucun`) ou
+« Terminer la configuration » (`en_attente`) → `/compte/profil#cagnotte`. **Déclencheur élargi** :
+dès qu'un cadeau d'une liste non supprimée, brouillon **compris**, est en « Cotisation uniquement »,
+ou en « Cotisation et Réservation » pas encore réservé (`status != 'reserve'`) — remplace le
+déclencheur affiné du 20 août (listes ouvertes seulement, `auto` seulement une fois en cagnotte).
+Une seule fenêtre à la fois : la cagnotte passe avant la recherche publique. La pastille jaune
+« Publier mes listes » reste.
+
 ## Onboarding Stripe Connect embarqué, sans quitter Kdovie (20 août 2026)
 
 Demande explicite de l'utilisateur, motivée par une crainte réelle : aujourd'hui `startStripeOnboarding`

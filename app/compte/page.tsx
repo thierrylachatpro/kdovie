@@ -6,7 +6,7 @@ import { eventStatusClassName, eventStatusLabel } from "@/lib/event-status";
 import NavConnecte from "@/components/layout/NavConnecte";
 import PiedDePage from "@/components/layout/PiedDePage";
 import StatutLien from "@/components/ui/StatutLien";
-import RappelRecherchePopup from "@/components/compte/RappelRecherchePopup";
+import RappelPopup from "@/components/compte/RappelPopup";
 import { deriveOrganizerStripeStatus } from "@/lib/organizer-stripe-status";
 
 export default async function ComptePage() {
@@ -48,28 +48,18 @@ export default async function ComptePage() {
           .in("event_id", eventIds)
       : { data: [] };
 
-  // Bandeau d'incitation à activer la cagnotte Stripe — voir CLAUDE.md >
-  // "Bandeau d'incitation à activer sa cagnotte Stripe sur /compte".
-  // - cotisation_obligatoire : seule action possible pour l'invité, le
-  //   risque existe dès que l'article existe (ne peut jamais devenir
-  //   'reserve', voir reserve_gift_item).
-  // - auto ("Cotisation et Réservation") : tant qu'aucun invité n'a agi,
-  //   il pourrait tout aussi bien réserver directement — pas de risque
-  //   avéré. Ne compte que si un invité a déjà choisi de cotiser
-  //   (status = 'cagnotte'), pas juste parce que l'article existe dans ce
-  //   mode. Une fois verrouillé en réservation directe (status = 'reserve'),
-  //   l'option cotiser est masquée pour les invités suivants, plus aucun
-  //   risque non plus.
-  const openEventIds = new Set(
-    (events ?? []).filter((e) => e.status === "ouverte").map((e) => e.id),
-  );
+  // Fenêtre d'incitation à activer la cagnotte Stripe — voir CLAUDE.md >
+  // "Bandeau d'incitation à activer sa cagnotte Stripe sur /compte" (fenêtre
+  // depuis le 26 novembre 2026). Dès qu'un cadeau d'une liste (brouillon ou
+  // ouverte) accepte les cotisations — « Cotisation uniquement », ou
+  // « Cotisation et Réservation » pas encore réservé — et que la cagnotte
+  // n'est pas active.
   const risqueCotisationSansCagnotte = (giftItems ?? []).some((item) => {
-    if (!openEventIds.has(item.event_id)) return false;
     if (item.mode === "cotisation_obligatoire") return true;
-    if (item.mode === "auto") return item.status === "cagnotte";
+    if (item.mode === "auto") return item.status !== "reserve";
     return false;
   });
-  const afficherBandeauCagnotte =
+  const afficherRappelCagnotte =
     risqueCotisationSansCagnotte && organizerStripeStatus !== "actif";
 
   const prenom = profile?.first_name?.trim() || user.email?.split("@")[0] || "";
@@ -184,28 +174,43 @@ export default async function ComptePage() {
           </Link>
         </section>
 
-        {!profile?.searchable && (events ?? []).some((e) => e.status === "ouverte") && (
-          <RappelRecherchePopup />
+        {/* Une seule fenêtre à la fois : la cagnotte d'abord. */}
+        {afficherRappelCagnotte ? (
+          organizerStripeStatus === "en_attente" ? (
+            <RappelPopup
+              cle="kdovie-rappel-cagnotte"
+              emoji="💰"
+              titre="Terminez la configuration de votre cagnotte"
+              texte="Certains de vos cadeaux acceptent les cotisations, mais votre cagnotte n'est pas encore prête. Finissez sa configuration avec Stripe, notre partenaire de paiement, pour que l'argent de vos proches arrive bien sur votre compte bancaire."
+              href="/compte/profil#cagnotte"
+              action="Terminer la configuration"
+            />
+          ) : (
+            <RappelPopup
+              cle="kdovie-rappel-cagnotte"
+              emoji="💰"
+              titre="Activez votre cagnotte"
+              texte="Certains de vos cadeaux acceptent les cotisations. Pour que vos proches puissent y participer, activez votre cagnotte avec Stripe, notre partenaire de paiement : l'argent arrive directement sur votre compte bancaire. Ça ne prend que quelques minutes."
+              href="/compte/profil#cagnotte"
+              action="Activer ma cagnotte"
+            />
+          )
+        ) : (
+          !profile?.searchable &&
+          (events ?? []).some((e) => e.status === "ouverte") && (
+            <RappelPopup
+              cle="kdovie-rappel-recherche"
+              emoji="🔍"
+              titre="Vos proches ne peuvent pas vous trouver"
+              texte="Vos listes sont ouvertes, mais elles n'apparaissent pas dans la recherche de Kdovie : on ne peut les retrouver qu'avec le lien que vous envoyez. Activez la recherche pour que vos proches les trouvent avec votre prénom ou le nom de la liste."
+              href="/compte/profil#recherche-publique"
+              action="Me rendre trouvable"
+            />
+          )
         )}
 
-        {(afficherBandeauCagnotte || !profile?.searchable) && (
+        {!profile?.searchable && (
           <div className="-mt-4 mb-8 flex flex-wrap gap-2.5">
-            {afficherBandeauCagnotte && (
-              <Link
-                href="/compte/profil#cagnotte"
-                aria-label="Activez votre cagnotte — réglage à finir"
-                className="inline-flex min-h-11 items-center gap-2.5 rounded-full bg-[#FDEDE6] px-5 py-[11px] font-heading text-[15px] font-bold text-[#C0512A] hover:bg-[#FADACD]"
-              >
-                <span
-                  aria-hidden="true"
-                  className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[#E8734A] font-sans text-[13px] text-[#FFF8F0]"
-                >
-                  !
-                </span>
-                Activez votre cagnotte
-                <StatutLien />
-              </Link>
-            )}
             {!profile?.searchable && (
               <Link
                 href="/compte/profil"

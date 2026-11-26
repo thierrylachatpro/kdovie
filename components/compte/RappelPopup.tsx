@@ -3,13 +3,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 
-// Fenêtre affichée sur /compte quand l'organisateur a au moins une liste
-// ouverte mais n'a pas activé la recherche publique : ses proches ne peuvent
-// alors retrouver ses listes qu'avec le lien. « Plus tard » la masque pour la
-// session (sessionStorage), elle revient à la visite suivante.
-const CLE = "kdovie-rappel-recherche";
-
-export default function RappelRecherchePopup() {
+// Fenêtre de rappel du tableau de bord /compte (recherche publique, cagnotte).
+// « Plus tard » la masque pour la session (sessionStorage, clé propre à
+// chaque rappel), elle revient à la visite suivante. Focus piégé, Échap =
+// « Plus tard ».
+export default function RappelPopup({
+  cle: CLE,
+  emoji,
+  titre,
+  texte,
+  href,
+  action,
+}: {
+  cle: string;
+  emoji: string;
+  titre: string;
+  texte: string;
+  href: string;
+  action: string;
+}) {
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement | null>(null);
 
@@ -25,7 +37,7 @@ export default function RappelRecherchePopup() {
       if (!dejaVu) setOpen(true);
     }, 0);
     return () => clearTimeout(timer);
-  }, []);
+  }, [CLE]);
 
   const fermer = useCallback(() => {
     try {
@@ -34,7 +46,7 @@ export default function RappelRecherchePopup() {
       // stockage indisponible : la fenêtre reviendra simplement plus tard
     }
     setOpen(false);
-  }, []);
+  }, [CLE]);
 
   // Focus piégé + Échap = « Plus tard ».
   useEffect(() => {
@@ -81,25 +93,23 @@ export default function RappelRecherchePopup() {
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
-        aria-labelledby="rappel-recherche-titre"
-        aria-describedby="rappel-recherche-texte"
+        aria-labelledby={`${CLE}-titre`}
+        aria-describedby={`${CLE}-texte`}
         className="w-full max-w-120 rounded-t-[28px] bg-creme p-6.5 sm:rounded-[28px]"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-[18px] bg-[#FDF2DA] text-3xl">
-          <span aria-hidden="true">🔍</span>
+          <span aria-hidden="true">{emoji}</span>
         </div>
-        <h2 id="rappel-recherche-titre" className="font-heading mb-2 text-2xl font-bold text-[#4A3529]">
-          Vos proches ne peuvent pas vous trouver
+        <h2 id={`${CLE}-titre`} className="font-heading mb-2 text-2xl font-bold text-[#4A3529]">
+          {titre}
         </h2>
-        <p id="rappel-recherche-texte" className="mb-5 text-[16px] leading-relaxed text-[#7A6354]">
-          Vos listes sont ouvertes, mais elles n&apos;apparaissent pas dans la recherche de Kdovie :
-          on ne peut les retrouver qu&apos;avec le lien que vous envoyez. Activez la recherche pour
-          que vos proches les trouvent avec votre prénom ou le nom de la liste.
+        <p id={`${CLE}-texte`} className="mb-5 text-[16px] leading-relaxed text-[#7A6354]">
+          {texte}
         </p>
         <div className="flex flex-wrap gap-3">
           <Link
-            href="/compte/profil#recherche-publique"
+            href={href}
             data-autofocus
             onClick={() => {
               try {
@@ -108,7 +118,7 @@ export default function RappelRecherchePopup() {
             }}
             className="font-heading inline-flex items-center justify-center rounded-[18px] bg-corail px-6 py-4 text-base font-bold text-creme hover:bg-[#D45F37]"
           >
-            Me rendre trouvable
+            {action}
           </Link>
           <button
             type="button"
