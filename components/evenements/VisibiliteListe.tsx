@@ -21,6 +21,7 @@ import {
   normalizeAlias,
   normalizeAliasSaisie,
 } from "@/lib/short-alias";
+import { messageLien } from "@/lib/story-message";
 
 // Invitation par email : masquée puis réactivée le 15 novembre 2026 (décision
 // utilisateur) sous le nom « Envoyer une invitation », car la fenêtre de
@@ -61,6 +62,7 @@ export default function VisibiliteListe({
   slug,
   status,
   eventName,
+  eventType = null,
   lienPublic,
   itemCount = 0,
   shortAlias = null,
@@ -71,6 +73,7 @@ export default function VisibiliteListe({
   slug: string;
   status: EventStatus;
   eventName: string;
+  eventType?: string | null;
   lienPublic: string;
   itemCount?: number;
   shortAlias?: string | null;
@@ -251,6 +254,32 @@ export default function VisibiliteListe({
     lien.click();
     lien.remove();
     setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  }
+
+  // « Envoyer le lien » : menu de partage du téléphone avec un message déjà
+  // rédigé (SMS, WhatsApp, Messenger, mail…), sans image — l'aperçu de la
+  // liste vient tout seul de l'image Open Graph. Repli ordinateur : message
+  // copié, prêt à coller.
+  async function handleEnvoyerLien() {
+    if (!shared) return;
+    setStoryMessageAffiche(null);
+    const texte = messageLien(eventType, lienPublic);
+    if (typeof navigator.share === "function") {
+      try {
+        await navigator.share({ text: texte });
+        return;
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(texte);
+      setStoryMessageAffiche(
+        `Message copié, prêt à coller dans un SMS, WhatsApp ou un mail : « ${texte} »`,
+      );
+    } catch {
+      setStoryMessageAffiche(`Copiez ce message pour l'envoyer à vos proches : « ${texte} »`);
+    }
   }
 
   async function handleStory() {
@@ -574,22 +603,41 @@ export default function VisibiliteListe({
         )}
         <button
           type="button"
-          onClick={handleStory}
-          disabled={!shared || storyPending}
+          onClick={handleEnvoyerLien}
+          disabled={!shared}
           title={shared ? undefined : "Ouvrez d'abord votre liste aux invités"}
           className={`font-heading inline-flex items-center justify-center gap-2.5 rounded-[20px] px-6 py-4 text-[17px] font-bold ${
             shared
-              ? "cursor-pointer bg-jaune text-[#6B4A0F] hover:bg-[#EBAB2C] disabled:opacity-60"
+              ? "cursor-pointer bg-jaune text-[#6B4A0F] hover:bg-[#EBAB2C]"
               : "cursor-default bg-[#F2DFC9] text-[#A08D7E]"
           }`}
         >
-          {storyPending ? <KdovieSpinner className="h-5 w-5" /> : <IconeTelephonePartage />}
-          Partager
+          <span className="text-lg" aria-hidden="true">💬</span>
+          Envoyer le lien
         </button>
         {shared && (
           <p className="-mt-1 max-w-72 self-center px-2 text-center text-[13px] leading-snug text-[#7A6354]">
-            En story ou en message, sur Instagram ou TikTok. Le lien de votre liste est copié en
-            même temps, prêt à coller.
+            Par SMS, WhatsApp, Messenger ou mail, avec un message déjà rédigé.
+          </p>
+        )}
+        <button
+          type="button"
+          onClick={handleStory}
+          disabled={!shared || storyPending}
+          title={shared ? undefined : "Ouvrez d'abord votre liste aux invités"}
+          className={`font-heading inline-flex items-center justify-center gap-2.5 rounded-[20px] border-2 px-6 py-3.5 text-[17px] font-bold ${
+            shared
+              ? "cursor-pointer border-jaune bg-white text-[#6B4A0F] hover:bg-[#FDF2DA] disabled:opacity-60"
+              : "cursor-default border-[#F2DFC9] bg-[#F2DFC9] text-[#A08D7E]"
+          }`}
+        >
+          {storyPending ? <KdovieSpinner className="h-5 w-5" /> : <IconeTelephonePartage />}
+          Partager en story
+        </button>
+        {shared && (
+          <p className="-mt-1 max-w-72 self-center px-2 text-center text-[13px] leading-snug text-[#7A6354]">
+            Sur Instagram ou TikTok, avec un visuel. Le lien est copié en même temps, prêt à
+            coller.
           </p>
         )}
         <button

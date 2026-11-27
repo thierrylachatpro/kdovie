@@ -3630,6 +3630,15 @@ Contenu, de haut en bas, sur fond crème `#FFF8F0` (palette déjà validée : co
 
 **Invitation par email réactivée (15 novembre 2026, décision utilisateur)** : la fenêtre de partage des ordinateurs ne propose pas toujours l'email (Windows depuis le remplacement de « Courrier » par le nouvel Outlook, messageries web jamais). `AFFICHER_INVITATION_EMAIL = true`, bouton renommé **« Envoyer une invitation »** (corail, bouton principal). « Partager » reste en dessous, en jaune, avec une icône SVG « téléphone + flèche de partage » (`IconeTelephonePartage`) à la place de l'emoji 📱, pour signaler un usage plutôt mobile.
 
+**Bouton « Envoyer le lien » (27 novembre 2026, décision utilisateur)** : nouveau bouton (jaune)
+entre « Envoyer une invitation » et le partage story, pour SMS / WhatsApp / Messenger / mail. Ouvre
+le menu de partage avec un **message déjà rédigé contenant le lien** (`navigator.share({ text })`,
+sans image ni champ `url` séparé ; l'aperçu vient de l'image Open Graph). Message selon le type de
+liste, à la première personne (`messageLien` dans `lib/story-message.ts`, ex. « Une idée pour Noël ?
+Voici ma liste : kdovie.com/kdo/… »). Sans menu de partage (ordinateur) : message complet copié.
+Le bouton story devient **« Partager en story »** (bordure jaune, fond blanc), image seule, inchangé
+sinon.
+
 ## Fenêtre de rappel « liste encore en brouillon »
 
 Décision utilisateur du 15 novembre 2026, à développer. Constat : beaucoup de listes restent en `brouillon`, les organisateurs ne semblent pas voir qu'il faut les ouvrir aux invités.

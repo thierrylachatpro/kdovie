@@ -193,6 +193,7 @@ export default async function EvenementPage({
           slug={event.slug}
           status={event.status as EventStatus}
           eventName={event.name}
+          eventType={event.type}
           lienPublic={lienPublic}
           itemCount={items.length}
           shortAlias={event.short_alias}

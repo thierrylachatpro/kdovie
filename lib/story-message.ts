@@ -37,3 +37,24 @@ const THEME_PAR_DEFAUT: StoryTheme = { emoji: "✨", fondHaut: "#FFF8F0", fondBa
 export function storyTheme(type: string | null): StoryTheme {
   return (type && THEMES[type]) || THEME_PAR_DEFAUT;
 }
+
+// Message prêt à envoyer avec le lien de la liste (SMS, WhatsApp, Messenger,
+// mail…), via le bouton « Envoyer le lien » de VisibiliteListe. Écrit à la
+// première personne : c'est l'organisateur qui l'envoie à ses proches. Le lien
+// est dans le texte lui-même (pas de champ url séparé, que certaines applis
+// dupliquent).
+const MESSAGES_LIEN: Record<string, string> = {
+  naissance: "Bébé arrive bientôt ! Si vous voulez nous gâter, voici notre liste de naissance :",
+  anniversaire: "C'est bientôt mon anniversaire ! Une petite idée ? Voici ma liste :",
+  mariage: "On se dit oui ! Voici notre liste de mariage :",
+  noel: "Une idée pour Noël ? Voici ma liste :",
+  pot_depart: "Une nouvelle page commence ! Pour participer au cadeau, c'est par ici :",
+  cremaillere: "On a enfin notre chez-nous ! Voici notre liste pour l'équiper :",
+  bapteme: "Un beau jour se prépare ! Voici la liste pour le baptême :",
+};
+
+const MESSAGE_LIEN_PAR_DEFAUT = "Envie de me faire plaisir ? Voici ma liste de cadeaux :";
+
+export function messageLien(type: string | null, lien: string): string {
+  return `${(type && MESSAGES_LIEN[type]) || MESSAGE_LIEN_PAR_DEFAUT} ${lien}`;
+}
