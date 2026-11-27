@@ -14,12 +14,14 @@ export type SortableGiftItem = {
   price_cents: number | null;
   funded_amount_cents: number;
   position: number;
+  contributions_closed_at?: string | null;
 };
 
 // "Terminé" = cagnotte finalisée ou article réservé.
 function estTermine(item: SortableGiftItem): boolean {
   if (item.status === "reserve") return true;
   if (item.status === "cagnotte") {
+    if (item.contributions_closed_at) return true;
     return item.price_cents !== null && item.funded_amount_cents >= item.price_cents;
   }
   return false;

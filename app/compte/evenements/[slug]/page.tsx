@@ -59,7 +59,7 @@ export default async function EvenementPage({
   const { data: giftItems } = await supabase
     .from("gift_items")
     .select(
-      "id, title, original_title, price_cents, image_url, description, source_url, mode, status, funded_amount_cents, position",
+      "id, title, original_title, price_cents, image_url, description, source_url, mode, status, funded_amount_cents, position, contributions_closed_at",
     )
     .eq("event_id", event.id)
     .order("position", { ascending: true });

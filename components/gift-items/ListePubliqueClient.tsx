@@ -28,6 +28,7 @@ type GiftItem = {
   mode: string;
   funded_amount_cents: number;
   position: number;
+  contributions_closed_at: string | null;
 };
 
 const TONES = ["#F7D9C9", "#F5E3C9", "#DCE7DA"];
@@ -104,6 +105,7 @@ export default function ListePubliqueClient({
             mode: string;
             funded_amount_cents: number;
             position: number;
+            contributions_closed_at: string | null;
           };
           setItems((current) =>
             current.map((item) =>
@@ -114,6 +116,7 @@ export default function ListePubliqueClient({
                     mode: updated.mode,
                     funded_amount_cents: updated.funded_amount_cents,
                     position: updated.position,
+                    contributions_closed_at: updated.contributions_closed_at,
                   }
                 : item,
             ),
@@ -241,12 +244,15 @@ export default function ListePubliqueClient({
           const estAffilie = item.is_affiliate;
           const isTaken = item.status === "reserve";
           const isPot = item.status === "cagnotte";
+          // Cagnotte clôturée par l'organisateur : plus de cotisation possible.
+          const isClosed = isPot && Boolean(item.contributions_closed_at);
           const canReserve = item.status === "disponible" && item.mode !== "cotisation_obligatoire";
           const canContribute =
             organizerStripeStatus !== "aucun" &&
             item.status !== "reserve" &&
-            item.mode !== "cotisation_impossible";
-          const rienDisponible = !canReserve && !canContribute && !isTaken;
+            item.mode !== "cotisation_impossible" &&
+            !isClosed;
+          const rienDisponible = !canReserve && !canContribute && !isTaken && !isClosed;
           const percent =
             isPot && item.price_cents
               ? Math.round((item.funded_amount_cents / item.price_cents) * 100)
@@ -367,6 +373,11 @@ export default function ListePubliqueClient({
                     Déjà réservé
                   </div>
                 )}
+                {isClosed && (
+                  <div className="rounded-2xl bg-[#DCE7DA] px-5 py-3.5 text-center text-[15px] font-semibold text-[#2F4A2C]">
+                    Cagnotte terminée
+                  </div>
+                )}
                 {rienDisponible && (
                   <div className="rounded-2xl bg-creme px-5 py-3.5 text-center text-[15px] text-[#7A6354]">
                     Cagnotte bientôt disponible
@@ -392,12 +403,15 @@ export default function ListePubliqueClient({
           const estAffilie = item.is_affiliate;
           const isTaken = item.status === "reserve";
           const isPot = item.status === "cagnotte";
+          // Cagnotte clôturée par l'organisateur : plus de cotisation possible.
+          const isClosed = isPot && Boolean(item.contributions_closed_at);
           const canReserve = item.status === "disponible" && item.mode !== "cotisation_obligatoire";
           const canContribute =
             organizerStripeStatus !== "aucun" &&
             item.status !== "reserve" &&
-            item.mode !== "cotisation_impossible";
-          const rienDisponible = !canReserve && !canContribute && !isTaken;
+            item.mode !== "cotisation_impossible" &&
+            !isClosed;
+          const rienDisponible = !canReserve && !canContribute && !isTaken && !isClosed;
           const percent =
             isPot && item.price_cents
               ? Math.round((item.funded_amount_cents / item.price_cents) * 100)
@@ -500,6 +514,11 @@ export default function ListePubliqueClient({
                 {isTaken && (
                   <div className="mt-0.5 rounded-2xl bg-[#DCE7DA] py-3.5 text-center text-[15px] font-semibold text-[#2F4A2C]">
                     Déjà réservé
+                  </div>
+                )}
+                {isClosed && (
+                  <div className="mt-0.5 rounded-2xl bg-[#DCE7DA] py-3.5 text-center text-[15px] font-semibold text-[#2F4A2C]">
+                    Cagnotte terminée
                   </div>
                 )}
                 {rienDisponible && (

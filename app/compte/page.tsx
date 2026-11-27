@@ -43,7 +43,7 @@ export default async function ComptePage() {
       ? await supabase
           .from("gift_items")
           .select(
-            "id, event_id, title, status, price_cents, funded_amount_cents, created_at, mode",
+            "id, event_id, title, status, price_cents, funded_amount_cents, created_at, mode, contributions_closed_at",
           )
           .in("event_id", eventIds)
       : { data: [] };
@@ -55,6 +55,7 @@ export default async function ComptePage() {
   // « Cotisation et Réservation » pas encore réservé — et que la cagnotte
   // n'est pas active.
   const risqueCotisationSansCagnotte = (giftItems ?? []).some((item) => {
+    if (item.contributions_closed_at) return false;
     if (item.mode === "cotisation_obligatoire") return true;
     if (item.mode === "auto") return item.status !== "reserve";
     return false;

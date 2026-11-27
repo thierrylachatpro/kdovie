@@ -35,6 +35,7 @@ type Item = {
   mode: string;
   funded_amount_cents: number;
   position: number;
+  contributions_closed_at: string | null;
 };
 
 function GripIcon() {

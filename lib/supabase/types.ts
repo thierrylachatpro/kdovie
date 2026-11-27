@@ -134,6 +134,7 @@ export type Database = {
       }
       gift_items: {
         Row: {
+          contributions_closed_at: string | null
           created_at: string
           currency: string
           description: string | null
@@ -153,6 +154,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          contributions_closed_at?: string | null
           created_at?: string
           currency?: string
           description?: string | null
@@ -172,6 +174,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          contributions_closed_at?: string | null
           created_at?: string
           currency?: string
           description?: string | null

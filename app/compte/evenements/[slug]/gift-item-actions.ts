@@ -199,3 +199,42 @@ export async function deleteGiftItem(
       : null,
   };
 }
+
+// Clôture / réouverture d'une cagnotte par l'organisateur — voir CLAUDE.md >
+// "Clôturer une cagnotte". Une cagnotte clôturée n'accepte plus de nouvelle
+// cotisation (revérifié dans createContribution) ; l'argent déjà cotisé reste
+// acquis. Réversible. La policy RLS gift_items_update_own_event garantit déjà
+// que seul l'organisateur de la liste peut modifier le cadeau.
+export async function setCagnotteCloturee(
+  itemId: string,
+  cloturee: boolean,
+  slug: string,
+): Promise<{ error: string | null }> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "Votre session a expiré, reconnectez-vous." };
+
+  const { data: item } = await supabase
+    .from("gift_items")
+    .select("id, status, events!inner(organizer_id)")
+    .eq("id", itemId)
+    .eq("events.organizer_id", user.id)
+    .maybeSingle();
+  if (!item) return { error: "Cadeau introuvable." };
+  if (item.status !== "cagnotte") {
+    return { error: "Seule une cagnotte déjà commencée peut être clôturée." };
+  }
+
+  const { error } = await supabase
+    .from("gift_items")
+    .update({ contributions_closed_at: cloturee ? new Date().toISOString() : null })
+    .eq("id", itemId);
+  if (error) return { error: "Impossible d'enregistrer, réessayez." };
+
+  revalidatePath(`/compte/evenements/${slug}`);
+  revalidatePath(`/liste/${slug}`);
+  revalidatePath("/compte");
+  return { error: null };
+}

@@ -3,6 +3,7 @@
 import { useState, type ChangeEvent } from "react";
 import {
   deleteGiftItem,
+  setCagnotteCloturee,
   updateGiftItem,
 } from "@/app/compte/evenements/[slug]/gift-item-actions";
 import { reverserCagnotteArticle } from "@/app/compte/evenements/[slug]/reversement-actions";
@@ -25,6 +26,7 @@ type GiftItem = {
   mode: string;
   funded_amount_cents: number;
   position: number;
+  contributions_closed_at: string | null;
 };
 
 const TONES = ["#F7D9C9", "#F5E3C9", "#DCE7DA"];
@@ -69,6 +71,23 @@ export default function GiftItemCard({
   const [isPending, setIsPending] = useState(false);
   const [nomRevele, setNomRevele] = useState(false);
   const [reverseMessage, setReverseMessage] = useState<string | null>(null);
+  // Clôture de la cagnotte (voir CLAUDE.md > "Clôturer une cagnotte").
+  const [confirmCloture, setConfirmCloture] = useState(false);
+  const [clotureEnCours, setClotureEnCours] = useState(false);
+  const cagnotteCloturee =
+    item.status === "cagnotte" && Boolean(item.contributions_closed_at);
+
+  async function basculerCloture(cloturee: boolean) {
+    setErreur(null);
+    setClotureEnCours(true);
+    const result = await setCagnotteCloturee(item.id, cloturee, slug);
+    setClotureEnCours(false);
+    if (result.error) {
+      setErreur(result.error);
+      return;
+    }
+    setConfirmCloture(false);
+  }
 
   // Prévient le parent (GiftItemsList) pour qu'il désactive le glisser-déposer
   // de cette carte pendant une édition/suppression/reversement en cours —
@@ -118,8 +137,11 @@ export default function GiftItemCard({
     price_cents: item.price_cents,
     funded_amount_cents: item.funded_amount_cents,
     position: item.position,
+    contributions_closed_at: item.contributions_closed_at,
   });
-  const badge = BADGES[item.status] ?? BADGES.disponible;
+  const badge = cagnotteCloturee
+    ? { bg: "#DCE7DA", fg: "#2F4A2C", label: "Cagnotte clôturée" }
+    : (BADGES[item.status] ?? BADGES.disponible);
   const percent =
     item.status === "cagnotte" && item.price_cents
       ? Math.round((item.funded_amount_cents / item.price_cents) * 100)
@@ -300,6 +322,47 @@ export default function GiftItemCard({
                   n&apos;est plus modifiable ni supprimable.
                 </p>
               )}
+              {cagnotteCloturee && !confirmCloture && (
+                <p className="mt-2.5 max-w-130 text-[15px] leading-relaxed text-[#2F4A2C]">
+                  Cagnotte clôturée : vos proches ne peuvent plus cotiser sur ce cadeau. Ce qui a
+                  déjà été cotisé reste à vous.
+                </p>
+              )}
+              {confirmCloture && (
+                <div className="mt-4 max-w-130 rounded-[18px] bg-[#F5E3C9] p-4.5">
+                  <div className="font-heading mb-1.5 text-[17px] font-bold text-[#7A5A16]">
+                    {cagnotteCloturee ? "Rouvrir la cagnotte ?" : "Clôturer la cagnotte ?"}
+                  </div>
+                  <p className="mb-3.5 text-[15px] text-[#7A5A16]">
+                    {cagnotteCloturee
+                      ? "Vos proches pourront de nouveau cotiser sur ce cadeau."
+                      : `Vos proches ne pourront plus cotiser sur ce cadeau. Les ${formatPriceCents(item.funded_amount_cents)} déjà cotisés restent à vous, et vous pourrez rouvrir la cagnotte plus tard.`}
+                  </p>
+                  <div className="flex flex-wrap gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => basculerCloture(!cagnotteCloturee)}
+                      disabled={clotureEnCours}
+                      className="font-heading inline-flex items-center gap-2 rounded-2xl bg-corail px-5 py-3 text-[15px] font-bold text-creme hover:bg-[#D45F37] disabled:opacity-60"
+                    >
+                      {clotureEnCours && <KdovieSpinner className="h-3.5 w-3.5" variant="dark" />}
+                      {cagnotteCloturee ? "Oui, rouvrir" : "Oui, clôturer"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setConfirmCloture(false);
+                        setErreur(null);
+                      }}
+                      disabled={clotureEnCours}
+                      className="font-heading rounded-2xl bg-white px-5 py-3 text-[15px] font-bold text-[#5C4436] hover:bg-[#F7E7D6]"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+                  {erreur && <p className="mt-2 text-sm text-corail-dark">{erreur}</p>}
+                </div>
+              )}
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -376,6 +439,15 @@ export default function GiftItemCard({
                   className="font-heading rounded-2xl bg-sauge px-5 py-3 text-[15px] font-bold text-[#F7FBF6] hover:bg-[#79997A]"
                 >
                   Virer sur mon compte bancaire
+                </button>
+              )}
+              {item.status === "cagnotte" && !confirmCloture && (
+                <button
+                  type="button"
+                  onClick={() => setConfirmCloture(true)}
+                  className="font-heading rounded-2xl border-2 border-[#F2DFC9] bg-creme px-4.5 py-2.5 text-[15px] font-bold text-[#5C4436] hover:border-jaune hover:bg-[#FDF2DA]"
+                >
+                  {cagnotteCloturee ? "Rouvrir la cagnotte" : "Clôturer la cagnotte"}
                 </button>
               )}
             </>

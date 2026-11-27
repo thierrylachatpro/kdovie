@@ -51,14 +51,18 @@ export async function createContribution(
 
   const { data: giftItem } = await admin
     .from("gift_items")
-    .select("id, title, mode, status, event_id")
+    .select("id, title, mode, status, event_id, contributions_closed_at")
     .eq("id", giftItemId)
     .single();
 
   if (!giftItem) {
     return { error: "Cadeau introuvable." };
   }
-  if (giftItem.status === "reserve" || giftItem.mode === "cotisation_impossible") {
+  if (
+    giftItem.status === "reserve" ||
+    giftItem.mode === "cotisation_impossible" ||
+    giftItem.contributions_closed_at
+  ) {
     return { error: "La cotisation n'est plus possible pour ce cadeau." };
   }
 

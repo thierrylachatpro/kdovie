@@ -129,7 +129,7 @@ export default async function ListePubliquePage({
     ? await supabase
         .from("gift_items")
         .select(
-          "id, title, original_title, price_cents, image_url, source_url, status, mode, funded_amount_cents, position",
+          "id, title, original_title, price_cents, image_url, source_url, status, mode, funded_amount_cents, position, contributions_closed_at",
         )
         .eq("event_id", event.id)
         .order("position", { ascending: true })

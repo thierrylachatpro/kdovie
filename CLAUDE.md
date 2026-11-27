@@ -570,6 +570,23 @@ Aujourd'hui, l'argent cotisé transite automatiquement du solde Stripe du compte
 - **Email de rappel (filet 90 jours)** : `components/emails/RappelReversementEmail.tsx` + route cron `app/api/cron/rappel-reversement/route.ts` (déclarée dans `vercel.json`, `0 8 * * *`). Parcourt les comptes actifs sans virement (`last_payout_at`) depuis > 70 jours et sans rappel (`last_payout_reminder_at`) depuis > 14 jours, vérifie un solde Stripe non nul, envoie l'email, met à jour `last_payout_reminder_at`. Auth par `Authorization: Bearer $CRON_SECRET` si la variable est posée. **`CRON_SECRET` posée sur Vercel (Production) le 7 septembre 2026.** **Cron confirmé actif** : capture d'écran Vercel → Observability → Cron Jobs du 7 septembre 2026, route `/api/cron/rappel-reversement` bien enregistrée (`0 8 * * *`, scope Production, 1 invocation sur les 12 dernières heures, P75 1,29 s — pas d'erreur visible sur cette exécution). **Reste à confirmer** : que cette exécution a réellement identifié un compte concerné et envoyé l'email de rappel (le tableau de bord montre juste que la route s'exécute sans erreur, pas son résultat métier) — à vérifier via les logs de fonction Vercel ou en conditions réelles avec un compte organisateur au solde disponible non nul depuis > 70 jours sans virement. **Non testable pour l'instant (7 septembre 2026)** : les comptes Stripe Connect existants n'ont que quelques jours d'ancienneté — le seuil de 70 jours sans virement ne peut mécaniquement pas être atteint avant plusieurs semaines. Pas un point bloquant ni un bug, juste une vérification à reporter naturellement dans le temps. Revenir dessus une fois qu'un compte réel dépasse ce délai sans reversement.
 - **Testé** : `tsc`/`lint`/`build` propres. Rendu du bouton, du badge « déjà reversé » et du panneau de confirmation (montant plafonné + non plafonné) vérifié par capture (page de prévisualisation temporaire, supprimée). Script `basculer-payouts-manuel.mjs` exécuté en dry-run. **Pas exercé en conditions réelles** : le virement Stripe lui-même (`payouts.create`) et le cron nécessitent un compte connecté onboardé avec un solde disponible — à vérifier par l'utilisateur après application de la migration et exécution du script de bascule.
 
+## Clôturer une cagnotte (27 novembre 2026)
+
+Constat de l'utilisateur : une fois qu'un invité a cotisé, l'organisateur ne pouvait plus arrêter
+les cotisations sur un cadeau (verrouillé, « Je cotise » affiché indéfiniment). Décision : bouton
+**« Clôturer la cagnotte »**, réversible (« Rouvrir la cagnotte »).
+
+- Migration `0030_gift_items_contributions_closed.sql` : `gift_items.contributions_closed_at`
+  (timestamptz, nullable). Hors trigger `protect_gift_item_mode` (le cadeau est déjà verrouillé).
+- `setCagnotteCloturee(itemId, cloturee, slug)` (`gift-item-actions.ts`) : propriétaire + `status =
+  'cagnotte'` uniquement. Garde-fou serveur dans `createContribution` : refus si clôturée. Une
+  Checkout Session déjà ouverte avant la clôture peut encore aboutir (paiement accepté).
+- `GiftItemCard` : bouton + confirmation, badge « Cagnotte clôturée ». Page publique : plus de « Je
+  cotise », encart « Cagnotte terminée », carte atténuée (`estAttenue`). Exclue de la fenêtre
+  « Activez votre cagnotte ». Le virement vers le compte bancaire reste possible.
+- Aucun remboursement (CGV inchangées). Piste 2 non faite : « Retirer de la liste » (masquer un
+  cadeau à cotisation sans effacer la trace du paiement).
+
 ## Backlog produit : pages "À propos", "Aide" (19 août 2026)
 
 Constaté en vérifiant la cohérence de la page d'accueil : le pied de page (`components/accueil/AccueilClient.tsx`) contient des liens "À propos" et "Aide" qui ne mènent nulle part (`href="#"`), en plus des trois pages légales déjà construites (mentions légales, CGU, CGV) et du lien "Confidentialité" — celui-ci restera un lien mort tant que la politique de confidentialité RGPD elle-même n'est pas rédigée (déjà noté comme hors périmètre dans "Pages légales" ci-dessus). Décision du 19 août 2026 : reporté, à recadrer plus tard (contenu à définir : une vraie page "À propos", une FAQ/aide dédiée ou un renvoi vers `contact@kdovie.com`) — ne pas construire ces pages sans en rediscuter d'abord.
